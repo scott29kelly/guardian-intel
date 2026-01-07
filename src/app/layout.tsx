@@ -1,30 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Display font for headers - bold, impactful
-const displayFont = Space_Grotesk({
+// Display font - bold, distinctive
+const outfit = Outfit({ 
+  subsets: ["latin"], 
   variable: "--font-display",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+});
+
+// Mono font for data/numbers
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ["latin"], 
+  variable: "--font-mono",
   weight: ["400", "500", "600", "700"],
 });
 
+// Sans font - clean, readable
+const sans = Outfit({ 
+  subsets: ["latin"], 
+  variable: "--font-sans",
+  weight: ["300", "400", "500", "600"],
+});
+
 export const metadata: Metadata = {
-  title: "Guardian Intel | Sales Intelligence Command Center",
-  description: "Real-time customer intelligence and predictive analytics for Guardian sales teams",
-  icons: {
-    icon: "/favicon.ico",
-  },
+  title: "GUARDIAN INTEL | Storm Damage Command",
+  description: "Real-time storm intelligence and sales command center for Guardian Roofing",
 };
 
 export default function RootLayout({
@@ -35,18 +38,17 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${displayFont.variable} font-sans min-h-screen bg-surface-950`}
+        className={cn(
+          "min-h-screen bg-void-950 font-sans antialiased",
+          outfit.variable,
+          jetbrainsMono.variable,
+          sans.variable
+        )}
       >
-        {/* Background gradient effects */}
-        <div className="fixed inset-0 -z-10">
-          {/* Primary gradient orb */}
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-guardian-500/10 rounded-full blur-[120px]" />
-          {/* Accent gradient orb */}
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-accent-500/10 rounded-full blur-[100px]" />
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 grid-pattern opacity-30" />
-        </div>
+        {/* Noise texture overlay */}
+        <div className="noise-overlay" aria-hidden="true" />
         
+        {/* Main content */}
         {children}
       </body>
     </html>
