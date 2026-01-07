@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -32,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { PipelineChart } from "@/components/charts/pipeline-chart";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { useToast } from "@/components/ui/toast";
 
 // Mock data for team members
 const teamMembers = [
@@ -241,7 +243,43 @@ const getRankBadge = (rank: number) => {
 };
 
 export default function AnalyticsPage() {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [timeRange, setTimeRange] = useState("this-month");
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+
+  const handleFilter = () => {
+    showToast("info", "Filter Options", "Opening analytics filters...");
+  };
+
+  const handleExportReport = () => {
+    showToast("success", "Export Started", "Generating PDF report for your team...");
+    setTimeout(() => {
+      showToast("success", "Export Complete", "Report downloaded successfully");
+    }, 2000);
+  };
+
+  const handleViewAllAlerts = () => {
+    showToast("info", "Loading Alerts", "Displaying all team alerts...");
+  };
+
+  const handleAlertClick = (message: string) => {
+    showToast("info", "Alert Details", message);
+  };
+
+  const handleReviewDeal = (dealName: string) => {
+    showToast("info", "Opening Deal", `Loading ${dealName} deal details...`);
+    router.push("/customers");
+  };
+
+  const handleViewOpportunity = (customerName: string) => {
+    showToast("info", "Opening Opportunity", `Loading ${customerName} profile...`);
+    router.push("/customers");
+  };
+
+  const handleCoachRep = (repName: string) => {
+    showToast("info", "Coaching Mode", `Opening coaching session for ${repName}...`);
+  };
 
   return (
     <motion.div
@@ -271,11 +309,11 @@ export default function AnalyticsPage() {
             <option value="this-quarter">This Quarter</option>
             <option value="this-year">This Year</option>
           </select>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleFilter}>
             <Filter className="w-4 h-4" />
             Filter
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportReport}>
             <Download className="w-4 h-4" />
             Export Report
           </Button>
@@ -300,11 +338,12 @@ export default function AnalyticsPage() {
                   <Badge
                     key={alert.id}
                     className="bg-surface-800/50 text-surface-300 cursor-pointer hover:bg-surface-700"
+                    onClick={() => handleAlertClick(alert.message)}
                   >
                     {alert.message.substring(0, 40)}...
                   </Badge>
                 ))}
-                <Button variant="ghost" size="sm" className="text-amber-400">
+                <Button variant="ghost" size="sm" className="text-amber-400" onClick={handleViewAllAlerts}>
                   View All
                 </Button>
               </div>
@@ -700,13 +739,13 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">Henderson - 18 days cold</span>
-                <Button variant="ghost" size="sm" className="h-7 text-amber-400">
+                <Button variant="ghost" size="sm" className="h-7 text-amber-400" onClick={() => handleReviewDeal("Henderson")}>
                   Review
                 </Button>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">Walsh - Stalled at Proposal</span>
-                <Button variant="ghost" size="sm" className="h-7 text-amber-400">
+                <Button variant="ghost" size="sm" className="h-7 text-amber-400" onClick={() => handleReviewDeal("Walsh")}>
                   Review
                 </Button>
               </div>
@@ -728,13 +767,13 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">Chen - $22,500 (85%)</span>
-                <Button variant="ghost" size="sm" className="h-7 text-emerald-400">
+                <Button variant="ghost" size="sm" className="h-7 text-emerald-400" onClick={() => handleViewOpportunity("Chen")}>
                   View
                 </Button>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">Martinez - $18,000 (90%)</span>
-                <Button variant="ghost" size="sm" className="h-7 text-emerald-400">
+                <Button variant="ghost" size="sm" className="h-7 text-emerald-400" onClick={() => handleViewOpportunity("Martinez")}>
                   View
                 </Button>
               </div>
@@ -756,13 +795,13 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">David Kim - Closing rate</span>
-                <Button variant="ghost" size="sm" className="h-7 text-violet-400">
+                <Button variant="ghost" size="sm" className="h-7 text-violet-400" onClick={() => handleCoachRep("David Kim")}>
                   Coach
                 </Button>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-surface-800/30">
                 <span className="text-sm text-surface-300">Emily Rodriguez - New hire</span>
-                <Button variant="ghost" size="sm" className="h-7 text-violet-400">
+                <Button variant="ghost" size="sm" className="h-7 text-violet-400" onClick={() => handleCoachRep("Emily Rodriguez")}>
                   Coach
                 </Button>
               </div>

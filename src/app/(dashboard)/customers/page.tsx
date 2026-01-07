@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -23,6 +24,7 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
 import { mockCustomers, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+import { useToast } from "@/components/ui/toast";
 
 const statusOptions = [
   { value: "all", label: "All Status" },
@@ -54,12 +56,30 @@ const sortOptions = [
 type ViewMode = "cards" | "table";
 
 export default function CustomersPage() {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("leadScore");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
+
+  const handleImport = () => {
+    showToast("info", "Import Started", "Select a CSV or Excel file to import customers...");
+  };
+
+  const handleExport = () => {
+    showToast("success", "Export Complete", `${filteredCustomers.length} customers exported to CSV`);
+  };
+
+  const handleAddCustomer = () => {
+    showToast("info", "Add Customer", "Opening new customer form...");
+  };
+
+  const handleRowAction = (customerId: string, customerName: string) => {
+    showToast("info", "Quick Actions", `Opening actions for ${customerName}...`);
+  };
 
   // Filter and sort customers
   const filteredCustomers = mockCustomers
@@ -152,15 +172,15 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleImport}>
             <Upload className="w-4 h-4" />
             Import
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="w-4 h-4" />
             Export
           </Button>
-          <Button>
+          <Button onClick={handleAddCustomer}>
             <Plus className="w-4 h-4" />
             Add Customer
           </Button>
@@ -390,7 +410,11 @@ export default function CustomersPage() {
                         <span className="text-sm text-surface-300">{customer.assignedRep}</span>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleRowAction(customer.id, `${customer.firstName} ${customer.lastName}`)}
+                        >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </td>

@@ -28,6 +28,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 // Playbook Categories with Icons
 const categories = [
@@ -241,10 +242,41 @@ const getCategoryColor = (category: string) => {
 };
 
 export default function PlaybooksPage() {
+  const { showToast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlaybook, setSelectedPlaybook] = useState<string | null>(null);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
+  const [favorited, setFavorited] = useState<Set<string>>(new Set());
+
+  const handleCreatePlaybook = () => {
+    showToast("info", "Create Playbook", "Opening playbook editor...");
+  };
+
+  const handleFavorite = (playbookId: string, playbookTitle: string) => {
+    const newFavorited = new Set(favorited);
+    if (newFavorited.has(playbookId)) {
+      newFavorited.delete(playbookId);
+      showToast("info", "Removed from Favorites", `${playbookTitle} removed from favorites`);
+    } else {
+      newFavorited.add(playbookId);
+      showToast("success", "Added to Favorites", `${playbookTitle} added to favorites`);
+    }
+    setFavorited(newFavorited);
+  };
+
+  const handlePracticeMode = (playbookTitle: string) => {
+    showToast("info", "Practice Mode", `Starting practice session for "${playbookTitle}"...`);
+  };
+
+  const handleFeedback = (type: "positive" | "improvement" | "notes", playbookTitle: string) => {
+    const messages = {
+      positive: `Thanks for the feedback! "${playbookTitle}" marked as effective`,
+      improvement: `Opening feedback form for "${playbookTitle}"...`,
+      notes: `Opening notes editor for "${playbookTitle}"...`
+    };
+    showToast(type === "positive" ? "success" : "info", "Feedback Recorded", messages[type]);
+  };
 
   const filteredPlaybooks = playbooks.filter((playbook) => {
     const matchesCategory = selectedCategory === "all" || playbook.category === selectedCategory;
@@ -375,7 +407,7 @@ export default function PlaybooksPage() {
           </div>
 
           {/* Add New Button */}
-          <Button className="mt-4 w-full">
+          <Button className="mt-4 w-full" onClick={handleCreatePlaybook}>
             <Plus className="w-4 h-4" />
             Create Custom Playbook
           </Button>
@@ -430,11 +462,16 @@ export default function PlaybooksPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          <Star className="w-4 h-4" />
-                          Favorite
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleFavorite(activePlaybook.id, activePlaybook.title)}
+                          className={favorited.has(activePlaybook.id) ? "bg-amber-500/20 border-amber-500/50 text-amber-400" : ""}
+                        >
+                          <Star className={`w-4 h-4 ${favorited.has(activePlaybook.id) ? "fill-current" : ""}`} />
+                          {favorited.has(activePlaybook.id) ? "Favorited" : "Favorite"}
                         </Button>
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => handlePracticeMode(activePlaybook.title)}>
                           <Zap className="w-4 h-4" />
                           Practice Mode
                         </Button>
@@ -534,15 +571,27 @@ export default function PlaybooksPage() {
                           Your feedback helps improve our playbooks for everyone
                         </p>
                         <div className="flex justify-center gap-3">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleFeedback("positive", activePlaybook.title)}
+                          >
                             <ThumbsUp className="w-4 h-4" />
                             Worked Great
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleFeedback("improvement", activePlaybook.title)}
+                          >
                             <MessageSquare className="w-4 h-4" />
                             Suggest Improvement
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleFeedback("notes", activePlaybook.title)}
+                          >
                             <FileText className="w-4 h-4" />
                             Add Notes
                           </Button>

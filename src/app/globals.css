@@ -158,54 +158,54 @@
   }
 
   /* =============================================
-     LIGHT GRAY THEME - Professional Light
+     LIGHT GRAY THEME - Professional Light (Darker)
      ============================================= */
   [data-theme="light-gray"] {
-    /* Backgrounds - warm gray tones */
-    --bg-primary: 220 14% 96%;
-    --bg-secondary: 220 13% 93%;
-    --bg-tertiary: 220 12% 89%;
-    --bg-hover: 220 12% 85%;
+    /* Backgrounds - darker warm gray tones */
+    --bg-primary: 220 12% 85%;
+    --bg-secondary: 220 11% 80%;
+    --bg-tertiary: 220 10% 75%;
+    --bg-hover: 220 10% 70%;
     
     /* Surfaces */
-    --surface-primary: 0 0% 100%;
-    --surface-secondary: 220 14% 96%;
-    --surface-hover: 220 13% 92%;
+    --surface-primary: 220 15% 92%;
+    --surface-secondary: 220 12% 85%;
+    --surface-hover: 220 11% 78%;
     
     /* Text */
-    --text-primary: 220 25% 15%;
-    --text-secondary: 220 15% 40%;
-    --text-muted: 220 10% 55%;
+    --text-primary: 220 30% 12%;
+    --text-secondary: 220 18% 30%;
+    --text-muted: 220 12% 45%;
     
     /* Borders */
-    --border: 220 13% 85%;
-    --border-hover: 220 13% 75%;
+    --border: 220 12% 70%;
+    --border-hover: 220 12% 60%;
     
-    /* Accents - slate blue-gray tones */
-    --accent-primary: 200 60% 45%;
-    --accent-secondary: 170 50% 40%;
-    --accent-danger: 15 75% 50%;
-    --accent-success: 160 55% 40%;
-    --accent-warning: 35 85% 50%;
+    /* Accents - richer slate blue-gray tones */
+    --accent-primary: 200 65% 40%;
+    --accent-secondary: 170 55% 35%;
+    --accent-danger: 15 80% 45%;
+    --accent-success: 160 60% 35%;
+    --accent-warning: 35 90% 45%;
     
     /* Gradients */
-    --gradient-start: #3d8da6;
-    --gradient-end: #3d8a73;
-    --gradient-danger-start: #d96a40;
-    --gradient-danger-end: #c2512e;
+    --gradient-start: #2d7a94;
+    --gradient-end: #2d7a63;
+    --gradient-danger-start: #c95a30;
+    --gradient-danger-end: #b24520;
     
     /* Shadows */
-    --shadow-color: 220 20% 70%;
-    --glow-primary: rgba(61, 141, 166, 0.12);
-    --glow-danger: rgba(217, 106, 64, 0.12);
+    --shadow-color: 220 20% 50%;
+    --glow-primary: rgba(45, 122, 148, 0.18);
+    --glow-danger: rgba(201, 90, 48, 0.18);
     
     /* Sidebar */
-    --sidebar-bg: 220 14% 94%;
-    --sidebar-border: 220 13% 88%;
+    --sidebar-bg: 220 12% 82%;
+    --sidebar-border: 220 11% 72%;
     
     /* Special Effects */
-    --noise-opacity: 0.006;
-    --scan-line-opacity: 0.008;
+    --noise-opacity: 0.01;
+    --scan-line-opacity: 0.012;
   }
 }
 

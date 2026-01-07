@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   CloudLightning,
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 // Mock storm data
 const activeAlerts = [
@@ -121,11 +123,47 @@ const severityColors: Record<string, string> = {
 };
 
 export default function StormsPage() {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const totalOpportunity = recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0);
   const totalAffected = recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0);
   const totalPending = recentStormEvents.reduce((sum, e) => sum + e.inspectionsPending, 0);
+
+  const handleFilter = () => {
+    showToast("info", "Filter Options", "Opening storm event filters...");
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    showToast("info", "Refreshing Data", "Fetching latest weather data from NOAA...");
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsRefreshing(false);
+    showToast("success", "Data Updated", "Weather data refreshed successfully");
+  };
+
+  const handleOpenWeatherMap = () => {
+    showToast("info", "Opening Map", "Launching external weather map service...");
+    window.open("https://www.weather.gov/", "_blank");
+  };
+
+  const handleViewAffectedCustomers = (alertId: string, areas: string[]) => {
+    showToast("info", "Loading Customers", `Finding customers in ${areas.join(", ")}...`);
+    router.push(`/customers?filter=storm-affected`);
+  };
+
+  const handleViewEventDetails = (eventId: string, eventType: string) => {
+    showToast("info", "Event Details", `Loading ${eventType} event details...`);
+    setSelectedEvent(eventId);
+  };
+
+  const handleOpenNOAA = () => {
+    showToast("info", "Opening NOAA", "Navigating to NOAA Storm Events Database...");
+    window.open("https://www.ncdc.noaa.gov/stormevents/", "_blank");
+  };
 
   return (
     <motion.div
@@ -144,15 +182,15 @@ export default function StormsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleFilter}>
             <Filter className="w-4 h-4" />
             Filter
           </Button>
-          <Button variant="outline">
-            <RefreshCw className="w-4 h-4" />
-            Refresh Data
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </Button>
-          <Button>
+          <Button onClick={handleOpenWeatherMap}>
             <ExternalLink className="w-4 h-4" />
             Open Weather Map
           </Button>
@@ -216,7 +254,7 @@ export default function StormsPage() {
                               {formatCurrency(alert.estimatedOpportunity)}
                             </span>
                           </div>
-                          <Button size="sm">
+                          <Button size="sm" onClick={() => handleViewAffectedCustomers(alert.id, alert.areas)}>
                             View Affected Customers
                           </Button>
                         </div>
@@ -280,7 +318,7 @@ export default function StormsPage() {
               <p className="text-sm text-surface-500">
                 Integration with mapping service (Google Maps, Mapbox) coming soon
               </p>
-              <Button variant="outline" className="mt-4">
+              <Button variant="outline" className="mt-4" onClick={handleOpenNOAA}>
                 <ExternalLink className="w-4 h-4" />
                 Open in NOAA Storm Events
               </Button>
@@ -367,7 +405,14 @@ export default function StormsPage() {
                         </div>
                       </div>
                       
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewEventDetails(event.id, event.type);
+                        }}
+                      >
                         View Details
                       </Button>
                     </div>

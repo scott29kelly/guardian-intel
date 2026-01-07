@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/toast";
 
 const settingsSections = [
   { id: "profile", label: "Profile", icon: User },
@@ -79,6 +80,7 @@ const dataIntegrations = [
 ];
 
 export default function SettingsPage() {
+  const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState("integrations");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -86,6 +88,35 @@ export default function SettingsPage() {
     setIsSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsSaving(false);
+    showToast("success", "Saved", "Your changes have been saved successfully");
+  };
+
+  const handleConnectCRM = (crmName: string) => {
+    showToast("info", "Connecting...", `Opening ${crmName} authentication flow...`);
+  };
+
+  const handleRegenerateWebhook = () => {
+    showToast("success", "Webhook Regenerated", "New webhook URL has been generated");
+  };
+
+  const handleChangeAvatar = () => {
+    showToast("info", "Upload Avatar", "Opening file picker...");
+  };
+
+  const handleRevealKey = () => {
+    showToast("info", "Key Revealed", "API key is now visible (hidden after 10 seconds)");
+  };
+
+  const handleCopyKey = () => {
+    showToast("success", "Copied", "API key copied to clipboard");
+  };
+
+  const handleRevokeKey = () => {
+    showToast("error", "Key Revoked", "API key has been revoked. Generate a new one to continue.");
+  };
+
+  const handleGenerateKey = () => {
+    showToast("success", "Key Generated", "New API key has been created");
   };
 
   return (
@@ -163,7 +194,7 @@ export default function SettingsPage() {
                             <p className="text-sm text-surface-400">{crm.description}</p>
                           </div>
                         </div>
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={() => handleConnectCRM(crm.name)}>
                           Connect
                         </Button>
                       </div>
@@ -251,7 +282,7 @@ export default function SettingsPage() {
                   <div className="p-4 bg-surface-800/30 rounded-lg border border-surface-700/50">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-white">Webhook Endpoint</h4>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={handleRegenerateWebhook}>
                         <RefreshCw className="w-4 h-4" />
                         Regenerate
                       </Button>
@@ -280,7 +311,7 @@ export default function SettingsPage() {
                     <span className="text-2xl font-bold text-white">SM</span>
                   </div>
                   <div>
-                    <Button variant="outline" size="sm">Change Avatar</Button>
+                    <Button variant="outline" size="sm" onClick={handleChangeAvatar}>Change Avatar</Button>
                     <p className="text-xs text-surface-500 mt-2">JPG, PNG or GIF. Max 2MB.</p>
                   </div>
                 </div>
@@ -384,13 +415,13 @@ export default function SettingsPage() {
                     gd_live_••••••••••••••••••••••••xxxx
                   </code>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm">Reveal</Button>
-                    <Button variant="outline" size="sm">Copy</Button>
-                    <Button variant="outline" size="sm" className="text-rose-400 hover:text-rose-300">Revoke</Button>
+                    <Button variant="outline" size="sm" onClick={handleRevealKey}>Reveal</Button>
+                    <Button variant="outline" size="sm" onClick={handleCopyKey}>Copy</Button>
+                    <Button variant="outline" size="sm" className="text-rose-400 hover:text-rose-300" onClick={handleRevokeKey}>Revoke</Button>
                   </div>
                 </div>
                 
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleGenerateKey}>
                   <Key className="w-4 h-4" />
                   Generate New Key
                 </Button>
