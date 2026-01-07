@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./guardian.db"
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model Customer {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Basic Info
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  
+  // Property Info
+  address       String
+  city          String
+  state         String
+  zipCode       String
+  
+  // Property Details (gathered from APIs)
+  propertyType      String?   // single-family, multi-family, commercial
+  yearBuilt         Int?
+  squareFootage     Int?
+  roofType          String?   // asphalt shingle, metal, tile, etc.
+  roofAge           Int?      // estimated years
+  lastRoofWork      DateTime?
+  propertyValue     Float?
+  
+  // Insurance Intel
+  insuranceCarrier  String?
+  policyType        String?
+  deductible        Float?
+  
+  // Scores & Analytics
+  leadScore         Int       @default(0)  // 0-100
+  urgencyScore      Int       @default(0)  // 0-100  
+  profitPotential   Float     @default(0)  // estimated $
+  churnRisk         Int       @default(0)  // 0-100
+  
+  // Status
+  status            String    @default("lead") // lead, prospect, customer, closed-won, closed-lost
+  stage             String    @default("new")  // new, contacted, qualified, proposal, negotiation, closed
+  
+  // Relationships
+  assignedRepId     String?
+  assignedRep       User?     @relation(fields: [assignedRepId], references: [id])
+  
+  interactions      Interaction[]
+  weatherEvents     WeatherEvent[]
+  documents         Document[]
+  intelItems        IntelItem[]
+  notes             Note[]
+  claims            InsuranceClaim[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  email         String   @unique
+  name          String
+  role          String   @default("rep") // rep, manager, admin
+  avatarUrl     String?
+  
+  // Performance Metrics (aggregated)
+  totalDeals        Int      @default(0)
+  totalRevenue      Float    @default(0)
+  avgDealSize       Float    @default(0)
+  closeRate         Float    @default(0)
+  
+  // Relationships
+  customers         Customer[]
+  interactions      Interaction[]
+  notes             Note[]
+}
+
+// ============================================
+// INTELLIGENCE GATHERING
+// ============================================
+
+model IntelItem {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  source        String   // api, web-search, manual, crm-sync
+  category      String   // property, insurance, weather, financial, social, news
+  title         String
+  content       String
+  confidence    Int      @default(80) // 0-100 confidence score
+  actionable    Boolean  @default(false)
+  priority      String   @default("medium") // low, medium, high, critical
+  
+  metadata      String?  // JSON string for flexible data
+  expiresAt     DateTime?
+}
+
+model WeatherEvent {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  eventType     String   // hail, wind, tornado, hurricane, flood
+  eventDate     DateTime
+  severity      String   // minor, moderate, severe, catastrophic
+  hailSize      Float?   // inches
+  windSpeed     Float?   // mph
+  
+  damageReported    Boolean @default(false)
+  claimFiled        Boolean @default(false)
+  inspectionDone    Boolean @default(false)
+  
+  source        String   // NOAA, weather-api, manual
+  rawData       String?  // JSON
+}
+
+model InsuranceClaim {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  claimNumber   String?
+  carrier       String
+  dateOfLoss    DateTime
+  claimType     String   // roof, siding, gutters, full-exterior
+  
+  status        String   @default("pending") // pending, approved, denied, supplement, paid
+  estimatedValue    Float?
+  approvedValue     Float?
+  paidValue         Float?
+  
+  adjusterName      String?
+  adjusterPhone     String?
+  adjusterEmail     String?
+  inspectionDate    DateTime?
+  
+  notes         String?
+}
+
+// ============================================
+// INTERACTIONS & ACTIVITY
+// ============================================
+
+model Interaction {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  
+  type          String   // call, email, text, visit, meeting, note
+  direction     String   @default("outbound") // inbound, outbound
+  subject       String?
+  content       String?
+  outcome       String?  // connected, voicemail, no-answer, scheduled, closed
+  
+  duration      Int?     // minutes
+  nextAction    String?
+  nextActionDate DateTime?
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  content       String
+  isPinned      Boolean  @default(false)
+  category      String?  // general, objection, follow-up, insight
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  name          String
+  type          String   // contract, photo, estimate, inspection, insurance
+  url           String?
+  size          Int?     // bytes
+  
+  metadata      String?  // JSON
+}
+
+// ============================================
+// ANALYTICS & AGGREGATES
+// ============================================
+
+model DailyMetrics {
+  id            String   @id @default(cuid())
+  date          DateTime @unique
+  
+  // Lead metrics
+  newLeads          Int @default(0)
+  qualifiedLeads    Int @default(0)
+  
+  // Activity metrics
+  callsMade         Int @default(0)
+  emailsSent        Int @default(0)
+  visitsMade        Int @default(0)
+  
+  // Revenue metrics
+  proposalsSent     Int @default(0)
+  proposalValue     Float @default(0)
+  dealsClosed       Int @default(0)
+  revenueWon        Float @default(0)
+  revenueLost       Float @default(0)
+  
+  // Weather intel
+  weatherAlerts     Int @default(0)
+  stormLeads        Int @default(0)
+}
