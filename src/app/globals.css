@@ -3,51 +3,158 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 4%;
-    --foreground: 180 10% 94%;
-
-    --card: 0 0% 6%;
-    --card-foreground: 180 10% 94%;
-
-    --popover: 0 0% 6%;
-    --popover-foreground: 180 10% 94%;
-
-    --primary: 162 94% 47%;
-    --primary-foreground: 0 0% 4%;
-
-    --secondary: 27 96% 54%;
-    --secondary-foreground: 0 0% 4%;
-
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 55%;
-
-    --accent: 187 94% 43%;
-    --accent-foreground: 0 0% 4%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 162 94% 47%;
-
-    --radius: 0.5rem;
+  /* =============================================
+     DARK THEME (Default) - Night Ops Mode
+     ============================================= */
+  :root,
+  [data-theme="dark"] {
+    /* Backgrounds */
+    --bg-primary: 240 10% 4%;
+    --bg-secondary: 240 10% 6%;
+    --bg-tertiary: 240 6% 10%;
+    --bg-hover: 240 4% 16%;
     
-    /* Storm palette */
-    --storm-400: 162 83% 45%;
-    --storm-500: 162 94% 40%;
-    --intel-400: 187 94% 43%;
-    --intel-500: 187 94% 43%;
-    --damage-400: 27 96% 54%;
-    --damage-500: 24 95% 53%;
-    --void-400: 240 5% 48%;
-    --void-500: 240 4% 36%;
-    --void-600: 240 5% 26%;
-    --void-700: 240 4% 16%;
-    --void-800: 240 6% 10%;
-    --void-900: 240 10% 6%;
-    --void-950: 240 10% 4%;
+    /* Surfaces */
+    --surface-primary: 240 10% 6%;
+    --surface-secondary: 240 6% 10%;
+    --surface-hover: 240 4% 14%;
+    
+    /* Text */
+    --text-primary: 180 10% 98%;
+    --text-secondary: 220 10% 75%;
+    --text-muted: 220 10% 50%;
+    
+    /* Borders */
+    --border: 240 4% 16%;
+    --border-hover: 240 4% 24%;
+    
+    /* Accents */
+    --accent-primary: 187 94% 43%;
+    --accent-secondary: 162 94% 40%;
+    --accent-danger: 27 96% 54%;
+    --accent-success: 162 83% 45%;
+    --accent-warning: 45 93% 47%;
+    
+    /* Gradients */
+    --gradient-start: #22d3ee;
+    --gradient-end: #2dd4aa;
+    --gradient-danger-start: #fb923c;
+    --gradient-danger-end: #f97316;
+    
+    /* Shadows */
+    --shadow-color: 0 0% 0%;
+    --glow-primary: rgba(34, 211, 238, 0.2);
+    --glow-danger: rgba(249, 115, 22, 0.2);
+    
+    /* Sidebar */
+    --sidebar-bg: 240 10% 4%;
+    --sidebar-border: 240 4% 12%;
+    
+    /* Special Effects */
+    --noise-opacity: 0.015;
+    --scan-line-opacity: 0.02;
+  }
+
+  /* =============================================
+     LIGHT THEME - Daylight Mode
+     ============================================= */
+  [data-theme="light"] {
+    /* Backgrounds */
+    --bg-primary: 210 40% 98%;
+    --bg-secondary: 210 40% 96%;
+    --bg-tertiary: 210 25% 93%;
+    --bg-hover: 210 25% 90%;
+    
+    /* Surfaces */
+    --surface-primary: 0 0% 100%;
+    --surface-secondary: 210 40% 96%;
+    --surface-hover: 210 25% 93%;
+    
+    /* Text */
+    --text-primary: 222 47% 11%;
+    --text-secondary: 220 13% 35%;
+    --text-muted: 220 9% 55%;
+    
+    /* Borders */
+    --border: 214 32% 85%;
+    --border-hover: 214 32% 75%;
+    
+    /* Accents - slightly deeper for light mode */
+    --accent-primary: 199 89% 38%;
+    --accent-secondary: 162 84% 35%;
+    --accent-danger: 24 95% 45%;
+    --accent-success: 162 73% 35%;
+    --accent-warning: 38 92% 45%;
+    
+    /* Gradients */
+    --gradient-start: #0891b2;
+    --gradient-end: #0d9488;
+    --gradient-danger-start: #ea580c;
+    --gradient-danger-end: #c2410c;
+    
+    /* Shadows */
+    --shadow-color: 220 20% 70%;
+    --glow-primary: rgba(8, 145, 178, 0.15);
+    --glow-danger: rgba(234, 88, 12, 0.15);
+    
+    /* Sidebar */
+    --sidebar-bg: 220 25% 97%;
+    --sidebar-border: 214 32% 90%;
+    
+    /* Special Effects */
+    --noise-opacity: 0.008;
+    --scan-line-opacity: 0.01;
+  }
+
+  /* =============================================
+     GRAY THEME - Tactical Gray
+     ============================================= */
+  [data-theme="gray"] {
+    /* Backgrounds - neutral slate tones */
+    --bg-primary: 220 13% 12%;
+    --bg-secondary: 220 13% 15%;
+    --bg-tertiary: 220 10% 20%;
+    --bg-hover: 220 10% 25%;
+    
+    /* Surfaces */
+    --surface-primary: 220 13% 15%;
+    --surface-secondary: 220 10% 20%;
+    --surface-hover: 220 10% 25%;
+    
+    /* Text */
+    --text-primary: 210 20% 95%;
+    --text-secondary: 215 16% 70%;
+    --text-muted: 215 12% 50%;
+    
+    /* Borders */
+    --border: 220 10% 25%;
+    --border-hover: 220 10% 35%;
+    
+    /* Accents - muted teal/cyan */
+    --accent-primary: 185 50% 50%;
+    --accent-secondary: 165 50% 45%;
+    --accent-danger: 20 70% 55%;
+    --accent-success: 165 50% 45%;
+    --accent-warning: 40 70% 55%;
+    
+    /* Gradients */
+    --gradient-start: #5eadb6;
+    --gradient-end: #4d9c84;
+    --gradient-danger-start: #d97856;
+    --gradient-danger-end: #c65d3d;
+    
+    /* Shadows */
+    --shadow-color: 220 20% 5%;
+    --glow-primary: rgba(94, 173, 182, 0.15);
+    --glow-danger: rgba(217, 120, 86, 0.15);
+    
+    /* Sidebar */
+    --sidebar-bg: 220 13% 10%;
+    --sidebar-border: 220 10% 20%;
+    
+    /* Special Effects */
+    --noise-opacity: 0.02;
+    --scan-line-opacity: 0.015;
   }
 }
 
@@ -57,12 +164,9 @@
   }
   
   body {
-    background-color: hsl(240 10% 4%);
-    color: hsl(var(--foreground));
+    background-color: hsl(var(--bg-primary));
+    color: hsl(var(--text-primary));
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: 
-      radial-gradient(ellipse at top, rgba(34, 211, 238, 0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.02) 0%, transparent 50%);
   }
 
   /* Custom scrollbar */
@@ -72,22 +176,22 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: hsl(var(--bg-tertiary));
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(34, 211, 238, 0.3);
+    background: hsl(var(--accent-primary) / 0.4);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(34, 211, 238, 0.5);
+    background: hsl(var(--accent-primary) / 0.6);
   }
 
   /* Selection */
   ::selection {
-    background: rgba(45, 212, 170, 0.3);
-    color: white;
+    background: hsl(var(--accent-secondary) / 0.3);
+    color: hsl(var(--text-primary));
   }
 }
 
@@ -95,8 +199,8 @@
   /* Tactical panel styling */
   .panel {
     position: relative;
-    background-color: rgba(15, 15, 17, 0.8);
-    border: 1px solid rgba(39, 39, 42, 0.5);
+    background-color: hsl(var(--surface-primary) / 0.8);
+    border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     overflow: hidden;
     backdrop-filter: blur(12px);
@@ -109,18 +213,18 @@
     pointer-events: none;
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.03) 0%,
+      hsl(var(--text-primary) / 0.02) 0%,
       transparent 50%
     );
   }
 
   .panel-header {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(39, 39, 42, 0.5);
+    border-bottom: 1px solid hsl(var(--border));
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: linear-gradient(90deg, rgba(34, 211, 238, 0.05) 0%, transparent 100%);
+    background: linear-gradient(90deg, hsl(var(--accent-primary) / 0.05) 0%, transparent 100%);
   }
 
   /* Data badge */
@@ -133,24 +237,65 @@
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    background-color: rgba(24, 24, 27, 1);
-    border: 1px solid rgba(63, 63, 70, 1);
+    background-color: hsl(var(--surface-secondary));
+    border: 1px solid hsl(var(--border));
     border-radius: 0.25rem;
   }
 }
 
 @layer utilities {
+  /* Theme-aware background utilities */
+  .bg-surface-primary {
+    background-color: hsl(var(--surface-primary));
+  }
+  .bg-surface-secondary {
+    background-color: hsl(var(--surface-secondary));
+  }
+  .bg-surface-hover {
+    background-color: hsl(var(--surface-hover));
+  }
+  
+  /* Theme-aware text utilities */
+  .text-text-primary {
+    color: hsl(var(--text-primary));
+  }
+  .text-text-secondary {
+    color: hsl(var(--text-secondary));
+  }
+  .text-text-muted {
+    color: hsl(var(--text-muted));
+  }
+  
+  /* Theme-aware accent utilities */
+  .text-accent-primary {
+    color: hsl(var(--accent-primary));
+  }
+  .text-accent-secondary {
+    color: hsl(var(--accent-secondary));
+  }
+  .text-accent-danger {
+    color: hsl(var(--accent-danger));
+  }
+  .text-accent-success {
+    color: hsl(var(--accent-success));
+  }
+  
+  /* Theme-aware border utilities */
+  .border-border {
+    border-color: hsl(var(--border));
+  }
+
   /* Glow effects */
   .glow-storm {
-    box-shadow: 0 0 20px rgba(45, 212, 170, 0.2), inset 0 0 20px rgba(45, 212, 170, 0.05);
+    box-shadow: 0 0 20px var(--glow-primary), inset 0 0 20px hsl(var(--accent-secondary) / 0.05);
   }
 
   .glow-damage {
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2), inset 0 0 20px rgba(249, 115, 22, 0.05);
+    box-shadow: 0 0 20px var(--glow-danger), inset 0 0 20px hsl(var(--accent-danger) / 0.05);
   }
 
   .glow-intel {
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.2), inset 0 0 20px rgba(34, 211, 238, 0.05);
+    box-shadow: 0 0 20px var(--glow-primary), inset 0 0 20px hsl(var(--accent-primary) / 0.05);
   }
 
   /* Corner cut decoration */
@@ -167,7 +312,7 @@
     font-size: 2.25rem;
     font-weight: 700;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, #22d3ee 0%, #2dd4aa 100%);
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -178,7 +323,7 @@
     font-size: 2.25rem;
     font-weight: 700;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    background: linear-gradient(135deg, var(--gradient-danger-start) 0%, var(--gradient-danger-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -187,8 +332,8 @@
   /* Terminal text effect */
   .terminal-text {
     font-family: var(--font-mono);
-    color: #22d3ee;
-    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+    color: hsl(var(--accent-primary));
+    text-shadow: 0 0 10px var(--glow-primary);
   }
 }
 
@@ -201,6 +346,11 @@
   height: 100%;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.015;
+  opacity: var(--noise-opacity);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Theme transition */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }

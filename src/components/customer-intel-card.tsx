@@ -36,10 +36,10 @@ const formatCurrency = (value: number) => {
 };
 
 const getScoreColor = (score: number) => {
-  if (score >= 80) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
-  if (score >= 60) return "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
-  if (score >= 40) return "text-yellow-400 bg-yellow-500/10 border-yellow-500/30";
-  return "text-zinc-400 bg-zinc-700/50 border-zinc-600/30";
+  if (score >= 80) return "text-accent-success bg-[hsl(var(--accent-success)/0.1)] border-[hsl(var(--accent-success)/0.3)]";
+  if (score >= 60) return "text-accent-primary bg-[hsl(var(--accent-primary)/0.1)] border-[hsl(var(--accent-primary)/0.3)]";
+  if (score >= 40) return "text-accent-warning bg-[hsl(var(--accent-warning)/0.1)] border-[hsl(var(--accent-warning)/0.3)]";
+  return "text-text-muted bg-surface-secondary border-border";
 };
 
 export function CustomerIntelCard({
@@ -60,8 +60,8 @@ export function CustomerIntelCard({
       layout
       className={`
         panel overflow-hidden cursor-pointer transition-all duration-300
-        ${isExpanded ? "glow-intel" : "hover:border-zinc-600"}
-        ${hasStormDamage ? "border-l-2 border-l-orange-500" : ""}
+        ${isExpanded ? "glow-intel" : "hover:border-[hsl(var(--border-hover))]"}
+        ${hasStormDamage ? "border-l-2 border-l-[hsl(var(--accent-danger))]" : ""}
       `}
       onClick={() => setIsExpanded(!isExpanded)}
     >
@@ -78,7 +78,7 @@ export function CustomerIntelCard({
               <span className="font-mono text-[8px] uppercase tracking-wider opacity-70">SCORE</span>
             </div>
             {criticalItems.length > 0 && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center animate-pulse">
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(var(--accent-danger))] rounded-full flex items-center justify-center animate-pulse">
                 <span className="font-mono text-[10px] font-bold text-white">{criticalItems.length}</span>
               </div>
             )}
@@ -88,20 +88,20 @@ export function CustomerIntelCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <h3 className="font-sans font-bold text-lg text-white tracking-wide">
+                <h3 className="font-sans font-bold text-lg text-text-primary tracking-wide">
                   {customer.firstName} {customer.lastName}
                 </h3>
                 <div className="flex items-center gap-3 mt-1">
                   <span className={`
                     data-badge capitalize
-                    ${customer.status === "prospect" ? "border-cyan-500/30 text-cyan-400" : ""}
-                    ${customer.status === "customer" ? "border-emerald-500/30 text-emerald-400" : ""}
-                    ${customer.status === "lead" ? "border-zinc-500/30 text-zinc-400" : ""}
+                    ${customer.status === "prospect" ? "border-[hsl(var(--accent-primary)/0.3)] text-accent-primary" : ""}
+                    ${customer.status === "customer" ? "border-[hsl(var(--accent-success)/0.3)] text-accent-success" : ""}
+                    ${customer.status === "lead" ? "border-border text-text-muted" : ""}
                   `}>
                     {customer.status}
                   </span>
                   {hasStormDamage && (
-                    <span className="data-badge border-orange-500/30 text-orange-400 flex items-center gap-1">
+                    <span className="data-badge border-[hsl(var(--accent-danger)/0.3)] text-accent-danger flex items-center gap-1">
                       <CloudLightning className="w-3 h-3" />
                       STORM AFFECTED
                     </span>
@@ -111,15 +111,15 @@ export function CustomerIntelCard({
 
               {/* Profit Potential */}
               <div className="text-right">
-                <span className="font-mono text-xs text-zinc-500 uppercase">Potential</span>
-                <p className="font-mono text-xl font-bold text-emerald-400">
+                <span className="font-mono text-xs text-text-muted uppercase">Potential</span>
+                <p className="font-mono text-xl font-bold text-accent-success">
                   {formatCurrency(customer.profitPotential)}
                 </p>
               </div>
             </div>
 
             {/* Quick Info Row */}
-            <div className="flex items-center gap-4 text-zinc-400">
+            <div className="flex items-center gap-4 text-text-muted">
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
                 <span className="font-mono text-xs">{customer.city}, {customer.state}</span>
@@ -147,8 +147,8 @@ export function CustomerIntelCard({
                     className={`
                       px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider
                       ${item.priority === "critical" 
-                        ? "bg-orange-500/10 text-orange-400 border border-orange-500/30" 
-                        : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                        ? "bg-[hsl(var(--accent-danger)/0.1)] text-accent-danger border border-[hsl(var(--accent-danger)/0.3)]" 
+                        : "bg-surface-secondary text-text-muted border border-border"
                       }
                     `}
                   >
@@ -156,7 +156,7 @@ export function CustomerIntelCard({
                   </span>
                 ))}
                 {intelItems.length > 3 && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono text-zinc-500">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono text-text-muted">
                     +{intelItems.length - 3} more
                   </span>
                 )}
@@ -173,7 +173,7 @@ export function CustomerIntelCard({
               `}>
                 <span className="font-mono text-lg font-bold">{customer.urgencyScore}</span>
               </div>
-              <span className="font-mono text-[9px] text-zinc-500 uppercase">Urgency</span>
+              <span className="font-mono text-[9px] text-text-muted uppercase">Urgency</span>
             </div>
             <div className="text-center">
               <div className={`
@@ -182,15 +182,15 @@ export function CustomerIntelCard({
               `}>
                 <span className="font-mono text-lg font-bold">{retentionScore}</span>
               </div>
-              <span className="font-mono text-[9px] text-zinc-500 uppercase">Retention</span>
+              <span className="font-mono text-[9px] text-text-muted uppercase">Retention</span>
             </div>
             
             {/* Expand Button */}
             <motion.div
               animate={{ rotate: isExpanded ? 180 : 0 }}
-              className="w-8 h-8 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center"
+              className="w-8 h-8 rounded bg-surface-secondary border border-border flex items-center justify-center"
             >
-              <ChevronDown className="w-4 h-4 text-zinc-400" />
+              <ChevronDown className="w-4 h-4 text-text-muted" />
             </motion.div>
           </div>
         </div>
@@ -206,24 +206,24 @@ export function CustomerIntelCard({
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-t border-zinc-700/50 bg-zinc-900/50">
-              <div className="grid grid-cols-4 gap-px bg-zinc-700/30">
+            <div className="border-t border-border bg-surface-secondary/50">
+              <div className="grid grid-cols-4 gap-px bg-border/30">
                 {/* Contact Info */}
-                <div className="p-4 bg-zinc-900/80">
-                  <h4 className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="p-4 bg-surface-primary/80">
+                  <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Phone className="w-3 h-3" />
                     Contact
                   </h4>
                   <div className="space-y-2">
-                    <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors">
+                    <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-accent-primary hover:text-accent-primary/80 transition-colors">
                       <Phone className="w-3.5 h-3.5" />
                       <span className="font-mono text-sm">{customer.phone}</span>
                     </a>
-                    <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-300 transition-colors">
+                    <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors">
                       <Mail className="w-3.5 h-3.5" />
                       <span className="font-mono text-sm truncate">{customer.email}</span>
                     </a>
-                    <div className="flex items-start gap-2 text-zinc-400">
+                    <div className="flex items-start gap-2 text-text-muted">
                       <MapPin className="w-3.5 h-3.5 mt-0.5" />
                       <span className="font-mono text-sm">{customer.address}, {customer.city}, {customer.state} {customer.zipCode}</span>
                     </div>
@@ -231,81 +231,81 @@ export function CustomerIntelCard({
                 </div>
 
                 {/* Property Details */}
-                <div className="p-4 bg-zinc-900/80">
-                  <h4 className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="p-4 bg-surface-primary/80">
+                  <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Home className="w-3 h-3" />
                     Property
                   </h4>
                   <div className="space-y-2 font-mono text-sm">
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Built</span>
-                      <span className="text-zinc-300">{customer.yearBuilt}</span>
+                      <span className="text-text-muted">Built</span>
+                      <span className="text-text-secondary">{customer.yearBuilt}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Size</span>
-                      <span className="text-zinc-300">{customer.squareFootage.toLocaleString()} sqft</span>
+                      <span className="text-text-muted">Size</span>
+                      <span className="text-text-secondary">{customer.squareFootage.toLocaleString()} sqft</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Roof</span>
-                      <span className="text-zinc-300">{customer.roofType}</span>
+                      <span className="text-text-muted">Roof</span>
+                      <span className="text-text-secondary">{customer.roofType}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Age</span>
-                      <span className={customer.roofAge > 15 ? "text-orange-400" : "text-zinc-300"}>
+                      <span className="text-text-muted">Age</span>
+                      <span className={customer.roofAge > 15 ? "text-accent-danger" : "text-text-secondary"}>
                         {customer.roofAge} years
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Value</span>
-                      <span className="text-zinc-300">{formatCurrency(customer.propertyValue)}</span>
+                      <span className="text-text-muted">Value</span>
+                      <span className="text-text-secondary">{formatCurrency(customer.propertyValue)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Insurance */}
-                <div className="p-4 bg-zinc-900/80">
-                  <h4 className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="p-4 bg-surface-primary/80">
+                  <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Shield className="w-3 h-3" />
                     Insurance
                   </h4>
                   <div className="space-y-2 font-mono text-sm">
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Carrier</span>
-                      <span className="text-zinc-300">{customer.insuranceCarrier}</span>
+                      <span className="text-text-muted">Carrier</span>
+                      <span className="text-text-secondary">{customer.insuranceCarrier}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Type</span>
-                      <span className="text-zinc-300">{customer.policyType}</span>
+                      <span className="text-text-muted">Type</span>
+                      <span className="text-text-secondary">{customer.policyType}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Deductible</span>
-                      <span className="text-emerald-400">{formatCurrency(customer.deductible)}</span>
+                      <span className="text-text-muted">Deductible</span>
+                      <span className="text-accent-success">{formatCurrency(customer.deductible)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Weather Events */}
-                <div className="p-4 bg-zinc-900/80">
-                  <h4 className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="p-4 bg-surface-primary/80">
+                  <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <CloudLightning className="w-3 h-3" />
                     Weather Events
                   </h4>
                   {weatherEvents.length > 0 ? (
                     <div className="space-y-2">
                       {weatherEvents.map((event) => (
-                        <div key={event.id} className="p-2 bg-zinc-800/50 rounded border border-zinc-700/50">
+                        <div key={event.id} className="p-2 bg-surface-secondary/50 rounded border border-border/50">
                           <div className="flex items-center justify-between mb-1">
                             <span className={`
                               font-mono text-xs uppercase
-                              ${event.severity === "severe" ? "text-orange-400" : "text-yellow-400"}
+                              ${event.severity === "severe" ? "text-accent-danger" : "text-accent-warning"}
                             `}>
                               {event.eventType}
                             </span>
-                            <span className="font-mono text-[10px] text-zinc-500">
+                            <span className="font-mono text-[10px] text-text-muted">
                               {event.eventDate.toLocaleDateString()}
                             </span>
                           </div>
-                          <div className="font-mono text-xs text-zinc-400">
+                          <div className="font-mono text-xs text-text-muted">
                             {event.hailSize && `${event.hailSize}" hail`}
                             {event.windSpeed && ` ${event.windSpeed} mph winds`}
                           </div>
@@ -313,15 +313,15 @@ export function CustomerIntelCard({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-zinc-500 font-mono text-sm">No recent events</p>
+                    <p className="text-text-muted font-mono text-sm">No recent events</p>
                   )}
                 </div>
               </div>
 
               {/* Intel Feed */}
               {intelItems.length > 0 && (
-                <div className="p-4 border-t border-zinc-700/50">
-                  <h4 className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="p-4 border-t border-border/50">
+                  <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-3 h-3" />
                     Intelligence Feed
                   </h4>
@@ -332,23 +332,23 @@ export function CustomerIntelCard({
                         className={`
                           p-3 rounded border
                           ${item.priority === "critical" 
-                            ? "bg-orange-500/5 border-orange-500/30" 
-                            : "bg-zinc-800/50 border-zinc-700/50"
+                            ? "bg-[hsl(var(--accent-danger)/0.05)] border-[hsl(var(--accent-danger)/0.3)]" 
+                            : "bg-surface-secondary/50 border-border/50"
                           }
                         `}
                       >
                         <div className="flex items-start justify-between mb-1">
                           <span className={`
                             font-mono text-xs font-medium
-                            ${item.priority === "critical" ? "text-orange-400" : "text-zinc-300"}
+                            ${item.priority === "critical" ? "text-accent-danger" : "text-text-secondary"}
                           `}>
                             {item.title}
                           </span>
-                          <span className="font-mono text-[10px] text-zinc-500">
+                          <span className="font-mono text-[10px] text-text-muted">
                             {item.confidence}%
                           </span>
                         </div>
-                        <p className="font-mono text-xs text-zinc-500 line-clamp-2">
+                        <p className="font-mono text-xs text-text-muted line-clamp-2">
                           {item.content}
                         </p>
                       </div>
@@ -358,22 +358,25 @@ export function CustomerIntelCard({
               )}
 
               {/* Action Bar */}
-              <div className="p-4 border-t border-zinc-700/50 flex items-center justify-between bg-zinc-900/30">
-                <div className="flex items-center gap-4 text-zinc-500 font-mono text-xs">
+              <div className="p-4 border-t border-border/50 flex items-center justify-between bg-surface-secondary/30">
+                <div className="flex items-center gap-4 text-text-muted font-mono text-xs">
                   <span>Assigned: {customer.assignedRep}</span>
                   <span className="capitalize">Stage: {customer.stage}</span>
                   {customer.nextAction && (
-                    <span className="text-cyan-400 flex items-center gap-1">
+                    <span className="text-accent-primary flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {customer.nextAction}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded font-mono text-xs text-zinc-300 hover:text-white hover:bg-zinc-700 transition-all">
+                  <button className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all">
                     VIEW PROFILE
                   </button>
-                  <button className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded font-mono text-xs text-white hover:from-emerald-500 hover:to-cyan-500 transition-all flex items-center gap-1">
+                  <button 
+                    className="px-3 py-1.5 rounded font-mono text-xs text-white hover:opacity-90 transition-all flex items-center gap-1"
+                    style={{ background: `linear-gradient(90deg, var(--gradient-start), var(--gradient-end))` }}
+                  >
                     <Zap className="w-3 h-3" />
                     TAKE ACTION
                   </button>

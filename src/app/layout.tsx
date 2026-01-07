@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
-import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/lib/theme-context";
 
 // Display font - bold, distinctive
 const outfit = Outfit({ 
@@ -36,20 +36,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-void-950 font-sans antialiased",
+          "min-h-screen font-sans antialiased",
           outfit.variable,
           jetbrainsMono.variable,
           sans.variable
         )}
       >
-        {/* Noise texture overlay */}
-        <div className="noise-overlay" aria-hidden="true" />
-        
-        {/* Main content */}
-        {children}
+        <ThemeProvider>
+          {/* Noise texture overlay */}
+          <div className="noise-overlay" aria-hidden="true" />
+          
+          {/* Main content */}
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
