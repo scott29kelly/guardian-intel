@@ -107,7 +107,7 @@
   }
 
   /* =============================================
-     GRAY THEME - Tactical Gray
+     GRAY THEME - Tactical Gray (Dark)
      ============================================= */
   [data-theme="gray"] {
     /* Backgrounds - neutral slate tones */
@@ -155,6 +155,57 @@
     /* Special Effects */
     --noise-opacity: 0.02;
     --scan-line-opacity: 0.015;
+  }
+
+  /* =============================================
+     LIGHT GRAY THEME - Professional Light
+     ============================================= */
+  [data-theme="light-gray"] {
+    /* Backgrounds - warm gray tones */
+    --bg-primary: 220 14% 96%;
+    --bg-secondary: 220 13% 93%;
+    --bg-tertiary: 220 12% 89%;
+    --bg-hover: 220 12% 85%;
+    
+    /* Surfaces */
+    --surface-primary: 0 0% 100%;
+    --surface-secondary: 220 14% 96%;
+    --surface-hover: 220 13% 92%;
+    
+    /* Text */
+    --text-primary: 220 25% 15%;
+    --text-secondary: 220 15% 40%;
+    --text-muted: 220 10% 55%;
+    
+    /* Borders */
+    --border: 220 13% 85%;
+    --border-hover: 220 13% 75%;
+    
+    /* Accents - slate blue-gray tones */
+    --accent-primary: 200 60% 45%;
+    --accent-secondary: 170 50% 40%;
+    --accent-danger: 15 75% 50%;
+    --accent-success: 160 55% 40%;
+    --accent-warning: 35 85% 50%;
+    
+    /* Gradients */
+    --gradient-start: #3d8da6;
+    --gradient-end: #3d8a73;
+    --gradient-danger-start: #d96a40;
+    --gradient-danger-end: #c2512e;
+    
+    /* Shadows */
+    --shadow-color: 220 20% 70%;
+    --glow-primary: rgba(61, 141, 166, 0.12);
+    --glow-danger: rgba(217, 106, 64, 0.12);
+    
+    /* Sidebar */
+    --sidebar-bg: 220 14% 94%;
+    --sidebar-border: 220 13% 88%;
+    
+    /* Special Effects */
+    --noise-opacity: 0.006;
+    --scan-line-opacity: 0.008;
   }
 }
 

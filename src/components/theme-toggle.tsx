@@ -8,7 +8,8 @@ import { useTheme } from "@/lib/theme-context";
 const themes = [
   { id: "dark", label: "Dark", icon: Moon, description: "Night ops mode" },
   { id: "light", label: "Light", icon: Sun, description: "Daylight mode" },
-  { id: "gray", label: "Gray", icon: Monitor, description: "Tactical gray" },
+  { id: "gray", label: "Gray", icon: Monitor, description: "Tactical dark" },
+  { id: "light-gray", label: "Lt Gray", icon: Monitor, description: "Professional light" },
 ] as const;
 
 export function ThemeToggle() {
@@ -42,11 +43,11 @@ export function ThemeToggle() {
             
             {/* Dropdown */}
             <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 top-full mt-2 w-48 z-50 rounded-lg border border-border bg-surface-primary shadow-xl overflow-hidden"
+              className="absolute left-0 bottom-full mb-2 w-48 z-[100] rounded-lg border border-border bg-[hsl(var(--surface-primary))] shadow-xl overflow-hidden"
             >
               <div className="p-1">
                 {themes.map((t) => {

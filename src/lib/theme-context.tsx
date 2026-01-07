@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "gray";
+type Theme = "dark" | "light" | "gray" | "light-gray";
 
 interface ThemeContextType {
   theme: Theme;
@@ -18,7 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem("guardian-theme") as Theme;
-    if (stored && ["dark", "light", "gray"].includes(stored)) {
+    if (stored && ["dark", "light", "gray", "light-gray"].includes(stored)) {
       setTheme(stored);
     }
   }, []);

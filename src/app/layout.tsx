@@ -3,6 +3,7 @@ import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/lib/theme-context";
+import { ToastProvider } from "@/components/ui/toast";
 
 // Display font - bold, distinctive
 const outfit = Outfit({ 
@@ -46,11 +47,13 @@ export default function RootLayout({
         )}
       >
         <ThemeProvider>
-          {/* Noise texture overlay */}
-          <div className="noise-overlay" aria-hidden="true" />
-          
-          {/* Main content */}
-          {children}
+          <ToastProvider>
+            {/* Noise texture overlay */}
+            <div className="noise-overlay" aria-hidden="true" />
+            
+            {/* Main content */}
+            {children}
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
