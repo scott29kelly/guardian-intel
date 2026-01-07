@@ -8,8 +8,86 @@ datasource db {
 }
 
 // ============================================
+// AUTHENTICATION (NextAuth.js)
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
 // CORE ENTITIES
 // ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Auth fields
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?   // For credentials auth
+  name          String
+  image         String?
+  
+  // Guardian-specific fields
+  role          String    @default("rep") // rep, manager, admin
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  
+  // Performance Metrics (aggregated)
+  totalDeals        Int      @default(0)
+  totalRevenue      Float    @default(0)
+  avgDealSize       Float    @default(0)
+  closeRate         Float    @default(0)
+  monthlyTarget     Float    @default(0)
+  
+  // Team hierarchy
+  managerId     String?
+  manager       User?     @relation("TeamHierarchy", fields: [managerId], references: [id])
+  teamMembers   User[]    @relation("TeamHierarchy")
+  
+  // Relationships
+  accounts      Account[]
+  sessions      Session[]
+  customers     Customer[]
+  interactions  Interaction[]
+  notes         Note[]
+  activities    Activity[]
+}
 
 model Customer {
   id            String   @id @default(cuid())
@@ -21,36 +99,66 @@ model Customer {
   lastName      String
   email         String?
   phone         String?
+  altPhone      String?
   
   // Property Info
   address       String
   city          String
   state         String
   zipCode       String
+  county        String?
+  latitude      Float?
+  longitude     Float?
   
   // Property Details (gathered from APIs)
   propertyType      String?   // single-family, multi-family, commercial
   yearBuilt         Int?
   squareFootage     Int?
+  lotSize           Float?    // acres
+  stories           Int?
+  bedrooms          Int?
+  bathrooms         Float?
+  
+  // Roof Details
   roofType          String?   // asphalt shingle, metal, tile, etc.
   roofAge           Int?      // estimated years
+  roofSquares       Int?      // roofing squares
+  roofPitch         String?   // 4/12, 6/12, etc.
   lastRoofWork      DateTime?
+  roofCondition     String?   // excellent, good, fair, poor
+  
+  // Financial
   propertyValue     Float?
+  estimatedJobValue Float?
   
   // Insurance Intel
   insuranceCarrier  String?
+  policyNumber      String?
   policyType        String?
   deductible        Float?
+  claimHistory      Int       @default(0) // number of prior claims
   
   // Scores & Analytics
   leadScore         Int       @default(0)  // 0-100
   urgencyScore      Int       @default(0)  // 0-100  
   profitPotential   Float     @default(0)  // estimated $
   churnRisk         Int       @default(0)  // 0-100
+  engagementScore   Int       @default(0)  // 0-100
   
   // Status
   status            String    @default("lead") // lead, prospect, customer, closed-won, closed-lost
   stage             String    @default("new")  // new, contacted, qualified, proposal, negotiation, closed
+  lostReason        String?
+  
+  // Source tracking
+  leadSource        String?   // canvassing, referral, storm, online, etc.
+  referredBy        String?
+  campaign          String?
+  
+  // CRM Sync
+  crmId             String?   // External CRM ID
+  crmSource         String?   // hubspot, salesforce, jobnimbus
+  lastCrmSync       DateTime?
   
   // Relationships
   assignedRepId     String?
@@ -62,28 +170,7 @@ model Customer {
   intelItems        IntelItem[]
   notes             Note[]
   claims            InsuranceClaim[]
-}
-
-model User {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  email         String   @unique
-  name          String
-  role          String   @default("rep") // rep, manager, admin
-  avatarUrl     String?
-  
-  // Performance Metrics (aggregated)
-  totalDeals        Int      @default(0)
-  totalRevenue      Float    @default(0)
-  avgDealSize       Float    @default(0)
-  closeRate         Float    @default(0)
-  
-  // Relationships
-  customers         Customer[]
-  interactions      Interaction[]
-  notes             Note[]
+  tasks             Task[]
 }
 
 // ============================================
@@ -97,8 +184,9 @@ model IntelItem {
   customerId    String
   customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
-  source        String   // api, web-search, manual, crm-sync
-  category      String   // property, insurance, weather, financial, social, news
+  source        String   // api, web-search, manual, crm-sync, weather-api, property-api
+  sourceId      String?  // external reference ID
+  category      String   // property, insurance, weather, financial, social, news, market
   title         String
   content       String
   confidence    Int      @default(80) // 0-100 confidence score
@@ -107,27 +195,53 @@ model IntelItem {
   
   metadata      String?  // JSON string for flexible data
   expiresAt     DateTime?
+  isRead        Boolean  @default(false)
+  isDismissed   Boolean  @default(false)
 }
 
 model WeatherEvent {
   id            String   @id @default(cuid())
   createdAt     DateTime @default(now())
   
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // Can be linked to customer or standalone for area
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
-  eventType     String   // hail, wind, tornado, hurricane, flood
+  // Location
+  latitude      Float
+  longitude     Float
+  zipCode       String?
+  county        String?
+  city          String?
+  state         String?
+  
+  eventType     String   // hail, wind, tornado, hurricane, flood, thunderstorm
   eventDate     DateTime
   severity      String   // minor, moderate, severe, catastrophic
-  hailSize      Float?   // inches
-  windSpeed     Float?   // mph
   
+  // Hail specific
+  hailSize      Float?   // inches
+  hailDuration  Int?     // minutes
+  
+  // Wind specific
+  windSpeed     Float?   // mph
+  windGust      Float?   // mph
+  windDirection String?
+  
+  // Damage assessment
   damageReported    Boolean @default(false)
   claimFiled        Boolean @default(false)
   inspectionDone    Boolean @default(false)
+  estimatedDamage   Float?
   
-  source        String   // NOAA, weather-api, manual
+  // Data source
+  source        String   // NOAA, weather-api, manual, hail-trace
+  sourceEventId String?  // External event ID
   rawData       String?  // JSON
+  
+  // Affected area
+  affectedRadius Float?  // miles
+  affectedCustomers Int  @default(0)
 }
 
 model InsuranceClaim {
@@ -141,19 +255,87 @@ model InsuranceClaim {
   claimNumber   String?
   carrier       String
   dateOfLoss    DateTime
-  claimType     String   // roof, siding, gutters, full-exterior
+  claimType     String   // roof, siding, gutters, full-exterior, interior
   
-  status        String   @default("pending") // pending, approved, denied, supplement, paid
-  estimatedValue    Float?
+  status        String   @default("pending") // pending, approved, denied, supplement, paid, closed
+  
+  // Financials
+  initialEstimate   Float?
   approvedValue     Float?
-  paidValue         Float?
+  supplementValue   Float?
+  totalPaid         Float?
+  deductible        Float?
+  acv               Float?  // Actual Cash Value
+  rcv               Float?  // Replacement Cost Value
+  depreciation      Float?
   
+  // Adjuster info
   adjusterName      String?
   adjusterPhone     String?
   adjusterEmail     String?
+  adjusterCompany   String?
   inspectionDate    DateTime?
+  reinspectionDate  DateTime?
+  
+  // Documents
+  scopeOfWork       String?
+  photos            String?  // JSON array of URLs
   
   notes         String?
+  
+  // Supplement tracking
+  supplementCount   Int     @default(0)
+  lastSupplementDate DateTime?
+}
+
+model PropertyData {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Address (unique identifier)
+  address       String
+  city          String
+  state         String
+  zipCode       String
+  
+  @@unique([address, city, state, zipCode])
+  
+  // Property details
+  parcelNumber  String?
+  ownerName     String?
+  ownerMailingAddress String?
+  
+  propertyType  String?
+  yearBuilt     Int?
+  squareFootage Int?
+  lotSize       Float?
+  stories       Int?
+  bedrooms      Int?
+  bathrooms     Float?
+  
+  // Valuation
+  assessedValue     Float?
+  marketValue       Float?
+  lastSalePrice     Float?
+  lastSaleDate      DateTime?
+  
+  // Roof specific
+  roofType      String?
+  roofMaterial  String?
+  roofYear      Int?
+  roofCondition String?
+  roofArea      Int?
+  
+  // Building materials
+  exteriorWall  String?
+  foundation    String?
+  
+  // Source tracking
+  source        String   // zillow, county-records, attom, corelogic
+  sourceId      String?
+  rawData       String?  // JSON
+  lastFetched   DateTime @default(now())
 }
 
 // ============================================
@@ -170,15 +352,46 @@ model Interaction {
   userId        String?
   user          User?    @relation(fields: [userId], references: [id])
   
-  type          String   // call, email, text, visit, meeting, note
+  type          String   // call, email, text, visit, meeting, video-call
   direction     String   @default("outbound") // inbound, outbound
   subject       String?
   content       String?
-  outcome       String?  // connected, voicemail, no-answer, scheduled, closed
+  outcome       String?  // connected, voicemail, no-answer, scheduled, closed, callback
+  sentiment     String?  // positive, neutral, negative
   
-  duration      Int?     // minutes
+  duration      Int?     // seconds
+  recordingUrl  String?
+  
   nextAction    String?
   nextActionDate DateTime?
+  
+  // CRM sync
+  crmId         String?
+}
+
+model Task {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  assignedToId  String
+  createdById   String
+  
+  title         String
+  description   String?
+  type          String   // call, email, visit, follow-up, inspection, proposal, other
+  priority      String   @default("medium") // low, medium, high, urgent
+  status        String   @default("pending") // pending, in-progress, completed, cancelled
+  
+  dueDate       DateTime?
+  completedAt   DateTime?
+  
+  // Reminders
+  reminderDate  DateTime?
+  reminderSent  Boolean  @default(false)
 }
 
 model Note {
@@ -194,7 +407,7 @@ model Note {
   
   content       String
   isPinned      Boolean  @default(false)
-  category      String?  // general, objection, follow-up, insight
+  category      String?  // general, objection, follow-up, insight, competitor
 }
 
 model Document {
@@ -205,11 +418,60 @@ model Document {
   customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
   name          String
-  type          String   // contract, photo, estimate, inspection, insurance
-  url           String?
+  type          String   // contract, photo, estimate, inspection, insurance, proposal, other
+  category      String?  // before, after, damage, signature
+  url           String
+  thumbnailUrl  String?
   size          Int?     // bytes
+  mimeType      String?
   
   metadata      String?  // JSON
+}
+
+model Activity {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  type          String   // login, view, edit, call, email, create, delete
+  entityType    String   // customer, lead, claim, document
+  entityId      String?
+  description   String
+  
+  metadata      String?  // JSON
+  ipAddress     String?
+  userAgent     String?
+}
+
+// ============================================
+// PLAYBOOKS & KNOWLEDGE
+// ============================================
+
+model Playbook {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  title         String
+  description   String?
+  category      String   // objection-handling, closing, discovery, presentation, follow-up
+  type          String   // script, checklist, guide, template
+  
+  content       String   // Markdown content
+  
+  // Targeting
+  stage         String?  // Which pipeline stage this applies to
+  scenario      String?  // Specific scenario (e.g., "homeowner hesitant", "adjuster pushback")
+  
+  // Metadata
+  author        String?
+  isPublished   Boolean  @default(true)
+  usageCount    Int      @default(0)
+  rating        Float?
+  
+  tags          String?  // JSON array
 }
 
 // ============================================
@@ -218,25 +480,81 @@ model Document {
 
 model DailyMetrics {
   id            String   @id @default(cuid())
-  date          DateTime @unique
+  date          DateTime
+  userId        String?  // null = company-wide
+  
+  @@unique([date, userId])
   
   // Lead metrics
   newLeads          Int @default(0)
   qualifiedLeads    Int @default(0)
+  contactedLeads    Int @default(0)
   
   // Activity metrics
   callsMade         Int @default(0)
+  callsConnected    Int @default(0)
   emailsSent        Int @default(0)
+  textsSent         Int @default(0)
   visitsMade        Int @default(0)
   
-  // Revenue metrics
+  // Pipeline metrics
   proposalsSent     Int @default(0)
   proposalValue     Float @default(0)
+  
+  // Revenue metrics
   dealsClosed       Int @default(0)
   revenueWon        Float @default(0)
   revenueLost       Float @default(0)
+  avgDealSize       Float @default(0)
   
   // Weather intel
   weatherAlerts     Int @default(0)
   stormLeads        Int @default(0)
+  
+  // Conversion metrics
+  leadToContactRate Float @default(0)
+  contactToQualRate Float @default(0)
+  qualToProposalRate Float @default(0)
+  proposalToCloseRate Float @default(0)
+}
+
+// ============================================
+// CRM SYNC TRACKING
+// ============================================
+
+model CrmSyncLog {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  crmSource     String   // hubspot, salesforce, jobnimbus
+  syncType      String   // full, incremental, webhook
+  direction     String   // inbound, outbound
+  
+  entityType    String   // customer, interaction, deal
+  entityId      String?
+  crmEntityId   String?
+  
+  status        String   // success, failed, partial
+  recordsProcessed Int   @default(0)
+  recordsFailed     Int   @default(0)
+  
+  errorMessage  String?
+  rawPayload    String?  // JSON
+}
+
+model CrmFieldMapping {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  crmSource     String   // hubspot, salesforce, jobnimbus
+  entityType    String   // customer, interaction, deal
+  
+  localField    String
+  crmField      String
+  transform     String?  // JSON transformation rules
+  
+  isActive      Boolean  @default(true)
+  
+  @@unique([crmSource, entityType, localField])
 }
