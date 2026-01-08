@@ -12,9 +12,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Phone,
-  Mail,
   Users,
-  Home,
   CloudLightning,
   Shield,
   Copy,
@@ -24,6 +22,13 @@ import {
   Star,
   Zap,
   ArrowRight,
+  X,
+  Play,
+  Pause,
+  SkipForward,
+  RotateCcw,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -215,7 +220,7 @@ const getDifficultyColor = (difficulty: string) => {
     case "advanced":
       return "bg-rose-500/20 text-rose-400 border-rose-500/30";
     default:
-      return "bg-surface-500/20 text-surface-400 border-surface-500/30";
+      return "bg-surface-secondary text-text-muted border-border";
   }
 };
 
@@ -237,7 +242,7 @@ const getCategoryColor = (category: string) => {
     case "cold-call":
       return "from-rose-500 to-pink-600";
     default:
-      return "from-guardian-500 to-guardian-600";
+      return "from-accent-primary to-accent-primary/70";
   }
 };
 
@@ -247,10 +252,50 @@ export default function PlaybooksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlaybook, setSelectedPlaybook] = useState<string | null>(null);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
-  const [favorited, setFavorited] = useState<Set<string>>(new Set());
+  const [favorited, setFavorited] = useState<Set<string>>(new Set(["1"])); // Pre-favorite one
+  const [showPracticeMode, setShowPracticeMode] = useState(false);
+  const [practiceStep, setPracticeStep] = useState(0);
+  const [isPracticePaused, setIsPracticePaused] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPlaybook, setNewPlaybook] = useState({ title: "", category: "storm", description: "" });
+  const [isSaving, setIsSaving] = useState(false);
+  const [userPlaybooks, setUserPlaybooks] = useState<typeof playbooks>([]);
 
-  const handleCreatePlaybook = () => {
-    showToast("info", "Create Playbook", "Opening playbook editor...");
+  const allPlaybooks = [...userPlaybooks, ...playbooks];
+
+  const handleCreatePlaybook = async () => {
+    if (!newPlaybook.title.trim()) {
+      showToast("error", "Required", "Please enter a title for your playbook");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const created = {
+      id: `user-${Date.now()}`,
+      title: newPlaybook.title,
+      category: newPlaybook.category,
+      description: newPlaybook.description || "Custom playbook",
+      difficulty: "beginner" as const,
+      duration: "5-10 min",
+      successRate: 0,
+      timesUsed: 0,
+      steps: [
+        {
+          title: "Step 1",
+          content: "Add your script content here...",
+          tips: ["Add tips for this step"],
+        },
+      ],
+    };
+    
+    setUserPlaybooks(prev => [...prev, created]);
+    setNewPlaybook({ title: "", category: "storm", description: "" });
+    setShowCreateModal(false);
+    setIsSaving(false);
+    setSelectedPlaybook(created.id);
+    showToast("success", "Playbook Created", `"${created.title}" has been added to your playbooks`);
   };
 
   const handleFavorite = (playbookId: string, playbookTitle: string) => {
@@ -265,20 +310,33 @@ export default function PlaybooksPage() {
     setFavorited(newFavorited);
   };
 
-  const handlePracticeMode = (playbookTitle: string) => {
-    showToast("info", "Practice Mode", `Starting practice session for "${playbookTitle}"...`);
+  const handleStartPracticeMode = () => {
+    setPracticeStep(0);
+    setIsPracticePaused(false);
+    setShowPracticeMode(true);
+    showToast("info", "Practice Mode", "Follow along with each step. Take your time!");
+  };
+
+  const handleNextPracticeStep = () => {
+    const activePlaybook = allPlaybooks.find((p) => p.id === selectedPlaybook);
+    if (activePlaybook && practiceStep < activePlaybook.steps.length - 1) {
+      setPracticeStep(prev => prev + 1);
+    } else {
+      showToast("success", "Practice Complete!", "Great job completing the playbook!");
+      setShowPracticeMode(false);
+    }
   };
 
   const handleFeedback = (type: "positive" | "improvement" | "notes", playbookTitle: string) => {
     const messages = {
       positive: `Thanks for the feedback! "${playbookTitle}" marked as effective`,
-      improvement: `Opening feedback form for "${playbookTitle}"...`,
-      notes: `Opening notes editor for "${playbookTitle}"...`
+      improvement: `Feedback submitted for "${playbookTitle}"`,
+      notes: `Note saved for "${playbookTitle}"`
     };
     showToast(type === "positive" ? "success" : "info", "Feedback Recorded", messages[type]);
   };
 
-  const filteredPlaybooks = playbooks.filter((playbook) => {
+  const filteredPlaybooks = allPlaybooks.filter((playbook) => {
     const matchesCategory = selectedCategory === "all" || playbook.category === selectedCategory;
     const matchesSearch = searchQuery === "" || 
       playbook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -286,11 +344,12 @@ export default function PlaybooksPage() {
     return matchesCategory && matchesSearch;
   });
 
-  const activePlaybook = playbooks.find((p) => p.id === selectedPlaybook);
+  const activePlaybook = allPlaybooks.find((p) => p.id === selectedPlaybook);
 
   const handleCopyStep = (stepContent: string, stepId: string) => {
     navigator.clipboard.writeText(stepContent);
     setCopiedStep(stepId);
+    showToast("success", "Copied!", "Script copied to clipboard");
     setTimeout(() => setCopiedStep(null), 2000);
   };
 
@@ -305,23 +364,23 @@ export default function PlaybooksPage() {
         <div className="w-96 flex flex-col">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="font-display text-3xl font-bold text-white mb-2">
+            <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
               Sales Playbooks
             </h1>
-            <p className="text-surface-400">
+            <p className="text-text-muted">
               Battle-tested scripts and techniques for every situation
             </p>
           </div>
 
           {/* Search */}
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input
               type="text"
               placeholder="Search playbooks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-surface-800/50 border border-surface-700 rounded-lg text-sm text-white placeholder:text-surface-500 focus:outline-none focus:border-guardian-500/50 focus:ring-1 focus:ring-guardian-500/25 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/25 transition-all"
             />
           </div>
 
@@ -335,8 +394,8 @@ export default function PlaybooksPage() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
                     selectedCategory === cat.id
-                      ? "bg-guardian-500/20 text-guardian-400 border border-guardian-500/30"
-                      : "text-surface-400 hover:text-white hover:bg-surface-800/50"
+                      ? "bg-accent-primary/20 text-accent-primary border border-accent-primary/30"
+                      : "text-text-muted hover:text-text-primary hover:bg-surface-secondary"
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -358,8 +417,8 @@ export default function PlaybooksPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className={`group cursor-pointer rounded-xl border transition-all ${
                     selectedPlaybook === playbook.id
-                      ? "border-guardian-500/50 bg-guardian-500/10"
-                      : "border-surface-700/50 bg-surface-800/30 hover:border-surface-600"
+                      ? "border-accent-primary/50 bg-accent-primary/10"
+                      : "border-border bg-surface-secondary/30 hover:border-text-muted"
                   }`}
                   onClick={() => setSelectedPlaybook(playbook.id)}
                 >
@@ -369,27 +428,32 @@ export default function PlaybooksPage() {
                         <CategoryIcon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-white truncate group-hover:text-guardian-400 transition-colors">
-                          {playbook.title}
-                        </h3>
-                        <p className="text-xs text-surface-400 line-clamp-2 mt-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-text-primary truncate group-hover:text-accent-primary transition-colors">
+                            {playbook.title}
+                          </h3>
+                          {favorited.has(playbook.id) && (
+                            <Star className="w-3.5 h-3.5 text-amber-400 fill-current flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-text-muted line-clamp-2 mt-1">
                           {playbook.description}
                         </p>
                         <div className="flex items-center gap-3 mt-2">
                           <Badge className={`text-[10px] ${getDifficultyColor(playbook.difficulty)}`}>
                             {playbook.difficulty}
                           </Badge>
-                          <span className="text-[10px] text-surface-500 flex items-center gap-1">
+                          <span className="text-[10px] text-text-muted flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {playbook.duration}
                           </span>
-                          <span className="text-[10px] text-surface-500 flex items-center gap-1">
+                          <span className="text-[10px] text-text-muted flex items-center gap-1">
                             <Target className="w-3 h-3" />
                             {playbook.successRate}%
                           </span>
                         </div>
                       </div>
-                      <ChevronRight className={`w-4 h-4 text-surface-500 transition-transform ${
+                      <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${
                         selectedPlaybook === playbook.id ? "rotate-90" : ""
                       }`} />
                     </div>
@@ -400,14 +464,14 @@ export default function PlaybooksPage() {
 
             {filteredPlaybooks.length === 0 && (
               <div className="text-center py-8">
-                <BookOpen className="w-12 h-12 text-surface-600 mx-auto mb-3" />
-                <p className="text-surface-400">No playbooks found</p>
+                <BookOpen className="w-12 h-12 text-text-muted mx-auto mb-3" />
+                <p className="text-text-muted">No playbooks found</p>
               </div>
             )}
           </div>
 
           {/* Add New Button */}
-          <Button className="mt-4 w-full" onClick={handleCreatePlaybook}>
+          <Button className="mt-4 w-full" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4" />
             Create Custom Playbook
           </Button>
@@ -429,24 +493,24 @@ export default function PlaybooksPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${getCategoryColor(activePlaybook.category)} flex items-center justify-center shadow-lg shadow-guardian-500/20`}>
+                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${getCategoryColor(activePlaybook.category)} flex items-center justify-center shadow-lg shadow-accent-primary/20`}>
                           {(() => {
                             const Icon = getCategoryIcon(activePlaybook.category);
                             return <Icon className="w-7 h-7 text-white" />;
                           })()}
                         </div>
                         <div>
-                          <h2 className="text-2xl font-bold text-white mb-1">
+                          <h2 className="text-2xl font-bold text-text-primary mb-1">
                             {activePlaybook.title}
                           </h2>
-                          <p className="text-surface-400 max-w-2xl">
+                          <p className="text-text-muted max-w-2xl">
                             {activePlaybook.description}
                           </p>
                           <div className="flex items-center gap-4 mt-3">
                             <Badge className={getDifficultyColor(activePlaybook.difficulty)}>
                               {activePlaybook.difficulty}
                             </Badge>
-                            <span className="text-sm text-surface-400 flex items-center gap-1.5">
+                            <span className="text-sm text-text-muted flex items-center gap-1.5">
                               <Clock className="w-4 h-4" />
                               {activePlaybook.duration}
                             </span>
@@ -454,7 +518,7 @@ export default function PlaybooksPage() {
                               <Target className="w-4 h-4" />
                               {activePlaybook.successRate}% success rate
                             </span>
-                            <span className="text-sm text-surface-400 flex items-center gap-1.5">
+                            <span className="text-sm text-text-muted flex items-center gap-1.5">
                               <Users className="w-4 h-4" />
                               Used {activePlaybook.timesUsed} times
                             </span>
@@ -471,7 +535,7 @@ export default function PlaybooksPage() {
                           <Star className={`w-4 h-4 ${favorited.has(activePlaybook.id) ? "fill-current" : ""}`} />
                           {favorited.has(activePlaybook.id) ? "Favorited" : "Favorite"}
                         </Button>
-                        <Button size="sm" onClick={() => handlePracticeMode(activePlaybook.title)}>
+                        <Button size="sm" onClick={handleStartPracticeMode}>
                           <Zap className="w-4 h-4" />
                           Practice Mode
                         </Button>
@@ -479,6 +543,71 @@ export default function PlaybooksPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Practice Mode Overlay */}
+                <AnimatePresence>
+                  {showPracticeMode && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="mb-4 p-4 bg-accent-primary/10 border border-accent-primary/30 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center">
+                            <Play className="w-5 h-5 text-accent-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-text-primary">Practice Mode Active</h3>
+                            <p className="text-sm text-text-muted">
+                              Step {practiceStep + 1} of {activePlaybook.steps.length}: {activePlaybook.steps[practiceStep].title}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPracticeStep(0)}
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Restart
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsPracticePaused(!isPracticePaused)}
+                          >
+                            {isPracticePaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                            {isPracticePaused ? "Resume" : "Pause"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleNextPracticeStep}
+                          >
+                            <SkipForward className="w-4 h-4" />
+                            {practiceStep === activePlaybook.steps.length - 1 ? "Finish" : "Next Step"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPracticeMode(false)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mt-3 h-2 bg-surface-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent-primary transition-all duration-300"
+                          style={{ width: `${((practiceStep + 1) / activePlaybook.steps.length) * 100}%` }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Steps */}
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4">
@@ -489,23 +618,35 @@ export default function PlaybooksPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <Card className="overflow-hidden">
+                      <Card className={`overflow-hidden transition-all ${
+                        showPracticeMode && practiceStep === index 
+                          ? "ring-2 ring-accent-primary shadow-lg shadow-accent-primary/20" 
+                          : ""
+                      }`}>
                         <div className={`h-1 bg-gradient-to-r ${getCategoryColor(activePlaybook.category)}`} />
                         <CardContent className="p-6">
                           <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-surface-700/50 flex items-center justify-center flex-shrink-0 text-guardian-400 font-bold">
-                              {index + 1}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold ${
+                              showPracticeMode && practiceStep === index
+                                ? "bg-accent-primary text-white"
+                                : "bg-surface-secondary text-accent-primary"
+                            }`}>
+                              {showPracticeMode && practiceStep > index ? (
+                                <CheckCircle2 className="w-5 h-5" />
+                              ) : (
+                                index + 1
+                              )}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-lg font-semibold text-white">
+                                <h3 className="text-lg font-semibold text-text-primary">
                                   {step.title}
                                 </h3>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleCopyStep(step.content, `${activePlaybook.id}-${index}`)}
-                                  className="text-surface-400 hover:text-white"
+                                  className="text-text-muted hover:text-text-primary"
                                 >
                                   {copiedStep === `${activePlaybook.id}-${index}` ? (
                                     <>
@@ -522,8 +663,8 @@ export default function PlaybooksPage() {
                               </div>
                               
                               {/* Script Content */}
-                              <div className="bg-surface-800/50 rounded-lg p-4 border border-surface-700/50 mb-4">
-                                <p className="text-surface-200 leading-relaxed whitespace-pre-wrap">
+                              <div className="bg-surface-secondary/50 rounded-lg p-4 border border-border mb-4">
+                                <p className="text-text-secondary leading-relaxed whitespace-pre-wrap">
                                   {step.content}
                                 </p>
                               </div>
@@ -552,7 +693,7 @@ export default function PlaybooksPage() {
                           {/* Arrow to next step */}
                           {index < activePlaybook.steps.length - 1 && (
                             <div className="flex justify-center mt-4">
-                              <ArrowRight className="w-5 h-5 text-surface-600 rotate-90" />
+                              <ArrowRight className="w-5 h-5 text-text-muted rotate-90" />
                             </div>
                           )}
                         </CardContent>
@@ -564,10 +705,10 @@ export default function PlaybooksPage() {
                   <Card className="mt-6">
                     <CardContent className="p-6">
                       <div className="text-center">
-                        <h4 className="text-lg font-medium text-white mb-2">
+                        <h4 className="text-lg font-medium text-text-primary mb-2">
                           How did this playbook work?
                         </h4>
-                        <p className="text-sm text-surface-400 mb-4">
+                        <p className="text-sm text-text-muted mb-4">
                           Your feedback helps improve our playbooks for everyone
                         </p>
                         <div className="flex justify-center gap-3">
@@ -608,18 +749,18 @@ export default function PlaybooksPage() {
                 className="h-full flex items-center justify-center"
               >
                 <div className="text-center max-w-md">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-guardian-500/20 to-guardian-600/20 flex items-center justify-center mx-auto mb-6 border border-guardian-500/30">
-                    <BookOpen className="w-12 h-12 text-guardian-400" />
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-primary/10 flex items-center justify-center mx-auto mb-6 border border-accent-primary/30">
+                    <BookOpen className="w-12 h-12 text-accent-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-text-primary mb-2">
                     Select a Playbook
                   </h3>
-                  <p className="text-surface-400 mb-6">
+                  <p className="text-text-muted mb-6">
                     Choose a playbook from the list to view detailed scripts, objection handlers, and proven closing techniques.
                   </p>
                   <div className="flex justify-center gap-3">
                     <Badge className="bg-emerald-500/20 text-emerald-400">
-                      {playbooks.length} Playbooks
+                      {allPlaybooks.length} Playbooks
                     </Badge>
                     <Badge className="bg-violet-500/20 text-violet-400">
                       {categories.length - 1} Categories
@@ -631,6 +772,93 @@ export default function PlaybooksPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Create Playbook Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowCreateModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h2 className="font-display font-bold text-lg text-text-primary flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-accent-primary" />
+                  Create Custom Playbook
+                </h2>
+                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-surface-hover rounded">
+                  <X className="w-5 h-5 text-text-muted" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-secondary">Playbook Title *</label>
+                  <input
+                    type="text"
+                    value={newPlaybook.title}
+                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
+                    placeholder="e.g., Insurance Objection Handler"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-secondary">Category</label>
+                  <select
+                    value={newPlaybook.category}
+                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary cursor-pointer"
+                  >
+                    {categories.filter(c => c.id !== "all").map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-secondary">Description</label>
+                  <textarea
+                    value={newPlaybook.description}
+                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary resize-none"
+                    placeholder="Brief description of when to use this playbook..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-surface-secondary/30">
+                <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreatePlaybook} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Create Playbook
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

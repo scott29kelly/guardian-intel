@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Search,
-  Filter,
-  SlidersHorizontal,
   Plus,
   Download,
   Upload,
@@ -16,14 +14,18 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
+  FileText,
+  Calendar,
+  Eye,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
+import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
-import { mockCustomers, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/toast";
 
 const statusOptions = [
@@ -58,31 +60,122 @@ type ViewMode = "cards" | "table";
 export default function CustomersPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("leadScore");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
 
   const handleImport = () => {
-    showToast("info", "Import Started", "Select a CSV or Excel file to import customers...");
+    // Create a file input and trigger it
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx,.xls";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        showToast("info", "Importing...", `Processing ${file.name}...`);
+        // Simulate import
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        showToast("success", "Import Complete", `Successfully imported ${Math.floor(Math.random() * 50) + 10} customers from ${file.name}`);
+      }
+    };
+    input.click();
   };
 
   const handleExport = () => {
+    // Generate CSV content
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Address", "City", "State", "ZIP", "Status", "Stage", "Lead Score", "Profit Potential"];
+    const rows = filteredCustomers.map(c => [
+      c.firstName,
+      c.lastName,
+      c.email || "",
+      c.phone || "",
+      c.address,
+      c.city,
+      c.state,
+      c.zipCode,
+      c.status,
+      c.stage,
+      c.leadScore.toString(),
+      c.profitPotential.toString()
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${cell}"`).join(","))].join("\n");
+    
+    // Download the file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `guardian-customers-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
     showToast("success", "Export Complete", `${filteredCustomers.length} customers exported to CSV`);
   };
 
-  const handleAddCustomer = () => {
-    showToast("info", "Add Customer", "Opening new customer form...");
+  const handleAddCustomer = (formData: CustomerFormData) => {
+    const newCustomer: Customer = {
+      id: `new-${Date.now()}`,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.zipCode,
+      propertyType: formData.propertyType,
+      yearBuilt: 2000,
+      squareFootage: 2500,
+      roofType: formData.roofType,
+      roofAge: formData.roofAge,
+      propertyValue: 350000,
+      insuranceCarrier: formData.insuranceCarrier,
+      policyType: "HO-3",
+      deductible: 1000,
+      leadScore: 50,
+      urgencyScore: 50,
+      profitPotential: 18000,
+      churnRisk: 15,
+      status: "lead",
+      stage: "new",
+      assignedRep: "Current User",
+      lastContact: new Date(),
+      nextAction: "Initial contact",
+      nextActionDate: new Date(Date.now() + 86400000),
+    };
+    
+    setCustomers(prev => [newCustomer, ...prev]);
   };
 
-  const handleRowAction = (customerId: string, customerName: string) => {
-    showToast("info", "Quick Actions", `Opening actions for ${customerName}...`);
+  const handleCallCustomer = (customer: Customer) => {
+    showToast("success", "Calling...", `Dialing ${customer.firstName} ${customer.lastName} at ${customer.phone}`);
+    window.location.href = `tel:${customer.phone}`;
+  };
+
+  const handleEmailCustomer = (customer: Customer) => {
+    showToast("success", "Opening Email", `Composing email to ${customer.email}`);
+    window.location.href = `mailto:${customer.email}`;
+  };
+
+  const handleScheduleAppointment = (customer: Customer) => {
+    showToast("success", "Appointment Scheduled", `Opening calendar for ${customer.firstName} ${customer.lastName}`);
+    // In a real app, this would open a calendar modal
+  };
+
+  const handleViewProfile = (customer: Customer) => {
+    // Navigate or open modal - we can use the existing customer profile modal
+    router.push(`/customers?profile=${customer.id}`);
   };
 
   // Filter and sort customers
-  const filteredCustomers = mockCustomers
+  const filteredCustomers = customers
     .filter((customer) => {
       // Search filter
       if (searchQuery) {
@@ -146,15 +239,6 @@ export default function CustomersPage() {
   const getCustomerWeather = (customerId: string) =>
     mockWeatherEvents.filter((w) => w.customerId === customerId);
 
-  const toggleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("desc");
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -164,10 +248,10 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-white mb-2">
+          <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
             Customers
           </h1>
-          <p className="text-surface-400">
+          <p className="text-text-muted">
             Manage and track all your leads, prospects, and customers
           </p>
         </div>
@@ -180,7 +264,7 @@ export default function CustomersPage() {
             <Download className="w-4 h-4" />
             Export
           </Button>
-          <Button onClick={handleAddCustomer}>
+          <Button onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4" />
             Add Customer
           </Button>
@@ -193,13 +277,13 @@ export default function CustomersPage() {
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
             <div className="relative flex-1 min-w-[250px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input
                 type="text"
                 placeholder="Search by name, email, phone, or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-800/50 border border-surface-700 rounded-lg text-sm text-white placeholder:text-surface-500 focus:outline-none focus:border-guardian-500/50 focus:ring-1 focus:ring-guardian-500/25 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/25 transition-all"
               />
             </div>
 
@@ -207,10 +291,10 @@ export default function CustomersPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
+              className="px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 cursor-pointer"
             >
               {statusOptions.map((option) => (
-                <option key={option.value} value={option.value} className="bg-void-900 text-white">
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -220,10 +304,10 @@ export default function CustomersPage() {
             <select
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value)}
-              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
+              className="px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 cursor-pointer"
             >
               {stageOptions.map((option) => (
-                <option key={option.value} value={option.value} className="bg-void-900 text-white">
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -233,10 +317,10 @@ export default function CustomersPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
+              className="px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 cursor-pointer"
             >
               {sortOptions.map((option) => (
-                <option key={option.value} value={option.value} className="bg-void-900 text-white">
+                <option key={option.value} value={option.value}>
                   Sort: {option.label}
                 </option>
               ))}
@@ -256,23 +340,23 @@ export default function CustomersPage() {
             </Button>
 
             {/* View Mode Toggle */}
-            <div className="flex border border-surface-700 rounded-lg overflow-hidden">
+            <div className="flex border border-border rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode("cards")}
-                className={`px-3 py-2 text-sm ${
+                className={`px-3 py-2 text-sm transition-all ${
                   viewMode === "cards"
-                    ? "bg-guardian-500/20 text-guardian-400"
-                    : "text-surface-400 hover:text-white"
+                    ? "bg-accent-primary/20 text-accent-primary"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 Cards
               </button>
               <button
                 onClick={() => setViewMode("table")}
-                className={`px-3 py-2 text-sm ${
+                className={`px-3 py-2 text-sm transition-all ${
                   viewMode === "table"
-                    ? "bg-guardian-500/20 text-guardian-400"
-                    : "text-surface-400 hover:text-white"
+                    ? "bg-accent-primary/20 text-accent-primary"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 Table
@@ -282,18 +366,18 @@ export default function CustomersPage() {
 
           {/* Active Filters */}
           <div className="flex items-center gap-2 mt-3">
-            <span className="text-sm text-surface-500">
+            <span className="text-sm text-text-muted">
               {filteredCustomers.length} customers
             </span>
             {(statusFilter !== "all" || stageFilter !== "all" || searchQuery) && (
               <>
-                <span className="text-surface-700">|</span>
+                <span className="text-border">|</span>
                 {searchQuery && (
                   <Badge variant="secondary" className="text-xs">
                     Search: "{searchQuery}"
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="ml-1 hover:text-white"
+                      className="ml-1 hover:text-text-primary"
                     >
                       ×
                     </button>
@@ -304,7 +388,7 @@ export default function CustomersPage() {
                     Status: {statusFilter}
                     <button
                       onClick={() => setStatusFilter("all")}
-                      className="ml-1 hover:text-white"
+                      className="ml-1 hover:text-text-primary"
                     >
                       ×
                     </button>
@@ -315,7 +399,7 @@ export default function CustomersPage() {
                     Stage: {stageFilter}
                     <button
                       onClick={() => setStageFilter("all")}
-                      className="ml-1 hover:text-white"
+                      className="ml-1 hover:text-text-primary"
                     >
                       ×
                     </button>
@@ -351,26 +435,26 @@ export default function CustomersPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-surface-700/50">
-                    <th className="text-left py-4 px-4 text-sm font-medium text-surface-400">Customer</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-surface-400">Location</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-surface-400">Lead Score</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-surface-400">Status</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-surface-400">Stage</th>
-                    <th className="text-right py-4 px-4 text-sm font-medium text-surface-400">Potential</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-surface-400">Assigned</th>
-                    <th className="text-center py-4 px-4 text-sm font-medium text-surface-400">Actions</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-4 px-4 text-sm font-medium text-text-muted">Customer</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-text-muted">Location</th>
+                    <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Lead Score</th>
+                    <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Status</th>
+                    <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Stage</th>
+                    <th className="text-right py-4 px-4 text-sm font-medium text-text-muted">Potential</th>
+                    <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Assigned</th>
+                    <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="border-b border-surface-800/50 hover:bg-surface-800/30">
+                    <tr key={customer.id} className="border-b border-border/50 hover:bg-surface-secondary/30">
                       <td className="py-4 px-4">
                         <div>
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium text-text-primary">
                             {customer.firstName} {customer.lastName}
                           </p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-surface-400">
+                          <div className="flex items-center gap-3 mt-1 text-xs text-text-muted">
                             <span className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
                               {customer.phone}
@@ -383,7 +467,7 @@ export default function CustomersPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <div className="flex items-center gap-1 text-sm text-surface-300">
+                        <div className="flex items-center gap-1 text-sm text-text-secondary">
                           <MapPin className="w-3.5 h-3.5" />
                           {customer.city}, {customer.state}
                         </div>
@@ -399,24 +483,66 @@ export default function CustomersPage() {
                         </Badge>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <span className="text-sm text-surface-300 capitalize">{customer.stage}</span>
+                        <span className="text-sm text-text-secondary capitalize">{customer.stage}</span>
                       </td>
                       <td className="py-4 px-4 text-right">
-                        <span className="text-sm font-medium text-emerald-400">
+                        <span className="text-sm font-medium text-accent-success">
                           {formatCurrency(customer.profitPotential)}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <span className="text-sm text-surface-300">{customer.assignedRep}</span>
+                        <span className="text-sm text-text-secondary">{customer.assignedRep}</span>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleRowAction(customer.id, `${customer.firstName} ${customer.lastName}`)}
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
+                        <div className="relative">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setShowActionsMenu(showActionsMenu === customer.id ? null : customer.id)}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                          
+                          {showActionsMenu === customer.id && (
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface-primary border border-border rounded-lg shadow-xl z-10 overflow-hidden">
+                              <button
+                                onClick={() => { handleViewProfile(customer); setShowActionsMenu(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View Profile
+                              </button>
+                              <button
+                                onClick={() => { handleCallCustomer(customer); setShowActionsMenu(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                              >
+                                <Phone className="w-4 h-4" />
+                                Call
+                              </button>
+                              <button
+                                onClick={() => { handleEmailCustomer(customer); setShowActionsMenu(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                              >
+                                <Mail className="w-4 h-4" />
+                                Send Email
+                              </button>
+                              <button
+                                onClick={() => { handleScheduleAppointment(customer); setShowActionsMenu(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                              >
+                                <Calendar className="w-4 h-4" />
+                                Schedule
+                              </button>
+                              <button
+                                onClick={() => setShowActionsMenu(null)}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                              >
+                                <FileText className="w-4 h-4" />
+                                Add Note
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -431,11 +557,11 @@ export default function CustomersPage() {
       {filteredCustomers.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-surface-800 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-surface-500" />
+            <div className="w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-text-muted" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">No customers found</h3>
-            <p className="text-surface-400 mb-4">
+            <h3 className="text-lg font-medium text-text-primary mb-2">No customers found</h3>
+            <p className="text-text-muted mb-4">
               Try adjusting your filters or search query
             </p>
             <Button
@@ -451,6 +577,13 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Add Customer Modal */}
+      <AddCustomerModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={handleAddCustomer}
+      />
     </motion.div>
   );
 }

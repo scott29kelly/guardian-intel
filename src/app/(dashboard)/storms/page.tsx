@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -21,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { FilterModal } from "@/components/modals/filter-modal";
+import { StormDetailsModal } from "@/components/modals/storm-details-modal";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
@@ -31,8 +33,8 @@ const WeatherRadarMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="aspect-video bg-surface-800/50 rounded-lg flex items-center justify-center border border-surface-700/50">
-        <div className="flex items-center gap-2 text-surface-400">
+      <div className="aspect-video bg-surface-secondary rounded-lg flex items-center justify-center border border-border">
+        <div className="flex items-center gap-2 text-text-muted">
           <CloudLightning className="w-5 h-5 animate-pulse" />
           <span>Loading weather radar...</span>
         </div>
@@ -40,6 +42,22 @@ const WeatherRadarMap = dynamic(
     )
   }
 );
+
+// Storm event type
+interface StormEvent {
+  id: string;
+  type: string;
+  date: Date;
+  location: string;
+  county: string;
+  hailSize?: number;
+  windSpeed?: number;
+  severity: string;
+  affectedCustomers: number;
+  inspectionsPending: number;
+  claimsFiled: number;
+  opportunity: number;
+}
 
 // Mock storm data
 const activeAlerts = [
@@ -69,7 +87,7 @@ const activeAlerts = [
   },
 ];
 
-const recentStormEvents = [
+const recentStormEvents: StormEvent[] = [
   {
     id: "event-1",
     type: "hail",
@@ -133,24 +151,77 @@ const stormTypeIcons: Record<string, typeof CloudLightning> = {
 };
 
 const severityColors: Record<string, string> = {
-  minor: "bg-guardian-500/20 text-guardian-400 border-guardian-500/30",
+  minor: "bg-accent-primary/20 text-accent-primary border-accent-primary/30",
   moderate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   severe: "bg-rose-500/20 text-rose-400 border-rose-500/30",
   catastrophic: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
+// Filter configuration
+const stormFilterConfig = [
+  {
+    id: "type",
+    label: "Storm Type",
+    options: [
+      { value: "hail", label: "Hail", count: 2 },
+      { value: "wind", label: "Wind", count: 1 },
+      { value: "thunderstorm", label: "Thunderstorm", count: 1 },
+      { value: "tornado", label: "Tornado", count: 0 },
+    ],
+    multiSelect: true,
+  },
+  {
+    id: "severity",
+    label: "Severity",
+    options: [
+      { value: "minor", label: "Minor" },
+      { value: "moderate", label: "Moderate", count: 2 },
+      { value: "severe", label: "Severe", count: 2 },
+      { value: "catastrophic", label: "Catastrophic" },
+    ],
+    multiSelect: true,
+  },
+  {
+    id: "timeframe",
+    label: "Time Frame",
+    options: [
+      { value: "7d", label: "Last 7 Days" },
+      { value: "30d", label: "Last 30 Days" },
+      { value: "90d", label: "Last 90 Days" },
+      { value: "1y", label: "Last Year" },
+    ],
+  },
+  {
+    id: "county",
+    label: "County",
+    options: [
+      { value: "franklin", label: "Franklin County", count: 2 },
+      { value: "delaware", label: "Delaware County", count: 2 },
+      { value: "licking", label: "Licking County", count: 1 },
+    ],
+    multiSelect: true,
+  },
+];
+
 export default function StormsPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<StormEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
   const totalOpportunity = recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0);
   const totalAffected = recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0);
   const totalPending = recentStormEvents.reduce((sum, e) => sum + e.inspectionsPending, 0);
 
-  const handleFilter = () => {
-    showToast("info", "Filter Options", "Opening storm event filters...");
+  const handleApplyFilters = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
+    const filterCount = Object.values(filters).reduce((acc, arr) => acc + arr.length, 0);
+    if (filterCount > 0) {
+      showToast("success", "Filters Applied", `${filterCount} filter(s) active`);
+    }
   };
 
   const handleRefresh = async () => {
@@ -163,7 +234,6 @@ export default function StormsPage() {
   };
 
   const handleOpenWeatherMap = () => {
-    showToast("info", "Opening Map", "Launching external weather map service...");
     window.open("https://www.weather.gov/", "_blank");
   };
 
@@ -172,15 +242,30 @@ export default function StormsPage() {
     router.push(`/customers?filter=storm-affected`);
   };
 
-  const handleViewEventDetails = (eventId: string, eventType: string) => {
-    showToast("info", "Event Details", `Loading ${eventType} event details...`);
-    setSelectedEvent(eventId);
+  const handleViewEventDetails = (event: StormEvent) => {
+    setSelectedEvent(event);
+    setShowDetailsModal(true);
   };
 
   const handleOpenNOAA = () => {
-    showToast("info", "Opening NOAA", "Navigating to NOAA Storm Events Database...");
     window.open("https://www.ncdc.noaa.gov/stormevents/", "_blank");
   };
+
+  // Filter storm events based on active filters
+  const filteredEvents = recentStormEvents.filter(event => {
+    if (activeFilters.type?.length && !activeFilters.type.includes(event.type)) {
+      return false;
+    }
+    if (activeFilters.severity?.length && !activeFilters.severity.includes(event.severity)) {
+      return false;
+    }
+    if (activeFilters.county?.length && !activeFilters.county.includes(event.county.toLowerCase())) {
+      return false;
+    }
+    return true;
+  });
+
+  const activeFilterCount = Object.values(activeFilters).reduce((acc, arr) => acc + arr.length, 0);
 
   return (
     <motion.div
@@ -191,17 +276,26 @@ export default function StormsPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-white mb-2">
+          <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
             Storm Intelligence
           </h1>
-          <p className="text-surface-400">
+          <p className="text-text-muted">
             Real-time weather alerts and storm damage opportunities
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleFilter}>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowFilterModal(true)}
+            className={activeFilterCount > 0 ? "border-accent-primary text-accent-primary" : ""}
+          >
             <Filter className="w-4 h-4" />
             Filter
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1.5 bg-accent-primary/20 text-accent-primary">
+                {activeFilterCount}
+              </Badge>
+            )}
           </Button>
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -209,7 +303,7 @@ export default function StormsPage() {
           </Button>
           <Button onClick={handleOpenWeatherMap}>
             <ExternalLink className="w-4 h-4" />
-            Open Weather Map
+            Weather Map
           </Button>
         </div>
       </div>
@@ -222,7 +316,7 @@ export default function StormsPage() {
         >
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse" />
-            <h2 className="font-display text-xl font-bold text-white">
+            <h2 className="font-display text-xl font-bold text-text-primary">
               Active Weather Alerts
             </h2>
             <Badge variant="warning">{activeAlerts.length} Active</Badge>
@@ -241,8 +335,8 @@ export default function StormsPage() {
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-semibold text-white">{alert.headline}</h3>
-                            <p className="text-sm text-surface-400 mt-1">{alert.description}</p>
+                            <h3 className="font-semibold text-text-primary">{alert.headline}</h3>
+                            <p className="text-sm text-text-muted mt-1">{alert.description}</p>
                           </div>
                           <Badge className={severityColors[alert.severity]}>
                             {alert.severity}
@@ -250,15 +344,15 @@ export default function StormsPage() {
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm">
-                          <span className="flex items-center gap-1 text-surface-300">
+                          <span className="flex items-center gap-1 text-text-secondary">
                             <MapPin className="w-4 h-4" />
                             {alert.areas.join(", ")}
                           </span>
-                          <span className="flex items-center gap-1 text-surface-300">
+                          <span className="flex items-center gap-1 text-text-secondary">
                             <Calendar className="w-4 h-4" />
                             Until {alert.expires.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
-                          <span className="flex items-center gap-1 text-surface-300">
+                          <span className="flex items-center gap-1 text-text-secondary">
                             <Users className="w-4 h-4" />
                             {alert.affectedCustomers} customers in area
                           </span>
@@ -266,8 +360,8 @@ export default function StormsPage() {
                         
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-amber-500/20">
                           <div>
-                            <span className="text-sm text-surface-400">Estimated Opportunity:</span>
-                            <span className="ml-2 text-lg font-bold text-emerald-400">
+                            <span className="text-sm text-text-muted">Estimated Opportunity:</span>
+                            <span className="ml-2 text-lg font-bold text-accent-success">
                               {formatCurrency(alert.estimatedOpportunity)}
                             </span>
                           </div>
@@ -324,7 +418,7 @@ export default function StormsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-guardian-400" />
+              <MapPin className="w-5 h-5 text-accent-primary" />
               Storm Event Map
               <Badge className="ml-2 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                 LIVE RADAR
@@ -345,7 +439,7 @@ export default function StormsPage() {
             showAnimation={true}
             markers={[
               // Recent storm event markers
-              ...recentStormEvents.map(event => ({
+              ...filteredEvents.map(event => ({
                 id: event.id,
                 lat: event.location === "Columbus, OH" ? 39.9612 : 
                      event.location === "Westerville, OH" ? 40.1262 :
@@ -366,18 +460,18 @@ export default function StormsPage() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-rose-500" />
-                <span className="text-surface-400">Severe Events</span>
+                <span className="text-text-muted">Severe Events</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-amber-500" />
-                <span className="text-surface-400">Moderate Events</span>
+                <span className="text-text-muted">Moderate Events</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-cyan-400" />
-                <span className="text-surface-400">Customer Locations</span>
+                <span className="text-text-muted">Customer Locations</span>
               </div>
             </div>
-            <span className="text-surface-500 font-mono text-xs">
+            <span className="text-text-muted font-mono text-xs">
               Data: RainViewer + NOAA
             </span>
           </div>
@@ -386,12 +480,22 @@ export default function StormsPage() {
 
       {/* Recent Storm Events */}
       <div>
-        <h2 className="font-display text-xl font-bold text-white mb-4">
-          Recent Storm Events
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl font-bold text-text-primary">
+            Recent Storm Events
+          </h2>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => setActiveFilters({})}
+              className="text-sm text-accent-primary hover:opacity-80"
+            >
+              Clear Filters ({activeFilterCount})
+            </button>
+          )}
+        </div>
         
         <div className="space-y-4">
-          {recentStormEvents.map((event, index) => {
+          {filteredEvents.map((event, index) => {
             const Icon = stormTypeIcons[event.type] || CloudLightning;
             return (
               <motion.div
@@ -401,10 +505,10 @@ export default function StormsPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`cursor-pointer transition-all ${
-                    selectedEvent === event.id ? "glow-primary" : "hover:bg-surface-800/30"
+                  className={`cursor-pointer transition-all hover:border-accent-primary/50 ${
+                    selectedEvent?.id === event.id ? "border-accent-primary" : ""
                   }`}
-                  onClick={() => setSelectedEvent(selectedEvent === event.id ? null : event.id)}
+                  onClick={() => handleViewEventDetails(event)}
                 >
                   <CardContent className="py-4">
                     <div className="flex items-center gap-4">
@@ -418,7 +522,7 @@ export default function StormsPage() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
-                          <h3 className="font-semibold text-white capitalize">
+                          <h3 className="font-semibold text-text-primary capitalize">
                             {event.type} Event
                           </h3>
                           <Badge className={severityColors[event.severity]}>
@@ -431,7 +535,7 @@ export default function StormsPage() {
                             <Badge variant="secondary">{event.windSpeed} mph</Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-surface-400">
+                        <div className="flex items-center gap-4 mt-1 text-sm text-text-muted">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" />
                             {event.location} ({event.county} County)
@@ -445,20 +549,20 @@ export default function StormsPage() {
                       
                       <div className="hidden lg:flex items-center gap-6">
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-white">{event.affectedCustomers}</p>
-                          <p className="text-xs text-surface-400">Affected</p>
+                          <p className="text-2xl font-bold text-text-primary">{event.affectedCustomers}</p>
+                          <p className="text-xs text-text-muted">Affected</p>
                         </div>
                         <div className="text-center">
                           <p className="text-2xl font-bold text-amber-400">{event.inspectionsPending}</p>
-                          <p className="text-xs text-surface-400">Pending</p>
+                          <p className="text-xs text-text-muted">Pending</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-emerald-400">{event.claimsFiled}</p>
-                          <p className="text-xs text-surface-400">Claims</p>
+                          <p className="text-2xl font-bold text-accent-success">{event.claimsFiled}</p>
+                          <p className="text-xs text-text-muted">Claims</p>
                         </div>
-                        <div className="text-center pl-4 border-l border-surface-700">
-                          <p className="text-2xl font-bold text-white">{formatCurrency(event.opportunity)}</p>
-                          <p className="text-xs text-surface-400">Opportunity</p>
+                        <div className="text-center pl-4 border-l border-border">
+                          <p className="text-2xl font-bold text-text-primary">{formatCurrency(event.opportunity)}</p>
+                          <p className="text-xs text-text-muted">Opportunity</p>
                         </div>
                       </div>
                       
@@ -467,7 +571,7 @@ export default function StormsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleViewEventDetails(event.id, event.type);
+                          handleViewEventDetails(event);
                         }}
                       >
                         View Details
@@ -475,22 +579,22 @@ export default function StormsPage() {
                     </div>
                     
                     {/* Mobile stats */}
-                    <div className="lg:hidden grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-surface-700/50">
+                    <div className="lg:hidden grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
                       <div className="text-center">
-                        <p className="text-xl font-bold text-white">{event.affectedCustomers}</p>
-                        <p className="text-xs text-surface-400">Affected</p>
+                        <p className="text-xl font-bold text-text-primary">{event.affectedCustomers}</p>
+                        <p className="text-xs text-text-muted">Affected</p>
                       </div>
                       <div className="text-center">
                         <p className="text-xl font-bold text-amber-400">{event.inspectionsPending}</p>
-                        <p className="text-xs text-surface-400">Pending</p>
+                        <p className="text-xs text-text-muted">Pending</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xl font-bold text-emerald-400">{event.claimsFiled}</p>
-                        <p className="text-xs text-surface-400">Claims</p>
+                        <p className="text-xl font-bold text-accent-success">{event.claimsFiled}</p>
+                        <p className="text-xs text-text-muted">Claims</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xl font-bold text-white">{formatCurrency(event.opportunity)}</p>
-                        <p className="text-xs text-surface-400">Value</p>
+                        <p className="text-xl font-bold text-text-primary">{formatCurrency(event.opportunity)}</p>
+                        <p className="text-xs text-text-muted">Value</p>
                       </div>
                     </div>
                   </CardContent>
@@ -498,8 +602,40 @@ export default function StormsPage() {
               </motion.div>
             );
           })}
+
+          {filteredEvents.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <CloudLightning className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-text-primary mb-2">No storm events found</h3>
+                <p className="text-text-muted mb-4">
+                  Try adjusting your filters to see more events
+                </p>
+                <Button variant="outline" onClick={() => setActiveFilters({})}>
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        title="Filter Storm Events"
+        filters={stormFilterConfig}
+        activeFilters={activeFilters}
+        onApply={handleApplyFilters}
+      />
+
+      {/* Storm Details Modal */}
+      <StormDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        event={selectedEvent}
+      />
     </motion.div>
   );
 }
