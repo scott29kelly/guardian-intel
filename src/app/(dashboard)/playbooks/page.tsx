@@ -64,7 +64,7 @@ const playbooks = [
       },
       {
         title: "Establish Credibility",
-        content: `"We've been helping homeowners in Central Ohio for over 15 years, and after major storms, we offer complimentary drone inspections to help identify any damage before it becomes a bigger problem. Insurance typically covers storm damage, so there's often no out-of-pocket cost to homeowners."`,
+        content: `"We've been helping homeowners across Pennsylvania, New Jersey, Delaware, Maryland, Virginia, and New York for years. After major storms, we offer complimentary inspections to help identify any damage before it becomes a bigger problem. Insurance typically covers storm damage, so there's often no out-of-pocket cost to homeowners."`,
         tips: ["Mention local experience", "Lead with value, not sales"],
       },
       {

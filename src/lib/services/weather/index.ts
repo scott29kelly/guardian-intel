@@ -222,7 +222,7 @@ class WeatherService {
       "43068": { lat: 39.9551, lon: -82.8133 },
     };
 
-    return zipCoords[zipCode] || { lat: 39.9612, lon: -82.9988 }; // Default to Columbus
+    return zipCoords[zipCode] || { lat: 40.1773, lon: -75.0035 }; // Default to Southampton, PA (Guardian HQ)
   }
 
   /**
@@ -306,7 +306,7 @@ class WeatherService {
     startDate: Date,
     endDate: Date
   ): StormEvent[] {
-    // Generate realistic mock data for Ohio region
+    // Generate realistic mock data for Mid-Atlantic region (PA, NJ, DE, MD, VA, NY)
     const events: StormEvent[] = [];
     const random = () => Math.random();
 

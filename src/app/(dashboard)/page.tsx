@@ -55,7 +55,7 @@ const liveMetrics = {
 };
 
 const recentAlerts = [
-  { id: 1, type: "storm", message: "Severe thunderstorm warning - Franklin County", time: "2m ago", severity: "critical" },
+  { id: 1, type: "storm", message: "Severe thunderstorm warning - Bucks County, PA", time: "2m ago", severity: "critical" },
   { id: 2, type: "lead", message: "High-value lead detected: Chen property", time: "15m ago", severity: "high" },
   { id: 3, type: "deal", message: "Henderson deal approaching cold status", time: "1h ago", severity: "warning" },
 ];
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                     <span className="font-mono text-sm text-accent-danger">SEVERE WEATHER ACTIVE</span>
                   </div>
                   <h3 className="font-display font-bold text-2xl text-text-primary mb-2">
-                    Franklin County Storm Alert
+                    Bucks County Storm Alert
                   </h3>
                   <p className="font-mono text-sm text-text-muted">
                     Severe thunderstorm with potential for large hail (1.5"+) and damaging winds (60+ mph)
@@ -529,8 +529,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 }}
-            className="panel cursor-pointer hover:border-[hsl(var(--accent-primary)/0.5)] transition-all"
-            onClick={() => router.push("/storms")}
+            className="panel hover:border-[hsl(var(--accent-primary)/0.3)] transition-all"
           >
             <div className="panel-header">
               <CloudLightning className="w-4 h-4 text-accent-danger" />
@@ -540,9 +539,9 @@ export default function DashboardPage() {
             <div className="p-4">
               <div className="relative rounded-lg overflow-hidden border border-border">
                 <WeatherRadarMap
-                  center={[39.9612, -82.9988]}
+                  center={[40.1773, -75.0035]}
                   zoom={7}
-                  height="180px"
+                  height="240px"
                   showRadar={true}
                   showAnimation={true}
                   markers={[]}
@@ -552,12 +551,15 @@ export default function DashboardPage() {
 
               <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-xs text-text-secondary">Central Ohio</p>
-                  <p className="font-mono text-[10px] text-text-muted">Real-time precipitation data</p>
+                  <p className="font-mono text-xs text-text-secondary">Mid-Atlantic Region</p>
+                  <p className="font-mono text-[10px] text-text-muted">PA • NJ • DE • MD • VA • NY</p>
                 </div>
-                <span className="font-mono text-xs text-accent-primary">
+                <button
+                  onClick={() => router.push("/storms")}
+                  className="font-mono text-xs text-accent-primary hover:text-accent-primary/80 hover:underline transition-all cursor-pointer"
+                >
                   EXPAND →
-                </span>
+                </button>
               </div>
             </div>
           </motion.div>

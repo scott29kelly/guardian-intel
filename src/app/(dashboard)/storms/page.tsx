@@ -59,7 +59,7 @@ interface StormEvent {
   opportunity: number;
 }
 
-// Mock storm data
+// Mock storm data - Guardian service area (PA, NJ, DE, MD, VA, NY)
 const activeAlerts = [
   {
     id: "alert-1",
@@ -67,7 +67,7 @@ const activeAlerts = [
     severity: "severe",
     headline: "Severe Thunderstorm Warning",
     description: "Large hail up to 1.5 inches expected. Damaging winds up to 60 mph possible.",
-    areas: ["Franklin County", "Delaware County"],
+    areas: ["Bucks County, PA", "Montgomery County, PA"],
     onset: new Date("2026-01-07T14:00:00"),
     expires: new Date("2026-01-07T18:00:00"),
     affectedCustomers: 23,
@@ -79,7 +79,7 @@ const activeAlerts = [
     severity: "moderate",
     headline: "Wind Advisory",
     description: "Southwest winds 25 to 35 mph with gusts up to 50 mph expected.",
-    areas: ["Licking County"],
+    areas: ["Spotsylvania County, VA"],
     onset: new Date("2026-01-07T16:00:00"),
     expires: new Date("2026-01-08T06:00:00"),
     affectedCustomers: 8,
@@ -92,8 +92,8 @@ const recentStormEvents: StormEvent[] = [
     id: "event-1",
     type: "hail",
     date: new Date("2026-01-02"),
-    location: "Columbus, OH",
-    county: "Franklin",
+    location: "Southampton, PA",
+    county: "Bucks",
     hailSize: 1.25,
     severity: "severe",
     affectedCustomers: 45,
@@ -105,8 +105,8 @@ const recentStormEvents: StormEvent[] = [
     id: "event-2",
     type: "wind",
     date: new Date("2025-12-28"),
-    location: "Westerville, OH",
-    county: "Delaware",
+    location: "Doylestown, PA",
+    county: "Bucks",
     windSpeed: 65,
     severity: "severe",
     affectedCustomers: 32,
@@ -118,8 +118,8 @@ const recentStormEvents: StormEvent[] = [
     id: "event-3",
     type: "hail",
     date: new Date("2025-12-15"),
-    location: "Dublin, OH",
-    county: "Franklin",
+    location: "Bensalem, PA",
+    county: "Bucks",
     hailSize: 0.75,
     severity: "moderate",
     affectedCustomers: 28,
@@ -131,8 +131,8 @@ const recentStormEvents: StormEvent[] = [
     id: "event-4",
     type: "thunderstorm",
     date: new Date("2025-11-20"),
-    location: "Powell, OH",
-    county: "Delaware",
+    location: "Fredericksburg, VA",
+    county: "Spotsylvania",
     windSpeed: 55,
     hailSize: 0.5,
     severity: "moderate",
@@ -195,9 +195,9 @@ const stormFilterConfig = [
     id: "county",
     label: "County",
     options: [
-      { value: "franklin", label: "Franklin County", count: 2 },
-      { value: "delaware", label: "Delaware County", count: 2 },
-      { value: "licking", label: "Licking County", count: 1 },
+      { value: "bucks", label: "Bucks County, PA", count: 3 },
+      { value: "montgomery", label: "Montgomery County, PA", count: 1 },
+      { value: "spotsylvania", label: "Spotsylvania County, VA", count: 1 },
     ],
     multiSelect: true,
   },
@@ -432,21 +432,23 @@ export default function StormsPage() {
         </CardHeader>
         <CardContent>
           <WeatherRadarMap
-            center={[39.9612, -82.9988]} // Columbus, OH
-            zoom={8}
+            center={[40.1773, -75.0035]} // Southampton, PA - Guardian HQ
+            zoom={7}
             height="450px"
             showRadar={true}
             showAnimation={true}
             markers={[
-              // Recent storm event markers
+              // Recent storm event markers - Guardian service area (PA, NJ, DE, MD, VA, NY)
               ...filteredEvents.map(event => ({
                 id: event.id,
-                lat: event.location === "Columbus, OH" ? 39.9612 : 
-                     event.location === "Westerville, OH" ? 40.1262 :
-                     event.location === "Dublin, OH" ? 40.0992 : 40.1578,
-                lon: event.location === "Columbus, OH" ? -82.9988 :
-                     event.location === "Westerville, OH" ? -82.9296 :
-                     event.location === "Dublin, OH" ? -83.1140 : -83.0752,
+                lat: event.location === "Southampton, PA" ? 40.1773 : 
+                     event.location === "Doylestown, PA" ? 40.3101 :
+                     event.location === "Bensalem, PA" ? 40.1046 : 
+                     event.location === "Fredericksburg, VA" ? 38.3032 : 40.0856,
+                lon: event.location === "Southampton, PA" ? -75.0035 :
+                     event.location === "Doylestown, PA" ? -75.1299 :
+                     event.location === "Bensalem, PA" ? -74.9518 : 
+                     event.location === "Fredericksburg, VA" ? -77.4605 : -74.8059,
                 type: event.type as "hail" | "wind",
                 label: `${event.type.charAt(0).toUpperCase() + event.type.slice(1)} Event - ${event.location}`,
                 severity: event.severity as "low" | "moderate" | "high" | "critical",

@@ -35,7 +35,7 @@ const initialFormData: CustomerFormData = {
   phone: "",
   address: "",
   city: "",
-  state: "OH",
+  state: "PA",
   zipCode: "",
   propertyType: "Single Family",
   roofType: "Architectural Shingle",
@@ -193,7 +193,7 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
                         value={formData.city}
                         onChange={(e) => updateField("city", e.target.value)}
                         className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
-                        placeholder="Columbus"
+                        placeholder="Southampton"
                       />
                     </div>
                     <div className="space-y-2">
@@ -203,11 +203,12 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
                         onChange={(e) => updateField("state", e.target.value)}
                         className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary cursor-pointer"
                       >
-                        <option value="OH">Ohio</option>
-                        <option value="IN">Indiana</option>
-                        <option value="KY">Kentucky</option>
-                        <option value="WV">West Virginia</option>
                         <option value="PA">Pennsylvania</option>
+                        <option value="NJ">New Jersey</option>
+                        <option value="DE">Delaware</option>
+                        <option value="MD">Maryland</option>
+                        <option value="VA">Virginia</option>
+                        <option value="NY">New York</option>
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -217,7 +218,7 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
                         value={formData.zipCode}
                         onChange={(e) => updateField("zipCode", e.target.value)}
                         className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
-                        placeholder="43215"
+                        placeholder="18966"
                       />
                     </div>
                   </div>

@@ -192,7 +192,7 @@ export function Sidebar() {
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-[hsl(var(--accent-danger))] rounded-full animate-pulse" />
               <span className="font-mono text-[10px] text-accent-danger truncate">
-                Storm alert: Franklin Co.
+                Storm alert: Bucks Co.
               </span>
             </div>
             <div className="flex items-center gap-2">

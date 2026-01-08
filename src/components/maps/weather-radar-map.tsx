@@ -104,7 +104,7 @@ function MapClickHandler({ onClick }: { onClick?: (lat: number, lon: number) => 
 }
 
 export function WeatherRadarMap({
-  center = [39.9612, -82.9988], // Columbus, OH
+  center = [40.1773, -75.0035], // Southampton, PA - Guardian HQ
   zoom = 8,
   height = "400px",
   markers = [],
@@ -117,7 +117,7 @@ export function WeatherRadarMap({
   const [isClient, setIsClient] = useState(false);
   const [radarData, setRadarData] = useState<RainViewerData | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false); // Paused by default - user controls playback
   const [radarOpacity, setRadarOpacity] = useState(0.6);
   const [showRadarLayer, setShowRadarLayer] = useState(showRadar);
   const [isLoading, setIsLoading] = useState(true);
