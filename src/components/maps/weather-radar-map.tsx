@@ -52,6 +52,7 @@ interface WeatherRadarMapProps {
   showAnimation?: boolean;
   onLocationClick?: (lat: number, lon: number) => void;
   className?: string;
+  compact?: boolean; // Compact mode for smaller containers
 }
 
 // Dynamically import map to avoid SSR issues
@@ -111,6 +112,7 @@ export function WeatherRadarMap({
   showAnimation = true,
   onLocationClick,
   className = "",
+  compact = false, // Compact mode for dashboard widget
 }: WeatherRadarMapProps) {
   const [isClient, setIsClient] = useState(false);
   const [radarData, setRadarData] = useState<RainViewerData | null>(null);
@@ -344,8 +346,57 @@ export function WeatherRadarMap({
           ))}
       </MapContainer>
 
-      {/* Radar controls overlay */}
-      {showRadar && (
+      {/* Radar controls overlay - Compact mode for small containers */}
+      {showRadar && compact && (
+        <div className="absolute bottom-2 left-2 right-2 z-[1000]">
+          <div className="bg-void-950/95 backdrop-blur-sm rounded p-1.5 border border-void-700/50">
+            <div className="flex items-center justify-between gap-2">
+              {/* Time display - minimal */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] font-mono text-intel-400">
+                  {isLoading ? "..." : getFrameTime()}
+                </span>
+                {isForecast() && (
+                  <span className="text-[8px] px-1 py-0.5 bg-storm-500/30 text-storm-400 rounded">
+                    FC
+                  </span>
+                )}
+              </div>
+
+              {/* Mini playback controls */}
+              {showAnimation && radarData && (
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="p-1 hover:bg-void-700 rounded transition-colors"
+                    title={isPlaying ? "Pause" : "Play"}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-3 h-3 text-text-secondary" />
+                    ) : (
+                      <Play className="w-3 h-3 text-text-secondary" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Mini layer toggle */}
+              <button
+                onClick={() => setShowRadarLayer(!showRadarLayer)}
+                className={`p-1 rounded transition-colors ${
+                  showRadarLayer ? "bg-intel-500/20 text-intel-400" : "hover:bg-void-700 text-text-secondary"
+                }`}
+                title="Toggle radar"
+              >
+                <Layers className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Radar controls overlay - Full mode */}
+      {showRadar && !compact && (
         <div className="absolute bottom-4 left-4 right-4 z-[1000]">
           <div className="bg-void-950/90 backdrop-blur-sm rounded-lg p-3 border border-void-700">
             <div className="flex items-center justify-between gap-4">
@@ -456,28 +507,32 @@ export function WeatherRadarMap({
         </div>
       )}
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 z-[1000]">
-        <div className="bg-void-950/90 backdrop-blur-sm rounded-lg p-2 border border-void-700">
-          <div className="text-xs font-medium text-text-secondary mb-2">Radar Intensity</div>
-          <div className="flex gap-0.5">
-            <div className="w-4 h-3 rounded-sm" style={{ background: "#00ff00" }} title="Light" />
-            <div className="w-4 h-3 rounded-sm" style={{ background: "#ffff00" }} title="Moderate" />
-            <div className="w-4 h-3 rounded-sm" style={{ background: "#ff9900" }} title="Heavy" />
-            <div className="w-4 h-3 rounded-sm" style={{ background: "#ff0000" }} title="Severe" />
-            <div className="w-4 h-3 rounded-sm" style={{ background: "#ff00ff" }} title="Extreme" />
+      {/* Legend - Hidden in compact mode */}
+      {!compact && (
+        <div className="absolute top-4 right-4 z-[1000]">
+          <div className="bg-void-950/90 backdrop-blur-sm rounded-lg p-2 border border-void-700">
+            <div className="text-xs font-medium text-text-secondary mb-2">Radar Intensity</div>
+            <div className="flex gap-0.5">
+              <div className="w-4 h-3 rounded-sm" style={{ background: "#00ff00" }} title="Light" />
+              <div className="w-4 h-3 rounded-sm" style={{ background: "#ffff00" }} title="Moderate" />
+              <div className="w-4 h-3 rounded-sm" style={{ background: "#ff9900" }} title="Heavy" />
+              <div className="w-4 h-3 rounded-sm" style={{ background: "#ff0000" }} title="Severe" />
+              <div className="w-4 h-3 rounded-sm" style={{ background: "#ff00ff" }} title="Extreme" />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Coordinates display */}
-      <div className="absolute top-4 left-4 z-[1000]">
-        <div className="bg-void-950/90 backdrop-blur-sm rounded px-2 py-1 border border-void-700">
-          <span className="text-xs font-mono text-intel-400">
-            {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W
-          </span>
+      {/* Coordinates display - Hidden in compact mode */}
+      {!compact && (
+        <div className="absolute top-4 left-4 z-[1000]">
+          <div className="bg-void-950/90 backdrop-blur-sm rounded px-2 py-1 border border-void-700">
+            <span className="text-xs font-mono text-intel-400">
+              {center[0].toFixed(2)}°N {Math.abs(center[1]).toFixed(2)}°W
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

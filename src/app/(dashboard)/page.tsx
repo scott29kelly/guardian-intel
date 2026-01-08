@@ -542,10 +542,11 @@ export default function DashboardPage() {
                 <WeatherRadarMap
                   center={[39.9612, -82.9988]}
                   zoom={7}
-                  height="220px"
+                  height="180px"
                   showRadar={true}
                   showAnimation={true}
                   markers={[]}
+                  compact={true}
                 />
               </div>
 
