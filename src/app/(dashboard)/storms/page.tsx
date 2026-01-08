@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -23,6 +23,23 @@ import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import dynamic from "next/dynamic";
+
+// Dynamically import the map to avoid SSR issues
+const WeatherRadarMap = dynamic(
+  () => import("@/components/maps/weather-radar-map").then(mod => mod.WeatherRadarMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="aspect-video bg-surface-800/50 rounded-lg flex items-center justify-center border border-surface-700/50">
+        <div className="flex items-center gap-2 text-surface-400">
+          <CloudLightning className="w-5 h-5 animate-pulse" />
+          <span>Loading weather radar...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 // Mock storm data
 const activeAlerts = [
@@ -302,27 +319,67 @@ export default function StormsPage() {
         />
       </div>
 
-      {/* Map Placeholder */}
+      {/* Interactive Storm Map with Live Radar */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-guardian-400" />
-            Storm Event Map
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-guardian-400" />
+              Storm Event Map
+              <Badge className="ml-2 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                LIVE RADAR
+              </Badge>
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={handleOpenNOAA}>
+              <ExternalLink className="w-4 h-4" />
+              NOAA Data
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="aspect-video bg-surface-800/50 rounded-lg flex items-center justify-center border border-surface-700/50">
-            <div className="text-center">
-              <MapPin className="w-12 h-12 text-surface-600 mx-auto mb-3" />
-              <p className="text-surface-400 mb-2">Interactive Map</p>
-              <p className="text-sm text-surface-500">
-                Integration with mapping service (Google Maps, Mapbox) coming soon
-              </p>
-              <Button variant="outline" className="mt-4" onClick={handleOpenNOAA}>
-                <ExternalLink className="w-4 h-4" />
-                Open in NOAA Storm Events
-              </Button>
+          <WeatherRadarMap
+            center={[39.9612, -82.9988]} // Columbus, OH
+            zoom={8}
+            height="450px"
+            showRadar={true}
+            showAnimation={true}
+            markers={[
+              // Recent storm event markers
+              ...recentStormEvents.map(event => ({
+                id: event.id,
+                lat: event.location === "Columbus, OH" ? 39.9612 : 
+                     event.location === "Westerville, OH" ? 40.1262 :
+                     event.location === "Dublin, OH" ? 40.0992 : 40.1578,
+                lon: event.location === "Columbus, OH" ? -82.9988 :
+                     event.location === "Westerville, OH" ? -82.9296 :
+                     event.location === "Dublin, OH" ? -83.1140 : -83.0752,
+                type: event.type as "hail" | "wind",
+                label: `${event.type.charAt(0).toUpperCase() + event.type.slice(1)} Event - ${event.location}`,
+                severity: event.severity as "low" | "moderate" | "high" | "critical",
+                details: event.hailSize 
+                  ? `${event.hailSize}" hail - ${event.affectedCustomers} customers affected`
+                  : `${event.windSpeed} mph winds - ${event.affectedCustomers} customers affected`,
+              })),
+            ]}
+          />
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-rose-500" />
+                <span className="text-surface-400">Severe Events</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <span className="text-surface-400">Moderate Events</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-cyan-400" />
+                <span className="text-surface-400">Customer Locations</span>
+              </div>
             </div>
+            <span className="text-surface-500 font-mono text-xs">
+              Data: RainViewer + NOAA
+            </span>
           </div>
         </CardContent>
       </Card>

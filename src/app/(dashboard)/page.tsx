@@ -27,6 +27,23 @@ import {
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { mockCustomers, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/toast";
+import dynamic from "next/dynamic";
+
+// Dynamically import the map to avoid SSR issues
+const WeatherRadarMap = dynamic(
+  () => import("@/components/maps/weather-radar-map").then(mod => mod.WeatherRadarMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="aspect-square bg-surface-secondary rounded-lg flex items-center justify-center border border-border">
+        <div className="flex items-center gap-2 text-text-muted">
+          <CloudLightning className="w-4 h-4 animate-pulse" />
+          <span className="text-xs">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 // Simulated live data
 const liveMetrics = {
@@ -507,7 +524,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions Panel */}
         <div className="space-y-4">
-          {/* Weather Radar Preview */}
+          {/* Weather Radar Preview - Live Map */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -521,61 +538,21 @@ export default function DashboardPage() {
               <span className="ml-auto font-mono text-[10px] text-accent-danger animate-pulse">LIVE</span>
             </div>
             <div className="p-4">
-              <div className="relative aspect-square bg-surface-secondary rounded-lg overflow-hidden border border-border">
-                {/* Simulated radar */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative w-full h-full">
-                    {/* Grid lines */}
-                    <div className="absolute inset-0" style={{
-                      backgroundImage: `
-                        linear-gradient(hsl(var(--accent-primary) / 0.05) 1px, transparent 1px),
-                        linear-gradient(90deg, hsl(var(--accent-primary) / 0.05) 1px, transparent 1px)
-                      `,
-                      backgroundSize: "20% 20%"
-                    }} />
-                    
-                    {/* Center crosshair */}
-                    <div className="absolute top-1/2 left-0 right-0 h-px bg-[hsl(var(--accent-primary)/0.2)]" />
-                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[hsl(var(--accent-primary)/0.2)]" />
-                    
-                    {/* Radar sweep */}
-                    <div className="absolute inset-0 animate-[spin_8s_linear_infinite] origin-center">
-                      <div className="absolute top-1/2 left-1/2 w-1/2 h-px bg-gradient-to-r from-[hsl(var(--accent-primary)/0.5)] to-transparent" />
-                    </div>
-
-                    {/* Storm cells */}
-                    <div className="absolute top-[30%] left-[25%] w-16 h-16 bg-[hsl(var(--accent-danger)/0.3)] rounded-full blur-md animate-pulse" />
-                    <div className="absolute top-[45%] left-[60%] w-10 h-10 bg-[hsl(var(--accent-danger)/0.2)] rounded-full blur-sm" />
-                    
-                    {/* Range rings */}
-                    <div className="absolute inset-[10%] border border-[hsl(var(--accent-primary)/0.1)] rounded-full" />
-                    <div className="absolute inset-[25%] border border-[hsl(var(--accent-primary)/0.1)] rounded-full" />
-                    <div className="absolute inset-[40%] border border-[hsl(var(--accent-primary)/0.1)] rounded-full" />
-                  </div>
-                </div>
-
-                {/* Legend */}
-                <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-[hsl(var(--accent-danger))] rounded-full" />
-                    <span className="font-mono text-[9px] text-text-muted">SEVERE</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-[hsl(var(--accent-warning))] rounded-full" />
-                    <span className="font-mono text-[9px] text-text-muted">MODERATE</span>
-                  </div>
-                </div>
-
-                {/* Coordinates */}
-                <div className="absolute top-2 right-2 font-mono text-[9px] text-[hsl(var(--accent-primary)/0.5)]">
-                  40.0°N 82.9°W
-                </div>
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <WeatherRadarMap
+                  center={[39.9612, -82.9988]}
+                  zoom={7}
+                  height="220px"
+                  showRadar={true}
+                  showAnimation={true}
+                  markers={[]}
+                />
               </div>
 
               <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-xs text-text-secondary">Franklin County</p>
-                  <p className="font-mono text-[10px] text-accent-danger">Severe thunderstorm warning</p>
+                  <p className="font-mono text-xs text-text-secondary">Central Ohio</p>
+                  <p className="font-mono text-[10px] text-text-muted">Real-time precipitation data</p>
                 </div>
                 <span className="font-mono text-xs text-accent-primary">
                   EXPAND →
