@@ -207,10 +207,10 @@ export default function CustomersPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 bg-surface-800/50 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-guardian-500/50"
+              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
             >
               {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-void-900 text-white">
                   {option.label}
                 </option>
               ))}
@@ -220,10 +220,10 @@ export default function CustomersPage() {
             <select
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value)}
-              className="px-4 py-2.5 bg-surface-800/50 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-guardian-500/50"
+              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
             >
               {stageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-void-900 text-white">
                   {option.label}
                 </option>
               ))}
@@ -233,10 +233,10 @@ export default function CustomersPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 bg-surface-800/50 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-guardian-500/50"
+              className="px-4 py-2.5 bg-void-900 border border-surface-700 rounded-lg text-sm text-white focus:outline-none focus:border-intel-500/50 cursor-pointer"
             >
               {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-void-900 text-white">
                   Sort: {option.label}
                 </option>
               ))}
