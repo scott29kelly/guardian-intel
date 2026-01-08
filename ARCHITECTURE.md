@@ -113,18 +113,33 @@ Database (Prisma) → React Query → Components
 ## Current State
 
 ### Working Features
-- ✅ Dashboard UI with mock data
+- ✅ Dashboard UI with live data from seeded database
 - ✅ Customer intel cards with expandable details
 - ✅ Weather radar visualization (simulated)
 - ✅ Lead scoring display
-- ✅ Theme toggle (dark/light)
-- ✅ Modal system for profiles/actions
+- ✅ Theme toggle (dark/light/gray variants)
+- ✅ Modal system using Radix Dialog (accessible)
+- ✅ Protected routes with NextAuth session checks
+- ✅ Database seeded with 15 customers, 17 intel items, 10 weather events
+- ✅ Error boundaries and loading states
+- ✅ Modular dashboard components
 
-### Planned/Mock
+### Planned/Next Steps
 - 🔶 Real NOAA API integration (service exists, needs wiring)
 - 🔶 Leap CRM sync (adapter exists, needs credentials)
-- 🔶 Database persistence (schema ready, using mock data)
-- 🔶 User authentication (configured, not enforced)
+- 🔶 Connect dashboard to Prisma queries (replace mock-data imports)
+- 🔶 Real-time data updates (React Query)
+
+---
+
+## Authentication
+
+- **Provider**: NextAuth.js with credentials
+- **Session**: JWT-based
+- **Protected routes**: All `/dashboard/*` routes (enforced via layout)
+- **Demo accounts**:
+  - `sarah.mitchell@guardian.com` / `password123` (Sales Rep)
+  - `admin@guardian.com` / `password123` (Admin)
 
 ---
 
@@ -156,21 +171,57 @@ Location: `src/components/customer-intel-card.tsx`
 - Shows storm events and intel items
 - Links to profile modal and action modal
 
-### Dashboard (Command Center)
-Location: `src/app/(dashboard)/page.tsx`
-- Real-time metrics display
-- Alert ticker with rotating alerts
-- Priority targets (top leads)
-- Weather radar preview
-- Quick action buttons
+### Dashboard Components
+Location: `src/components/dashboard/`
+- `AlertTicker` - Rotating alert banner
+- `AlertsPanel` - Slide-out panel showing all alerts
+- `MetricsGrid` - Four main KPI cards
+- `StormWatchModal` - Storm alert dialog
+
+### UI Components
+Location: `src/components/ui/`
+- `Dialog` - Radix-based accessible modal
+- `Skeleton` - Loading state placeholders
+- `Button`, `Card`, `Badge`, etc.
+
+### Modals
+Location: `src/components/modals/`
+- `CustomerProfileModal` - Full customer detail view
+- `TakeActionModal` - Log calls, emails, tasks
+
+---
+
+## Database
+
+### Seeding
+Run `npx prisma db seed` to populate with demo data:
+- 15 customers with full property/insurance details
+- 17 intel items (weather alerts, property insights)
+- 10 weather events
+- 3 users (1 admin, 2 sales reps)
+- 2 playbooks (discovery, objection handling)
+
+### Key Queries
+```typescript
+// Get customers with relations
+prisma.customer.findMany({
+  include: { intelItems: true, weatherEvents: true }
+})
+
+// Get daily metrics
+prisma.dailyMetrics.findFirst({
+  where: { date: today, userId: null }
+})
+```
 
 ---
 
 ## Development Notes
 
-1. **Mock Data**: Most data comes from `lib/mock-data.ts`. Real API calls are stubbed.
-2. **No Database Yet**: Prisma schema is defined but DB is not seeded.
-3. **Services Ready**: Weather and CRM services are architected but need credentials.
+1. **Database Ready**: SQLite database seeded with realistic data
+2. **Auth Enforced**: Dashboard routes protected, redirects to `/login`
+3. **Services Ready**: Weather and CRM services architected, need credentials
+4. **Mock Data Still Used**: Dashboard imports from `mock-data.ts` - next step is to wire to Prisma
 
 ---
 

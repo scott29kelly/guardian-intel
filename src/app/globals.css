@@ -335,6 +335,70 @@
   .border-border {
     border-color: hsl(var(--border));
   }
+  .border-border-hover {
+    border-color: hsl(var(--border-hover));
+  }
+  
+  /* Accent background utilities with opacity */
+  .bg-accent-primary-subtle {
+    background-color: hsl(var(--accent-primary) / 0.1);
+  }
+  .bg-accent-success-subtle {
+    background-color: hsl(var(--accent-success) / 0.1);
+  }
+  .bg-accent-danger-subtle {
+    background-color: hsl(var(--accent-danger) / 0.1);
+  }
+  .bg-accent-warning-subtle {
+    background-color: hsl(var(--accent-warning) / 0.1);
+  }
+  
+  /* Accent border utilities with opacity */
+  .border-accent-primary-subtle {
+    border-color: hsl(var(--accent-primary) / 0.3);
+  }
+  .border-accent-success-subtle {
+    border-color: hsl(var(--accent-success) / 0.3);
+  }
+  .border-accent-danger-subtle {
+    border-color: hsl(var(--accent-danger) / 0.3);
+  }
+  .border-accent-warning-subtle {
+    border-color: hsl(var(--accent-warning) / 0.3);
+  }
+  
+  /* Hover states */
+  .hover\:bg-accent-primary-subtle:hover {
+    background-color: hsl(var(--accent-primary) / 0.2);
+  }
+  .hover\:bg-accent-danger-subtle:hover {
+    background-color: hsl(var(--accent-danger) / 0.2);
+  }
+  .hover\:bg-accent-success-subtle:hover {
+    background-color: hsl(var(--accent-success) / 0.2);
+  }
+  .hover\:border-accent-primary:hover {
+    border-color: hsl(var(--accent-primary) / 0.5);
+  }
+  
+  /* Common status indicator styles */
+  .status-indicator-critical {
+    @apply bg-accent-danger-subtle border border-accent-danger-subtle text-accent-danger;
+  }
+  .status-indicator-high {
+    @apply bg-accent-primary-subtle border border-accent-primary-subtle text-accent-primary;
+  }
+  .status-indicator-warning {
+    @apply bg-accent-warning-subtle border border-accent-warning-subtle text-accent-warning;
+  }
+  .status-indicator-success {
+    @apply bg-accent-success-subtle border border-accent-success-subtle text-accent-success;
+  }
+  
+  /* Accent warning color */
+  .text-accent-warning {
+    color: hsl(var(--accent-warning));
+  }
 
   /* Glow effects */
   .glow-storm {

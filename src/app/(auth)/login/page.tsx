@@ -44,11 +44,12 @@ export default function LoginPage() {
     }
   };
 
-  // For demo purposes, allow quick login
-  const handleDemoLogin = async (role: "rep" | "manager") => {
+  // For demo purposes, allow quick login with seeded users
+  const handleDemoLogin = async (type: "admin" | "rep") => {
     setIsLoading(true);
-    const demoEmail = role === "manager" ? "manager@guardian.com" : "rep@guardian.com";
-    const demoPassword = "demo123";
+    // Uses seeded accounts from prisma/seed.ts
+    const demoEmail = type === "admin" ? "admin@guardian.com" : "sarah.mitchell@guardian.com";
+    const demoPassword = "password123";
 
     try {
       const result = await signIn("credentials", {
@@ -58,8 +59,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        // If demo users don't exist, show message
-        setError("Demo users not set up. Use API to seed database.");
+        setError("Demo users not set up. Run: npx prisma db seed");
       } else {
         router.push(callbackUrl);
         router.refresh();
@@ -184,15 +184,15 @@ export default function LoginPage() {
                   onClick={() => handleDemoLogin("rep")}
                   disabled={isLoading}
                 >
-                  Sales Rep Demo
+                  Sarah (Rep)
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleDemoLogin("manager")}
+                  onClick={() => handleDemoLogin("admin")}
                   disabled={isLoading}
                 >
-                  Manager Demo
+                  Admin
                 </Button>
               </div>
             </div>
