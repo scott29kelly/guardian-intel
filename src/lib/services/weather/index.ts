@@ -354,3 +354,10 @@ class WeatherService {
 }
 
 export const weatherService = new WeatherService();
+
+// ============================================================
+// Re-export NOAA and Storm Intel services
+// ============================================================
+
+export * from "./noaa-service";
+export * from "./storm-intel-service";
