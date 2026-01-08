@@ -15,7 +15,11 @@ import {
   Shield,
   ChevronRight,
   Activity,
+  Bot,
+  Sparkles,
 } from "lucide-react";
+import { useState } from "react";
+import { AIChatPanel } from "./ai/chat-panel";
 import { ThemeToggle } from "./theme-toggle";
 
 const navigation = [
@@ -53,8 +57,15 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [showAIChat, setShowAIChat] = useState(false);
 
   return (
+    <>
+    {/* AI Chat Panel */}
+    <AIChatPanel
+      isOpen={showAIChat}
+      onClose={() => setShowAIChat(false)}
+    />
     <aside className="fixed left-0 top-0 h-screen w-64 bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))] flex flex-col z-50">
       {/* Decorative top line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent-primary)/0.5)] to-transparent" />
@@ -181,6 +192,25 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* AI Assistant Button */}
+      <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
+        <button
+          onClick={() => setShowAIChat(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all duration-200 group bg-gradient-to-r from-intel-500/10 to-guardian-500/10 border border-intel-500/30 hover:border-intel-500/50 hover:from-intel-500/20 hover:to-guardian-500/20"
+        >
+          <div className="relative w-8 h-8 rounded flex items-center justify-center bg-gradient-to-br from-intel-500/30 to-guardian-500/30">
+            <Bot className="w-4 h-4 text-intel-400" />
+            <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-intel-300 animate-pulse" />
+          </div>
+          <span className="font-display font-medium tracking-wide text-xs text-intel-400">
+            AI ASSIST
+          </span>
+          <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded bg-intel-500/20 text-intel-300">
+            ⌘K
+          </span>
+        </button>
+      </div>
+
       {/* Live Feed Indicator */}
       <div className="p-4 border-t border-[hsl(var(--sidebar-border))]">
         <div className="panel p-3">
@@ -245,5 +275,6 @@ export function Sidebar() {
       {/* Decorative bottom line */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent-secondary)/0.3)] to-transparent" />
     </aside>
+    </>
   );
 }

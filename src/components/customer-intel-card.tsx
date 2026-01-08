@@ -18,10 +18,14 @@ import {
   ArrowUpRight,
   Calendar,
   DollarSign,
+  Bot,
+  ClipboardList,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { CustomerProfileModal } from "./modals/customer-profile-modal";
 import { TakeActionModal } from "./modals/take-action-modal";
+import { AIChatPanel } from "./ai/chat-panel";
+import { QuickLogModal } from "./ai/quick-log-modal";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -52,6 +56,8 @@ export function CustomerIntelCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showQuickLog, setShowQuickLog] = useState(false);
 
   const criticalItems = intelItems.filter((i) => i.priority === "critical");
   const hasStormDamage = weatherEvents.length > 0;
@@ -378,6 +384,26 @@ export function CustomerIntelCard({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        setShowQuickLog(true);
+                      }}
+                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
+                    >
+                      <ClipboardList className="w-3 h-3" />
+                      LOG
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAIChat(true);
+                      }}
+                      className="px-3 py-1.5 bg-intel-500/10 border border-intel-500/30 rounded font-mono text-xs text-intel-400 hover:bg-intel-500/20 transition-all flex items-center gap-1"
+                    >
+                      <Bot className="w-3 h-3" />
+                      ASK AI
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowProfileModal(true);
                       }}
                       className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
@@ -413,6 +439,20 @@ export function CustomerIntelCard({
         customer={customer}
         isOpen={showActionModal}
         onClose={() => setShowActionModal(false)}
+      />
+      
+      {/* AI Components */}
+      <AIChatPanel
+        isOpen={showAIChat}
+        onClose={() => setShowAIChat(false)}
+        customerId={customer.id}
+        customerName={`${customer.firstName} ${customer.lastName}`}
+      />
+      <QuickLogModal
+        isOpen={showQuickLog}
+        onClose={() => setShowQuickLog(false)}
+        customerId={customer.id}
+        customerName={`${customer.firstName} ${customer.lastName}`}
       />
     </>
   );
