@@ -53,13 +53,22 @@ export interface CrmSyncResult {
 }
 
 export interface CrmConfig {
-  provider: "hubspot" | "salesforce" | "jobnimbus" | "placeholder";
+  provider: "leap" | "hubspot" | "salesforce" | "jobnimbus" | "placeholder";
   apiKey?: string;
   apiSecret?: string;
   accessToken?: string;
   refreshToken?: string;
   instanceUrl?: string;
   webhookSecret?: string;
+}
+
+// Leap CRM specific types (home improvement industry CRM)
+// API Docs: https://developer.leaptodigital.com/
+export interface LeapConfig extends CrmConfig {
+  provider: "leap";
+  apiKey: string;
+  companyId: string;
+  baseUrl?: string; // defaults to https://api.leaptodigital.com
 }
 
 // Base CRM Adapter interface - all providers must implement this

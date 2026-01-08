@@ -1,13 +1,15 @@
 /**
  * Placeholder CRM Adapter
  * 
- * This adapter serves as a template and fallback when no CRM is configured.
- * Replace with HubSpot, Salesforce, or JobNimbus adapter when ready.
+ * This adapter serves as a fallback when Leap CRM is not configured.
+ * Guardian uses Leap CRM in production - see leap-adapter.ts
  * 
- * To implement a real adapter:
- * 1. Copy this file as {provider}-adapter.ts
- * 2. Implement each method using the provider's API
- * 3. Update the CRM factory to use the new adapter
+ * To enable Leap integration:
+ * 1. Set CRM_PROVIDER=leap in .env
+ * 2. Set LEAP_API_KEY=your_api_key
+ * 3. Set LEAP_COMPANY_ID=your_company_id
+ * 
+ * This placeholder returns mock data for development/demo purposes.
  */
 
 import {

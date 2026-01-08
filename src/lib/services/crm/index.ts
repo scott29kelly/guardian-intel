@@ -4,25 +4,39 @@
  * This module provides a unified interface for CRM operations.
  * It automatically selects the correct adapter based on configuration.
  * 
+ * Guardian uses Leap CRM (https://leaptodigital.com) - a CRM designed
+ * specifically for the home improvement industry (roofing, siding, etc.)
+ * 
  * Usage:
  *   import { crmService } from "@/lib/services/crm";
  *   const customers = await crmService.getCustomers();
+ * 
+ * To enable Leap integration:
+ *   1. Set CRM_PROVIDER=leap in .env
+ *   2. Set LEAP_API_KEY and LEAP_COMPANY_ID
  */
 
-import { ICrmAdapter, CrmConfig } from "./types";
+import { ICrmAdapter, CrmConfig, LeapConfig } from "./types";
 import { PlaceholderCrmAdapter } from "./placeholder-adapter";
-
-// Future adapters would be imported here:
-// import { HubSpotAdapter } from "./hubspot-adapter";
-// import { SalesforceAdapter } from "./salesforce-adapter";
-// import { JobNimbusAdapter } from "./jobnimbus-adapter";
+import { LeapCrmAdapter } from "./leap-adapter";
 
 let crmAdapterInstance: ICrmAdapter | null = null;
 
-function getCrmConfig(): CrmConfig {
+function getCrmConfig(): CrmConfig | LeapConfig {
   // Get CRM configuration from environment variables
   const provider = (process.env.CRM_PROVIDER || "placeholder") as CrmConfig["provider"];
   
+  // Leap-specific config
+  if (provider === "leap") {
+    return {
+      provider: "leap",
+      apiKey: process.env.LEAP_API_KEY || "",
+      companyId: process.env.LEAP_COMPANY_ID || "",
+      baseUrl: process.env.LEAP_BASE_URL,
+    } as LeapConfig;
+  }
+  
+  // Generic config for other providers
   return {
     provider,
     apiKey: process.env.CRM_API_KEY,
@@ -34,9 +48,12 @@ function getCrmConfig(): CrmConfig {
   };
 }
 
-function createCrmAdapter(config: CrmConfig): ICrmAdapter {
+function createCrmAdapter(config: CrmConfig | LeapConfig): ICrmAdapter {
   switch (config.provider) {
-    // When implementing real adapters, add cases here:
+    case "leap":
+      // Leap CRM - Guardian's primary CRM
+      return new LeapCrmAdapter(config as LeapConfig);
+    // Other providers can be added here if needed:
     // case "hubspot":
     //   return new HubSpotAdapter(config);
     // case "salesforce":
