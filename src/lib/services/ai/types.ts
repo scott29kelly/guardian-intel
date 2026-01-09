@@ -1,36 +1,34 @@
 /**
  * Guardian Intel AI Service Types
  * 
- * Multi-model AI architecture:
- * - Kimi K2: Conversational chat
- * - Claude Opus 4.5: Complex tool calling
- * - Claude Sonnet 4.5: Simple tool calling
- * - Claude Haiku 4.5: Fast parsing/classification
- * - Perplexity: Web research
+ * Simplified architecture using Gemini for all tasks.
+ * Additional models can be added for specialized use cases.
  */
 
 // =============================================================================
 // CORE TYPES
 // =============================================================================
 
-export type AIProvider = "kimi" | "claude" | "perplexity" | "openai";
+export type AIProvider = "google" | "kimi" | "claude" | "perplexity" | "openai";
 
 export type AIModel = 
-  | "kimi-k2"
-  | "claude-opus-4.5"
-  | "claude-sonnet-4.5"
-  | "claude-haiku-4.5"
-  | "perplexity-sonar"
-  | "gpt-4o"; // Fallback
+  | "gemini-2.0-flash-exp"  // Primary - handles all tasks
+  | "gemini-1.5-pro"        // Alternative Gemini model
+  | "kimi-k2"               // Optional: specialized chat
+  | "claude-opus-4.5"       // Optional: complex reasoning
+  | "claude-sonnet-4.5"     // Optional: balanced performance
+  | "claude-haiku-4.5"      // Optional: fast responses
+  | "perplexity-sonar"      // Optional: web research
+  | "gpt-4o";               // Optional: fallback
 
 export type AITask = 
-  | "chat"           // Conversational - Kimi K2
-  | "tool_call"      // Complex actions - Claude Opus 4.5
-  | "simple_tool"    // Simple actions - Claude Sonnet 4.5
-  | "research"       // Web search - Perplexity
-  | "classify"       // Fast classification - Claude Haiku 4.5
-  | "parse"          // Extract structured data - Claude Haiku 4.5
-  | "summarize";     // Quick summaries - Claude Haiku 4.5
+  | "chat"           // Conversational
+  | "tool_call"      // Complex actions
+  | "simple_tool"    // Simple actions
+  | "research"       // Web search
+  | "classify"       // Classification
+  | "parse"          // Extract structured data
+  | "summarize";     // Quick summaries
 
 export interface AIConfig {
   provider: AIProvider;

@@ -3,10 +3,10 @@
  * 
  * POST /api/ai/chat
  * 
- * Routes chat requests through the multi-model AI system:
- * - General chat → Kimi K2
- * - Tool calls → Claude Opus 4.5
- * - Research → Perplexity
+ * Uses Gemini Flash for all AI tasks.
+ * Configure with GOOGLE_API_KEY in .env.local
+ * 
+ * Falls back to mock responses if no API key is configured.
  */
 
 import { NextResponse } from "next/server";

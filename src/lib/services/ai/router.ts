@@ -1,13 +1,13 @@
 /**
  * Guardian Intel AI Router
  * 
- * Routes AI tasks to the appropriate model:
- * - Chat → Kimi K2
- * - Complex Tool Calls → Claude Opus 4.5
- * - Simple Tool Calls → Claude Sonnet 4.5
- * - Fast Parsing → Claude Haiku 4.5
- * - Web Research → Perplexity
- * - Fallback → GPT-4o
+ * Simplified configuration - Gemini handles all tasks:
+ * - Chat → Gemini Flash
+ * - Tool Calls → Gemini Flash
+ * - Research → Gemini Flash
+ * - Classification → Gemini Flash
+ * 
+ * Can be extended later to route specific tasks to specialized models.
  */
 
 import {
@@ -31,17 +31,19 @@ import {
 // ROUTING CONFIGURATION
 // =============================================================================
 
+// Use Gemini for all tasks (simplest configuration)
+// This can be customized later to route specific tasks to other models
 const TASK_MODEL_MAP: Record<AITask, AIModel> = {
-  chat: "kimi-k2",
-  tool_call: "claude-opus-4.5",
-  simple_tool: "claude-sonnet-4.5",
-  research: "perplexity-sonar",
-  classify: "claude-haiku-4.5",
-  parse: "claude-haiku-4.5",
-  summarize: "claude-haiku-4.5",
+  chat: "gemini-2.0-flash-exp",
+  tool_call: "gemini-2.0-flash-exp",
+  simple_tool: "gemini-2.0-flash-exp",
+  research: "gemini-2.0-flash-exp",
+  classify: "gemini-2.0-flash-exp",
+  parse: "gemini-2.0-flash-exp",
+  summarize: "gemini-2.0-flash-exp",
 };
 
-const FALLBACK_MODEL: AIModel = "gpt-4o";
+const FALLBACK_MODEL: AIModel = "gemini-2.0-flash-exp";
 
 // =============================================================================
 // AI ROUTER CLASS

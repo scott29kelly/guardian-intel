@@ -1,13 +1,15 @@
 /**
  * Guardian Intel AI Service
  * 
- * Multi-model AI architecture:
- * - Kimi K2: Conversational chat
- * - Claude Opus 4.5: Complex tool calling
- * - Claude Sonnet 4.5: Simple tool calling
- * - Claude Haiku 4.5: Fast classification/parsing
- * - Perplexity: Web research
- * - GPT-4o: Fallback
+ * Simplified configuration using Gemini for all tasks.
+ * 
+ * Required environment variable:
+ * - GOOGLE_API_KEY (or GOOGLE_AI_API_KEY or GEMINI_API_KEY)
+ * 
+ * Optional: Additional models can be added later for specialized tasks:
+ * - Claude for complex reasoning
+ * - Perplexity for web research
+ * - etc.
  */
 
 // Types
@@ -43,57 +45,60 @@ import { createGeminiFlashAdapter } from "./adapters/gemini";
 let isInitialized = false;
 
 /**
- * Initialize the AI service with all configured adapters
+ * Initialize the AI service with configured adapters
+ * 
+ * Simplified setup: Only Gemini is required.
+ * Add GOOGLE_API_KEY to .env.local for full AI functionality.
  */
 export function initializeAI(): void {
   if (isInitialized) return;
 
   const adapters = [];
 
-  // Claude adapters
+  // Gemini - Primary AI (handles all tasks)
+  const geminiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    adapters.push(createGeminiFlashAdapter(geminiKey));
+    console.log("[AI] ✓ Gemini Flash initialized (primary)");
+  }
+
+  // Optional: Claude for enhanced reasoning (if configured)
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
     adapters.push(createClaudeOpusAdapter(anthropicKey));
     adapters.push(createClaudeSonnetAdapter(anthropicKey));
     adapters.push(createClaudeHaikuAdapter(anthropicKey));
-    console.log("[AI] Claude adapters initialized");
+    console.log("[AI] + Claude adapters added");
   }
 
-  // Kimi adapter
+  // Optional: Kimi for specialized chat (if configured)
   const kimiKey = process.env.MOONSHOT_API_KEY;
   if (kimiKey) {
     adapters.push(createKimiAdapter(kimiKey));
-    console.log("[AI] Kimi K2 adapter initialized");
+    console.log("[AI] + Kimi K2 adapter added");
   }
 
-  // Perplexity adapter
+  // Optional: Perplexity for web research (if configured)
   const perplexityKey = process.env.PERPLEXITY_API_KEY;
   if (perplexityKey) {
     adapters.push(createPerplexityAdapter(perplexityKey));
-    console.log("[AI] Perplexity adapter initialized");
+    console.log("[AI] + Perplexity adapter added");
   }
 
-  // Gemini Flash fallback (preferred)
-  const geminiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    adapters.push(createGeminiFlashAdapter(geminiKey));
-    console.log("[AI] Gemini Flash fallback adapter initialized");
-  }
-
-  // OpenAI fallback (secondary)
+  // Optional: OpenAI as additional fallback (if configured)
   const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey && !geminiKey) {
-    // Only use OpenAI if Gemini is not available
+  if (openaiKey) {
     adapters.push(createOpenAIAdapter(openaiKey));
-    console.log("[AI] OpenAI fallback adapter initialized");
+    console.log("[AI] + OpenAI adapter added");
   }
 
   if (adapters.length > 0) {
     initializeAIRouter(adapters);
     isInitialized = true;
-    console.log(`[AI] Service initialized with ${adapters.length} adapter(s)`);
+    console.log(`[AI] Service ready with ${adapters.length} adapter(s)`);
   } else {
-    console.warn("[AI] No API keys configured - AI features will be limited");
+    console.warn("[AI] ⚠ No API keys configured - using demo mode");
+    console.warn("[AI] Add GOOGLE_API_KEY to .env.local for real AI");
   }
 }
 
