@@ -26,6 +26,7 @@ import { CustomerProfileModal } from "./modals/customer-profile-modal";
 import { TakeActionModal } from "./modals/take-action-modal";
 import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal } from "./ai/quick-log-modal";
+import { StreetViewThumbnail } from "./property/street-view-preview";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -219,24 +220,35 @@ export function CustomerIntelCard({
             >
               <div className="border-t border-border bg-surface-secondary/50">
                 <div className="grid grid-cols-4 gap-px bg-border/30">
-                  {/* Contact Info */}
+                  {/* Contact Info with Street View */}
                   <div className="p-4 bg-surface-primary/80">
                     <h4 className="font-mono text-[10px] text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                       <Phone className="w-3 h-3" />
                       Contact
                     </h4>
-                    <div className="space-y-2">
-                      <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-accent-primary hover:text-accent-primary/80 transition-colors">
-                        <Phone className="w-3.5 h-3.5" />
-                        <span className="font-mono text-sm">{customer.phone}</span>
-                      </a>
-                      <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span className="font-mono text-sm truncate">{customer.email}</span>
-                      </a>
-                      <div className="flex items-start gap-2 text-text-muted">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5" />
-                        <span className="font-mono text-sm">{customer.address}, {customer.city}, {customer.state} {customer.zipCode}</span>
+                    <div className="flex gap-3">
+                      {/* Street View Thumbnail */}
+                      <StreetViewThumbnail
+                        address={customer.address}
+                        city={customer.city}
+                        state={customer.state}
+                        zipCode={customer.zipCode}
+                        size={80}
+                        onClick={() => setShowProfileModal(true)}
+                      />
+                      <div className="space-y-2 flex-1">
+                        <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-accent-primary hover:text-accent-primary/80 transition-colors">
+                          <Phone className="w-3.5 h-3.5" />
+                          <span className="font-mono text-sm">{customer.phone}</span>
+                        </a>
+                        <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span className="font-mono text-sm truncate">{customer.email}</span>
+                        </a>
+                        <div className="flex items-start gap-2 text-text-muted">
+                          <MapPin className="w-3.5 h-3.5 mt-0.5" />
+                          <span className="font-mono text-xs">{customer.city}, {customer.state}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

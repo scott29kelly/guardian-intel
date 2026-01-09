@@ -17,8 +17,10 @@ import {
   Edit,
   Trash2,
   ExternalLink,
+  Camera,
 } from "lucide-react";
 import { Customer } from "@/lib/mock-data";
+import { StreetViewPreview } from "@/components/property/street-view-preview";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -126,6 +128,23 @@ export function CustomerProfileModal({
             <div className="flex-1 overflow-y-auto p-4">
               {activeTab === "overview" && (
                 <div className="space-y-6">
+                  {/* Street View Preview */}
+                  <div className="panel p-4">
+                    <h3 className="font-mono text-xs text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Camera className="w-3.5 h-3.5" />
+                      Property Street View
+                    </h3>
+                    <StreetViewPreview
+                      address={customer.address}
+                      city={customer.city}
+                      state={customer.state}
+                      zipCode={customer.zipCode}
+                      height="220px"
+                      showControls={true}
+                      showExpandButton={false}
+                    />
+                  </div>
+
                   {/* Contact & Property Grid */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* Contact Info */}
