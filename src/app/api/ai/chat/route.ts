@@ -185,16 +185,130 @@ function analyzeMessageComplexity(messages: Message[]): boolean {
 
 function getMockResponse(messages: Array<{ role: string; content: string }>, customerId?: string): string {
   const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
+  const lastMessageOriginal = messages[messages.length - 1]?.content || "";
   const conversationLength = messages.filter(m => m.role === "user").length;
   
   // Check conversation context for follow-up patterns
   const previousMessages = messages.slice(0, -1);
   const previousAssistantMessage = previousMessages.filter(m => m.role === "assistant").pop()?.content?.toLowerCase() || "";
   
+  // Check if user is providing a customer name (looks like a name pattern)
+  const namePattern = /^[A-Z][a-z]+\s+[A-Z][a-z]+$/;
+  const mightBeCustomerName = namePattern.test(lastMessageOriginal.trim());
+  
+  // Get all conversation text to detect customer mentions
+  const fullConversation = messages.map(m => m.content).join(" ").toLowerCase();
+  
+  // Extract potential customer name from conversation
+  let customerName = "";
+  if (mightBeCustomerName) {
+    customerName = lastMessageOriginal.trim();
+  } else if (customerId) {
+    customerName = "[Selected Customer]";
+  }
+  
+  // Handle when user pastes/selects menu options (emoji bullets)
+  if (lastMessage.includes("🔍") || lastMessage.includes("📊") || lastMessage.includes("📝")) {
+    // User selected multiple options from the menu
+    const wantsResearch = lastMessage.includes("research") || lastMessage.includes("property") || lastMessage.includes("🔍");
+    const wantsPipeline = lastMessage.includes("pipeline") || lastMessage.includes("📊");
+    const wantsScript = lastMessage.includes("script") || lastMessage.includes("📝");
+
+    if (wantsResearch && wantsPipeline && wantsScript) {
+      return `I'll help you with all three! Here's a comprehensive analysis:
+
+## 🔍 Customer Research
+${customerId || customerName ? `For **${customerName || "this customer"}**:` : ""}
+- **Property:** 2,850 sq ft Single Family, built 2003
+- **Roof:** Architectural Shingle (CertainTeed), ~10 years old
+- **Insurance:** State Farm HO-3, $1,000 deductible
+- **Storm History:** Direct hail impact (Jan 2nd, 1.25")
+
+## 📊 Pipeline Analysis
+- **Lead Score:** 92/100 (High priority)
+- **Stage:** Negotiation
+- **Churn Risk:** Low (12%)
+- **Est. Deal Value:** $18,500
+
+**Recommendation:** This is a hot lead - prioritize closing this week.
+
+## 📝 Script Suggestions
+
+**Opening:**
+*"Hi, this is [Your Name] from Guardian. I wanted to follow up on your roof inspection and see if you had any questions about the proposal."*
+
+**Key Points:**
+- Mention the Jan 2nd hail event specifically
+- Emphasize insurance claim assistance
+- Offer walkthrough with spouse/partner
+
+Would you like me to expand on any of these sections?`;
+    }
+
+    if (wantsResearch) {
+      return customerId || customerName
+        ? `## 🔍 Customer Research: ${customerName || "Selected Customer"}
+
+**Property Details:**
+- Address: 1456 Maple Drive, Warminster, PA 18974
+- Type: Single Family Home (2,850 sq ft)
+- Year Built: 2003
+- Lot Size: 0.35 acres
+
+**Roof Information:**
+- Type: Architectural Shingle (CertainTeed)
+- Estimated Age: 10 years
+- Condition: Storm damage suspected
+
+**Insurance:**
+- Carrier: State Farm
+- Policy: HO-3 (Special Form)
+- Deductible: $1,000
+- Claims History: 1 prior claim (2019, water damage - approved)
+
+**Weather Exposure:**
+- Jan 2nd, 2026: 1.25" hail (confirmed in area)
+- Dec 28th, 2025: 65 mph wind gusts
+- Risk Score: 87/100
+
+What else would you like to know?`
+        : `I can look up detailed property and insurance information. Please select a customer or tell me their name first!`;
+    }
+  }
+
+  // Handle when user provides a customer name
+  if (mightBeCustomerName && conversationLength >= 1) {
+    return `Got it! I'll focus on **${customerName}**. Here's what I found:
+
+## Customer Overview: ${customerName}
+- **Status:** Prospect (Negotiation Stage)
+- **Lead Score:** 92/100
+- **Last Contact:** 3 days ago
+- **Assigned Rep:** Sarah Mitchell
+
+## Quick Stats
+| Metric | Value |
+|--------|-------|
+| Property Value | $425,000 |
+| Roof Age | 10 years |
+| Insurance | State Farm (HO-3) |
+| Recent Storm Exposure | High (Jan 2nd hail) |
+
+## Recommended Actions
+1. 📞 **Follow-up call** - Address remaining objections
+2. 📧 **Send comparison sheet** - Highlight warranty/value
+3. 📅 **Schedule walkthrough** - Get decision-maker on-site
+
+What would you like me to help you with for ${customerName}?`;
+  }
+
   // Handle follow-up confirmations like "yes", "yes to all", "do it", etc.
-  if (conversationLength > 1 && /^(yes|yeah|yep|do it|go ahead|please|ok|okay|sure|all of|all 3|all three)/.test(lastMessage.trim())) {
+  if (conversationLength > 1 && /^(yes|yeah|yep|do it|go ahead|please|ok|okay|sure|all of|all 3|all three)/i.test(lastMessage.trim())) {
     // Check what the previous assistant message was offering
-    if (previousAssistantMessage.includes("script") || previousAssistantMessage.includes("email")) {
+    const offersScripts = previousAssistantMessage.includes("script") || previousAssistantMessage.includes("call") || previousAssistantMessage.includes("follow-up");
+    const offersActions = previousAssistantMessage.includes("recommended actions") || previousAssistantMessage.includes("recommended next steps") || previousAssistantMessage.includes("walkthrough");
+    
+    if (offersScripts || offersActions) {
       return `Here are all three items you requested:
 
 ---

@@ -21,6 +21,7 @@ export { ClaudeAdapter, createClaudeOpusAdapter, createClaudeSonnetAdapter, crea
 export { KimiAdapter, createKimiAdapter } from "./adapters/kimi";
 export { PerplexityAdapter, createPerplexityAdapter } from "./adapters/perplexity";
 export { OpenAIAdapter, createOpenAIAdapter } from "./adapters/openai";
+export { GeminiAdapter, createGeminiFlashAdapter, createGeminiProAdapter } from "./adapters/gemini";
 
 // Tools
 export { AI_TOOLS, executeTool, getToolsByCategory } from "./tools";
@@ -37,6 +38,7 @@ import { createClaudeOpusAdapter, createClaudeSonnetAdapter, createClaudeHaikuAd
 import { createKimiAdapter } from "./adapters/kimi";
 import { createPerplexityAdapter } from "./adapters/perplexity";
 import { createOpenAIAdapter } from "./adapters/openai";
+import { createGeminiFlashAdapter } from "./adapters/gemini";
 
 let isInitialized = false;
 
@@ -71,9 +73,17 @@ export function initializeAI(): void {
     console.log("[AI] Perplexity adapter initialized");
   }
 
-  // OpenAI fallback
+  // Gemini Flash fallback (preferred)
+  const geminiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    adapters.push(createGeminiFlashAdapter(geminiKey));
+    console.log("[AI] Gemini Flash fallback adapter initialized");
+  }
+
+  // OpenAI fallback (secondary)
   const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
+  if (openaiKey && !geminiKey) {
+    // Only use OpenAI if Gemini is not available
     adapters.push(createOpenAIAdapter(openaiKey));
     console.log("[AI] OpenAI fallback adapter initialized");
   }

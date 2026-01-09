@@ -41,6 +41,7 @@ interface Message {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  model?: string;
   toolCalls?: Array<{
     name: string;
     status: "pending" | "running" | "complete" | "error";
@@ -182,6 +183,7 @@ export function AIChatPanel({
                 ...m,
                 content: data.message.content,
                 isStreaming: false,
+                model: data.model,
                 toolCalls: data.toolResults?.map((tr: { name: string; result: unknown }) => ({
                   name: tr.name,
                   status: "complete" as const,
@@ -191,6 +193,11 @@ export function AIChatPanel({
             : m
         )
       );
+
+      // Show warning if in mock mode
+      if (data.warning) {
+        console.warn("[AI Chat]", data.warning);
+      }
     } catch (err) {
       console.error("Chat error:", err);
       setError(err instanceof Error ? err.message : "Failed to send message");
@@ -313,7 +320,7 @@ export function AIChatPanel({
                 </Button>
               </div>
               <p className="text-[10px] text-text-muted mt-2 text-center">
-                Powered by multi-model AI • Kimi K2 for chat • Claude for tools
+                Powered by multi-model AI • Kimi K2 for chat • Claude for tools • Gemini Flash fallback
               </p>
             </div>
           </motion.div>
@@ -419,6 +426,14 @@ function ChatMessage({ message }: { message: Message }) {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            
+            {/* Model indicator for mock mode */}
+            {message.model === "mock" && (
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-500/80">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Demo Mode - Add API keys for real AI
               </div>
             )}
           </>
