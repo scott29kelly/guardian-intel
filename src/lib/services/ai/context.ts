@@ -99,8 +99,8 @@ export class CustomerContextBuilder {
       },
       weatherEvents: this.weatherEvents.map(e => ({
         id: e.id,
-        type: e.type,
-        date: e.date,
+        type: e.eventType,
+        date: e.eventDate,
         severity: e.severity,
         hailSize: e.hailSize,
         windSpeed: e.windSpeed,

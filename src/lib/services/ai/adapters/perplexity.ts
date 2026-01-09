@@ -289,7 +289,7 @@ export class PerplexityAdapter implements AIAdapter {
     // Look for common citation patterns
     // [1] Title - URL or [Source](URL) patterns
     const urlRegex = /\[(\d+)\]\s*([^-\n]+)\s*-?\s*(https?:\/\/[^\s\n]+)/g;
-    let match;
+    let match: RegExpExecArray | null;
 
     while ((match = urlRegex.exec(content)) !== null) {
       citations.push({
@@ -301,12 +301,14 @@ export class PerplexityAdapter implements AIAdapter {
 
     // Also try markdown link pattern
     const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
-    while ((match = mdLinkRegex.exec(content)) !== null) {
+    let mdMatch: RegExpExecArray | null;
+    while ((mdMatch = mdLinkRegex.exec(content)) !== null) {
       // Avoid duplicates
-      if (!citations.some(c => c.url === match[2])) {
+      const url = mdMatch[2];
+      if (!citations.some(c => c.url === url)) {
         citations.push({
-          title: match[1].trim(),
-          url: match[2].trim(),
+          title: mdMatch[1].trim(),
+          url: url.trim(),
           snippet: "",
         });
       }

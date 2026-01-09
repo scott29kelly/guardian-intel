@@ -185,352 +185,334 @@ function analyzeMessageComplexity(messages: Message[]): boolean {
 
 function getMockResponse(messages: Array<{ role: string; content: string }>, customerId?: string): string {
   const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
-  const lastMessageOriginal = messages[messages.length - 1]?.content || "";
   const conversationLength = messages.filter(m => m.role === "user").length;
+  
+  // Import mock data inline to get actual customer context
+  const { mockCustomers, mockIntelItems, mockWeatherEvents } = require("@/lib/mock-data");
+  
+  // Get actual customer data if customerId is provided
+  const customer = customerId ? mockCustomers.find((c: { id: string }) => c.id === customerId) : null;
+  const customerIntel = customerId ? mockIntelItems.filter((i: { customerId: string }) => i.customerId === customerId) : [];
+  const customerWeather = customerId ? mockWeatherEvents.filter((w: { customerId: string }) => w.customerId === customerId) : [];
+  
+  // Build customer-specific context
+  const customerName = customer ? `${customer.firstName} ${customer.lastName}` : null;
+  const hasCustomer = !!customer;
   
   // Check conversation context for follow-up patterns
   const previousMessages = messages.slice(0, -1);
   const previousAssistantMessage = previousMessages.filter(m => m.role === "assistant").pop()?.content?.toLowerCase() || "";
-  
-  // Check if user is providing a customer name (looks like a name pattern)
-  const namePattern = /^[A-Z][a-z]+\s+[A-Z][a-z]+$/;
-  const mightBeCustomerName = namePattern.test(lastMessageOriginal.trim());
-  
-  // Get all conversation text to detect customer mentions
-  const fullConversation = messages.map(m => m.content).join(" ").toLowerCase();
-  
-  // Extract potential customer name from conversation
-  let customerName = "";
-  if (mightBeCustomerName) {
-    customerName = lastMessageOriginal.trim();
-  } else if (customerId) {
-    customerName = "[Selected Customer]";
-  }
-  
-  // Handle when user pastes/selects menu options (emoji bullets)
-  if (lastMessage.includes("🔍") || lastMessage.includes("📊") || lastMessage.includes("📝")) {
-    // User selected multiple options from the menu
-    const wantsResearch = lastMessage.includes("research") || lastMessage.includes("property") || lastMessage.includes("🔍");
-    const wantsPipeline = lastMessage.includes("pipeline") || lastMessage.includes("📊");
-    const wantsScript = lastMessage.includes("script") || lastMessage.includes("📝");
-
-    if (wantsResearch && wantsPipeline && wantsScript) {
-      return `I'll help you with all three! Here's a comprehensive analysis:
-
-## 🔍 Customer Research
-${customerId || customerName ? `For **${customerName || "this customer"}**:` : ""}
-- **Property:** 2,850 sq ft Single Family, built 2003
-- **Roof:** Architectural Shingle (CertainTeed), ~10 years old
-- **Insurance:** State Farm HO-3, $1,000 deductible
-- **Storm History:** Direct hail impact (Jan 2nd, 1.25")
-
-## 📊 Pipeline Analysis
-- **Lead Score:** 92/100 (High priority)
-- **Stage:** Negotiation
-- **Churn Risk:** Low (12%)
-- **Est. Deal Value:** $18,500
-
-**Recommendation:** This is a hot lead - prioritize closing this week.
-
-## 📝 Script Suggestions
-
-**Opening:**
-*"Hi, this is [Your Name] from Guardian. I wanted to follow up on your roof inspection and see if you had any questions about the proposal."*
-
-**Key Points:**
-- Mention the Jan 2nd hail event specifically
-- Emphasize insurance claim assistance
-- Offer walkthrough with spouse/partner
-
-Would you like me to expand on any of these sections?`;
-    }
-
-    if (wantsResearch) {
-      return customerId || customerName
-        ? `## 🔍 Customer Research: ${customerName || "Selected Customer"}
-
-**Property Details:**
-- Address: 1456 Maple Drive, Warminster, PA 18974
-- Type: Single Family Home (2,850 sq ft)
-- Year Built: 2003
-- Lot Size: 0.35 acres
-
-**Roof Information:**
-- Type: Architectural Shingle (CertainTeed)
-- Estimated Age: 10 years
-- Condition: Storm damage suspected
-
-**Insurance:**
-- Carrier: State Farm
-- Policy: HO-3 (Special Form)
-- Deductible: $1,000
-- Claims History: 1 prior claim (2019, water damage - approved)
-
-**Weather Exposure:**
-- Jan 2nd, 2026: 1.25" hail (confirmed in area)
-- Dec 28th, 2025: 65 mph wind gusts
-- Risk Score: 87/100
-
-What else would you like to know?`
-        : `I can look up detailed property and insurance information. Please select a customer or tell me their name first!`;
-    }
-  }
-
-  // Handle when user provides a customer name
-  if (mightBeCustomerName && conversationLength >= 1) {
-    return `Got it! I'll focus on **${customerName}**. Here's what I found:
-
-## Customer Overview: ${customerName}
-- **Status:** Prospect (Negotiation Stage)
-- **Lead Score:** 92/100
-- **Last Contact:** 3 days ago
-- **Assigned Rep:** Sarah Mitchell
-
-## Quick Stats
-| Metric | Value |
-|--------|-------|
-| Property Value | $425,000 |
-| Roof Age | 10 years |
-| Insurance | State Farm (HO-3) |
-| Recent Storm Exposure | High (Jan 2nd hail) |
-
-## Recommended Actions
-1. 📞 **Follow-up call** - Address remaining objections
-2. 📧 **Send comparison sheet** - Highlight warranty/value
-3. 📅 **Schedule walkthrough** - Get decision-maker on-site
-
-What would you like me to help you with for ${customerName}?`;
-  }
-
-  // Handle follow-up confirmations like "yes", "yes to all", "do it", etc.
-  if (conversationLength > 1 && /^(yes|yeah|yep|do it|go ahead|please|ok|okay|sure|all of|all 3|all three)/i.test(lastMessage.trim())) {
-    // Check what the previous assistant message was offering
-    const offersScripts = previousAssistantMessage.includes("script") || previousAssistantMessage.includes("call") || previousAssistantMessage.includes("follow-up");
-    const offersActions = previousAssistantMessage.includes("recommended actions") || previousAssistantMessage.includes("recommended next steps") || previousAssistantMessage.includes("walkthrough");
-    
-    if (offersScripts || offersActions) {
-      return `Here are all three items you requested:
-
----
-
-## 1. Follow-Up Call Script
-
-*"Hi ${customerId ? "[Customer Name]" : "there"}, this is [Your Name] from Guardian Roofing & Siding. I'm following up on our conversation about your roof inspection.*
-
-*I know you mentioned wanting to compare a few options, and I completely understand. I wanted to share a quick comparison that shows how our warranty, materials, and local track record stack up. Many homeowners in your neighborhood have chosen us specifically because we handle the entire insurance process.*
-
-*Do you have 5 minutes to go over this together?"*
-
----
-
-## 2. Comparison Email
-
-**Subject:** Quick comparison: Guardian vs. other quotes
-
-Hi [Customer Name],
-
-Thank you for considering Guardian for your roofing project. I put together a quick comparison to help with your decision:
-
-| Feature | Guardian | Typical Competitor |
-|---------|----------|-------------------|
-| Workmanship Warranty | 10 years | 1-2 years |
-| Insurance Claim Handling | Full service | DIY |
-| BBB Rating | A+ | Varies |
-| Local Jobs Completed | 2,000+ | Unknown |
-
-Would you like to schedule a final walkthrough this week?
-
-Best,
-[Your Name]
-
----
-
-## 3. Final Walkthrough Scheduling
-
-**Recommended talking points:**
-- Confirm decision-maker will be present
-- Bring physical samples of materials
-- Prepare before/after photos from similar jobs
-- Have contract ready for immediate signing
-
-**Suggested times to offer:**
-- Tomorrow morning (9-10am)
-- Day after tomorrow afternoon (2-3pm)
-- End of week (Friday 11am)
-
----
-
-Would you like me to customize any of these further?`;
-    }
-    
-    if (previousAssistantMessage.includes("property") || previousAssistantMessage.includes("research")) {
-      return `Here's the full customer research profile:
-
-## Property Details
-- **Address:** 1456 Maple Drive, Warminster, PA 18974
-- **Property Type:** Single Family Home
-- **Year Built:** 2003
-- **Square Footage:** 2,850 sq ft
-- **Lot Size:** 0.35 acres
-- **Current Roof:** Architectural Shingle (CertainTeed)
-- **Estimated Roof Age:** 10 years
-
-## Insurance Information
-- **Carrier:** State Farm
-- **Policy Type:** HO-3 (Special Form)
-- **Deductible:** $1,000
-- **Claim History:** 1 claim filed in 2019 (water damage, approved)
-- **Premium Status:** Good standing
-
-## Weather History (Last 12 Months)
-- **Jan 2nd, 2026:** Hail event - 1.25" diameter
-- **Dec 28th, 2025:** High winds - 65 mph gusts
-- **Aug 15th, 2025:** Severe thunderstorm
-- **Risk Score:** 87/100 (High priority)
-
-## Key Insights
-⚡ Property is in a confirmed hail impact zone
-⚡ Roof age + storm exposure = ideal replacement candidate
-⚡ State Farm has favorable claim approval rates in this area
-
-Would you like me to generate an insurance claim strategy?`;
-    }
-    
-    return `Got it! I'll proceed with that. Is there anything specific you'd like me to focus on or adjust?`;
-  }
 
   // Handle property/customer research requests
-  if (lastMessage.includes("property") || lastMessage.includes("look up") || lastMessage.includes("research") || lastMessage.includes("details") || lastMessage.includes("insurance info")) {
-    return customerId
-      ? `Here's what I found for this customer:
+  if (lastMessage.includes("property") || lastMessage.includes("look up") || lastMessage.includes("research") || lastMessage.includes("details") || lastMessage.includes("insurance")) {
+    if (hasCustomer) {
+      const criticalIntel = customerIntel.filter((i: { priority: string }) => i.priority === "critical" || i.priority === "high");
+      const recentWeather = customerWeather[0];
+      
+      return `## Customer Profile: ${customerName}
 
-## Property Summary
-- **Address:** 1456 Maple Drive, Warminster, PA 18974
-- **Property Type:** Single Family Home
-- **Year Built:** 2003
-- **Roof Type:** Architectural Shingle (approx. 10 years old)
-- **Property Value:** ~$425,000
+### Property Details
+- **Address:** ${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}
+- **Type:** ${customer.propertyType} (${customer.squareFootage.toLocaleString()} sq ft)
+- **Year Built:** ${customer.yearBuilt}
+- **Property Value:** $${customer.propertyValue.toLocaleString()}
 
-## Insurance
-- **Carrier:** State Farm
-- **Policy Type:** HO-3
-- **Deductible:** $1,000
+### Roof Information
+- **Type:** ${customer.roofType}
+- **Estimated Age:** ${customer.roofAge} years
+- **Condition:** ${customer.roofAge > 15 ? "Aging - likely needs attention" : customer.roofAge > 10 ? "Mid-life - inspect for wear" : "Relatively new"}
 
-## Recent Weather Events
-- Jan 2nd: 1.25" hail (confirmed in Bucks County)
-- Dec 28th: 65 mph wind gusts
+### Insurance
+- **Carrier:** ${customer.insuranceCarrier}
+- **Policy:** ${customer.policyType}
+- **Deductible:** $${customer.deductible.toLocaleString()}
 
-## Risk Assessment
-**Lead Score:** 98/100 - High conversion probability
+${recentWeather ? `### Recent Weather Exposure
+- **Event:** ${recentWeather.eventType.toUpperCase()} on ${new Date(recentWeather.eventDate).toLocaleDateString()}
+- **Severity:** ${recentWeather.severity}${recentWeather.hailSize ? ` (${recentWeather.hailSize}" hail)` : ""}${recentWeather.windSpeed ? ` (${recentWeather.windSpeed} mph winds)` : ""}
+- **Damage Reported:** ${recentWeather.damageReported ? "Yes" : "Not yet"}` : ""}
 
-Would you like me to generate a claim strategy or next steps?`
-      : `I can look up property and insurance details if you select a customer first. Which customer would you like me to research?`;
+${criticalIntel.length > 0 ? `### Key Intelligence
+${criticalIntel.map((i: { priority: string; title: string; content: string }) => `- **[${i.priority.toUpperCase()}]** ${i.title}: ${i.content}`).join("\n")}` : ""}
+
+### Sales Opportunity
+- **Lead Score:** ${customer.leadScore}/100
+- **Urgency:** ${customer.urgencyScore}/100
+- **Profit Potential:** $${customer.profitPotential.toLocaleString()}
+- **Churn Risk:** ${customer.churnRisk}%
+
+Would you like me to generate a strategy for ${customer.firstName}?`;
+    }
+    return `I can look up property and insurance details. Please select a customer first, or tell me which customer you're working with.`;
   }
 
   // Weather/storm requests
   if (lastMessage.includes("weather") || lastMessage.includes("storm")) {
-    return `Based on our weather monitoring, there have been several significant storm events in the Mid-Atlantic region recently:
+    if (hasCustomer && customerWeather.length > 0) {
+      return `## Storm History for ${customerName}
+**Location:** ${customer.city}, ${customer.state} ${customer.zipCode}
 
-**Recent Activity:**
-- Bucks County, PA: Hail event on Jan 2nd (1.25" hail)
-- Montgomery County, PA: High winds on Dec 28th (65 mph)
-- New Castle County, DE: Thunderstorm activity on Jan 5th
+### Recent Weather Events
+${customerWeather.map((w: { eventType: string; eventDate: Date; severity: string; hailSize?: number; windSpeed?: number; damageReported: boolean; claimFiled: boolean }) => 
+  `- **${w.eventType.toUpperCase()}** on ${new Date(w.eventDate).toLocaleDateString()}: ${w.severity} severity${w.hailSize ? `, ${w.hailSize}" hail` : ""}${w.windSpeed ? `, ${w.windSpeed} mph winds` : ""}
+  - Damage Reported: ${w.damageReported ? "Yes ✓" : "Not yet"}
+  - Claim Filed: ${w.claimFiled ? "Yes ✓" : "No"}`
+).join("\n\n")}
 
-${customerId ? "This customer's property is in **Bucks County** and was directly in the hail impact zone. Their property has a high probability of damage.\n\nWould you like me to generate talking points for discussing storm damage with them?" : "Would you like me to check a specific location for storm damage potential?"}`;
+### Impact Assessment
+${customer.roofAge > 15 ? `⚠️ **High Risk:** ${customer.roofAge}-year-old ${customer.roofType} roof is vulnerable to storm damage` : customer.roofAge > 10 ? `⚡ **Moderate Risk:** ${customer.roofAge}-year-old roof may have sustained damage` : `📋 **Lower Risk:** Newer roof, but still worth inspecting`}
+
+${!customerWeather[0]?.claimFiled ? `### Recommended Action
+${customer.firstName} hasn't filed a claim yet. This is an opportunity to:
+1. Discuss the ${customerWeather[0]?.eventType} event from ${new Date(customerWeather[0]?.eventDate).toLocaleDateString()}
+2. Offer a free inspection to document damage
+3. Assist with the ${customer.insuranceCarrier} claim process` : ""}
+
+Would you like talking points for discussing storm damage with ${customer.firstName}?`;
+    }
+    return hasCustomer 
+      ? `No recent storm events recorded for ${customerName}'s area. Would you like me to check regional weather alerts?`
+      : `I can check storm activity for a specific customer. Please select one to see their weather exposure.`;
   }
 
   // Next steps / recommendations
-  if (lastMessage.includes("next step") || lastMessage.includes("recommend")) {
-    return customerId
-      ? `Based on this customer's position in the pipeline and recent interactions:
+  if (lastMessage.includes("next step") || lastMessage.includes("recommend") || lastMessage.includes("what should")) {
+    if (hasCustomer) {
+      const stageActions: Record<string, string[]> = {
+        "new": [
+          `Make initial contact with ${customer.firstName}`,
+          `Introduce Guardian's services and storm damage expertise`,
+          `Schedule a free roof inspection`
+        ],
+        "contacted": [
+          `Follow up on initial conversation`,
+          `Address any questions or concerns`,
+          `Push to schedule on-site inspection`
+        ],
+        "qualified": [
+          `Complete thorough property inspection`,
+          `Document any storm damage found`,
+          `Prepare detailed proposal`
+        ],
+        "proposal": [
+          `Review proposal with ${customer.firstName}`,
+          `Explain insurance claim process with ${customer.insuranceCarrier}`,
+          `Address any concerns about the $${customer.deductible.toLocaleString()} deductible`
+        ],
+        "negotiation": [
+          `Address ${customer.firstName}'s remaining objections`,
+          `Emphasize value: 10-year warranty, A+ BBB rating`,
+          `Schedule final walkthrough with decision-maker`
+        ],
+        "closed": [
+          `Confirm production schedule`,
+          `Coordinate with crew on installation`,
+          `Prepare for post-install follow-up`
+        ]
+      };
+      
+      const actions = stageActions[customer.stage] || stageActions["contacted"];
+      const urgencyNote = customer.urgencyScore > 80 
+        ? "🔥 **High Urgency** - Prioritize this customer today" 
+        : customer.urgencyScore > 50 
+          ? "⚡ **Moderate Urgency** - Follow up within 48 hours"
+          : "📅 **Standard Priority** - Include in regular outreach";
 
-**Recommended Next Steps:**
-1. **Follow-up call** - Address any remaining objections from the last conversation
-2. **Send comparison sheet** - Show value vs competitor quotes
-3. **Schedule final walkthrough** - Get the decision-maker on-site
+      return `## Recommended Next Steps for ${customerName}
 
-Would you like me to draft a script or email for any of these?`
-      : `I can provide personalized recommendations if you tell me which customer you're working with. Just select a customer or give me their name!`;
+**Current Stage:** ${customer.stage.charAt(0).toUpperCase() + customer.stage.slice(1)}
+**Lead Score:** ${customer.leadScore}/100 | **Urgency:** ${customer.urgencyScore}/100
+${urgencyNote}
+
+### Priority Actions
+${actions.map((action, i) => `${i + 1}. ${action}`).join("\n")}
+
+### Context to Remember
+- Property: ${customer.squareFootage.toLocaleString()} sq ft ${customer.propertyType} in ${customer.city}
+- Roof: ${customer.roofAge}-year-old ${customer.roofType}
+- Insurance: ${customer.insuranceCarrier} (${customer.policyType}) - $${customer.deductible.toLocaleString()} deductible
+- Potential Value: $${customer.profitPotential.toLocaleString()}
+
+${customer.churnRisk > 50 ? `⚠️ **Churn Alert:** ${customer.churnRisk}% risk - needs immediate attention` : ""}
+
+Would you like me to draft a script or email for ${customer.firstName}?`;
+    }
+    return `I can provide personalized recommendations based on a customer's pipeline stage and history. Select a customer to see tailored next steps.`;
   }
 
   // Script generation
   if (lastMessage.includes("script") || lastMessage.includes("call") || lastMessage.includes("say") || lastMessage.includes("talk")) {
-    return `Here's a suggested script for your follow-up call:
+    if (hasCustomer) {
+      const recentWeather = customerWeather[0];
+      const weatherTalkingPoint = recentWeather 
+        ? `I noticed there was a ${recentWeather.eventType} event in your area on ${new Date(recentWeather.eventDate).toLocaleDateString()}${recentWeather.hailSize ? ` with ${recentWeather.hailSize}-inch hail` : ""}${recentWeather.windSpeed ? ` with ${recentWeather.windSpeed} mph winds` : ""}. Have you had a chance to inspect your roof since then?`
+        : `I was reviewing properties in ${customer.city} and noticed your ${customer.roofAge}-year-old roof might benefit from an inspection.`;
+      
+      return `## Call Script for ${customerName}
 
----
+### Opening
+*"Hi ${customer.firstName}, this is [Your Name] from Guardian Roofing & Siding. How are you today?"*
 
-*"Hi [Customer Name], this is [Your Name] from Guardian Roofing & Siding. I'm following up on our recent inspection - I wanted to make sure you had a chance to review the proposal and see if you have any questions.*
+### Bridge to Purpose
+*"${weatherTalkingPoint}"*
 
-*I know comparing quotes can be overwhelming, so I wanted to highlight a few things that set us apart: our 10-year workmanship warranty, our BBB A+ rating, and our experience handling over 2,000 insurance claims in your area.*
+### Value Proposition
+*"We specialize in helping homeowners like you navigate the insurance claim process with ${customer.insuranceCarrier}. Most of our customers are surprised to learn their storm damage is fully covered, often with just a $${customer.deductible.toLocaleString()} out-of-pocket cost."*
 
-*What questions can I answer for you today?"*
+### The Ask
+${customer.stage === "new" || customer.stage === "contacted" 
+  ? `*"I'd love to offer you a free, no-obligation roof inspection. We can document any damage and let you know exactly what ${customer.insuranceCarrier} would likely cover. Would tomorrow or the day after work better for you?"*`
+  : customer.stage === "proposal" || customer.stage === "negotiation"
+    ? `*"I wanted to follow up on the proposal we sent over. Do you have any questions about the scope of work or how the insurance process works with ${customer.insuranceCarrier}?"*`
+    : `*"I'm following up to see if you had any questions about moving forward. What concerns can I address for you today?"*`}
 
----
+### Objection Handlers for ${customer.firstName}
+${customer.stage === "negotiation" ? `
+- **"Price is too high"** → "I understand. With your ${customer.insuranceCarrier} policy, most of this is covered. Your actual out-of-pocket is just the $${customer.deductible.toLocaleString()} deductible."
+- **"Getting other quotes"** → "Smart move. When comparing, make sure to ask about warranty length, insurance claim handling, and local references in ${customer.city}."
+- **"Need to think about it"** → "Of course. What specific concerns would help you feel more confident? I'm happy to schedule a walkthrough so your spouse/partner can ask questions too."` 
+: `
+- **"Not interested"** → "I understand. Just so you know, storm damage often isn't visible from the ground. Would it be okay if I sent you some photos of what we typically find on ${customer.roofType} roofs after storms?"
+- **"Call back later"** → "Absolutely. When would be a better time? I want to make sure you don't miss the window to file with ${customer.insuranceCarrier} if there is damage."`}
 
-**Objection Handlers:**
-- *"Price is too high"* → Focus on long-term value, warranty, insurance coverage
-- *"Need to think about it"* → Offer final walkthrough with decision-maker
-- *"Going with someone else"* → Ask what made the difference, offer to match
-
-Would you like me to customize this script or create an email version?`;
+Would you like me to create a follow-up email template for ${customer.firstName} as well?`;
+    }
+    return `I can generate personalized call scripts based on a customer's stage and history. Select a customer to get a tailored script.`;
   }
 
   // Email requests
   if (lastMessage.includes("email") || lastMessage.includes("write") || lastMessage.includes("draft")) {
-    return `Here's a follow-up email draft:
+    if (hasCustomer) {
+      const recentWeather = customerWeather[0];
+      return `## Email Draft for ${customerName}
 
 ---
 
-**Subject:** Your roof inspection results + next steps
+**To:** ${customer.email}
+**Subject:** ${recentWeather ? `Storm damage assessment for ${customer.address}` : `Your ${customer.roofType} roof - free inspection offer`}
 
-Hi [Customer Name],
+---
 
-Thank you for allowing Guardian Roofing & Siding to inspect your property last week. I wanted to follow up and make sure you received our proposal.
+Hi ${customer.firstName},
 
-Based on our inspection, your roof has [damage type] that qualifies for an insurance claim. Here's what we recommend:
+${recentWeather 
+  ? `I hope this email finds you well. I'm reaching out because we've been helping homeowners in ${customer.city} assess damage from the recent ${recentWeather.eventType} event on ${new Date(recentWeather.eventDate).toLocaleDateString()}.`
+  : `I hope this email finds you well. I'm reaching out to homeowners in ${customer.city} who have ${customer.roofType} roofs that are ${customer.roofAge}+ years old.`}
 
-**Next Steps:**
-1. Review the attached proposal
-2. Contact your insurance agent to file a claim
-3. Schedule a final walkthrough with our team
+**Why I'm contacting you:**
+- Your property at ${customer.address} ${customer.roofAge > 15 ? "has a roof that's past its typical warranty period" : "may have been impacted by recent weather"}
+- ${customer.insuranceCarrier} policyholders like yourself often qualify for covered repairs
+- Most homeowners only pay their $${customer.deductible.toLocaleString()} deductible
 
-We handle the entire insurance process for you, so there's typically little to no out-of-pocket cost.
+**What we offer:**
+- ✓ Free, no-obligation roof inspection
+- ✓ Detailed damage documentation with photos
+- ✓ Assistance with your ${customer.insuranceCarrier} claim
+- ✓ 10-year workmanship warranty
 
-Would you like to schedule a quick call to go over the details?
+Would you have 15 minutes this week for a quick inspection? I can work around your schedule.
 
 Best regards,
 [Your Name]
 Guardian Roofing & Siding
+1-855-424-5911
 
 ---
 
 Would you like me to adjust the tone or add more details?`;
+    }
+    return `I can draft personalized emails for your customers. Select a customer to generate an email tailored to their situation.`;
   }
 
   // Objection handling
-  if (lastMessage.includes("objection") || lastMessage.includes("price") || lastMessage.includes("expensive") || lastMessage.includes("competitor")) {
-    return `Here are responses for common objections:
+  if (lastMessage.includes("objection") || lastMessage.includes("price") || lastMessage.includes("expensive") || lastMessage.includes("competitor") || lastMessage.includes("handle")) {
+    if (hasCustomer) {
+      return `## Objection Handling for ${customerName}
 
-## "Your price is too high"
+Based on ${customer.firstName}'s profile (${customer.stage} stage, ${customer.insuranceCarrier} policy):
 
-*"I understand budget is important. Let me ask - are you comparing apples to apples? Our quote includes [10-year warranty / full insurance handling / premium materials]. Many 'cheaper' quotes don't include these, and homeowners end up paying more in the long run. Would it help if I showed you a breakdown?"*
+### "Your price is too high"
+*"I understand budget is important, ${customer.firstName}. Here's the good news: with your ${customer.insuranceCarrier} ${customer.policyType} policy, most of this work would be covered. Your actual out-of-pocket is typically just your $${customer.deductible.toLocaleString()} deductible. Would it help if I walked you through how the insurance claim works?"*
 
-## "I need to think about it"
+### "I need to think about it"
+*"Absolutely, ${customer.firstName}. This is a significant decision for your home. What specific concerns would help you feel more confident? I'm also happy to schedule a walkthrough at ${customer.address} with your spouse or partner so everyone can ask questions."*
 
-*"Absolutely, this is a big decision. What specific concerns would help you feel more confident? I'm happy to address them now, or I can schedule a walkthrough with your spouse/partner so everyone can ask questions."*
+### "I'm getting other quotes"
+*"That's smart - you should compare. When you're reviewing other bids, I'd recommend asking about:
+- How long is their workmanship warranty? (Ours is 10 years)
+- Do they handle the ${customer.insuranceCarrier} claim process? (We do, start to finish)
+- How many jobs have they done in ${customer.city}? (We've done 2,000+ locally)
 
-## "I'm getting other quotes"
+What matters most to you in choosing a contractor?"*
 
-*"That's smart - you should compare. Quick question: what's most important to you in choosing a contractor? [Wait for answer] That's exactly why our customers choose us. Can I show you some reviews from homeowners in your neighborhood?"*
+### "Going with someone else"
+*"I appreciate you letting me know, ${customer.firstName}. May I ask what made the difference? If it's price, I might be able to work with your ${customer.insuranceCarrier} adjuster on additional coverage. If it's something else, I'd genuinely appreciate the feedback."*
 
-## "Going with someone else"
+${customer.churnRisk > 50 ? `\n⚠️ **Risk Alert:** ${customer.firstName} has a ${customer.churnRisk}% churn risk. Consider offering additional value like expedited scheduling or material upgrades.` : ""}`;
+    }
+    return `## Common Objection Responses
 
-*"I appreciate you letting me know. May I ask what made the difference? If it's price, I might be able to work something out. If it's something else, I'd love the feedback so I can improve."*
+**"Your price is too high"**
+*"I understand budget is important. Our quote includes a 10-year warranty, full insurance handling, and premium materials. Many cheaper quotes don't include these. Would it help to see a breakdown?"*
 
-Would you like specific responses for this customer's situation?`;
+**"I need to think about it"**
+*"Of course. What specific concerns would help you feel more confident? I can schedule a walkthrough with your spouse/partner so everyone can ask questions."*
+
+**"I'm getting other quotes"**
+*"Smart move. When comparing, ask about warranty length, insurance claim handling, and local references. What's most important to you?"*
+
+Select a customer for personalized objection responses based on their specific situation.`;
   }
 
-  // Default intro for new conversations
+  // Handle follow-up confirmations
+  if (conversationLength > 1 && /^(yes|yeah|yep|do it|go ahead|please|ok|okay|sure|all|sounds good)/i.test(lastMessage.trim())) {
+    if (hasCustomer) {
+      return `Perfect! Here's what I've prepared for ${customerName}:
+
+I've tailored everything to ${customer.firstName}'s specific situation:
+- **Stage:** ${customer.stage}
+- **Insurance:** ${customer.insuranceCarrier} (${customer.policyType})
+- **Property:** ${customer.squareFootage.toLocaleString()} sq ft in ${customer.city}
+- **Roof:** ${customer.roofAge}-year-old ${customer.roofType}
+
+What would you like me to focus on next?
+1. 📞 Generate a detailed call script
+2. 📧 Draft a personalized email
+3. 📊 Analyze the full pipeline opportunity
+4. 🎯 Create a closing strategy`;
+    }
+    return `Got it! What would you like me to help you with? Select a customer for personalized assistance, or ask me a general question.`;
+  }
+
+  // Default intro for new conversations - context-aware
+  if (hasCustomer) {
+    const criticalIntel = customerIntel.filter((i: { priority: string }) => i.priority === "critical");
+    const recentWeather = customerWeather[0];
+    
+    return `## ${customerName} - Quick Overview
+
+**Stage:** ${customer.stage.charAt(0).toUpperCase() + customer.stage.slice(1)} | **Lead Score:** ${customer.leadScore}/100 | **Next Action:** ${customer.nextAction}
+
+### Key Facts
+- 📍 ${customer.address}, ${customer.city}, ${customer.state}
+- 🏠 ${customer.squareFootage.toLocaleString()} sq ft ${customer.propertyType}, built ${customer.yearBuilt}
+- 🏗️ ${customer.roofAge}-year-old ${customer.roofType}
+- 🛡️ ${customer.insuranceCarrier} (${customer.policyType}) - $${customer.deductible.toLocaleString()} deductible
+
+${criticalIntel.length > 0 ? `### ⚡ Critical Intel
+${criticalIntel.map((i: { title: string }) => `- ${i.title}`).join("\n")}` : ""}
+
+${recentWeather ? `### 🌩️ Recent Storm Exposure
+${recentWeather.eventType.toUpperCase()} on ${new Date(recentWeather.eventDate).toLocaleDateString()} - ${recentWeather.severity}${recentWeather.hailSize ? ` (${recentWeather.hailSize}" hail)` : ""}${recentWeather.windSpeed ? ` (${recentWeather.windSpeed} mph)` : ""}` : ""}
+
+### What would you like to do?
+- 🔍 Get detailed research on ${customer.firstName}'s property
+- 📞 Generate a call script
+- 📧 Draft an email
+- 🎯 See recommended next steps
+- ⚡ Handle objections`;
+  }
+
   return `I'm Guardian Intel, your AI assistant for storm damage sales. Here's what I can help with:
 
 🔍 **Customer Research** - Look up property details, insurance info, weather history
@@ -539,5 +521,5 @@ Would you like specific responses for this customer's situation?`;
 🌩️ **Weather Alerts** - Check for storm activity affecting your customers
 📧 **Communication** - Draft emails and follow-up messages
 
-${customerId ? "I see you have a customer selected. What would you like to know about them?" : "Select a customer or ask me anything to get started!"}`;
+Select a customer to get started with personalized insights, or ask me anything!`;
 }
