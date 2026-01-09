@@ -1,22 +1,38 @@
-import { Sidebar } from "@/components/sidebar";
+"use client";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { Sidebar, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "@/components/sidebar";
+import { SidebarProvider, useSidebar } from "@/lib/sidebar-context";
+import { motion } from "framer-motion";
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  const { isCollapsed } = useSidebar();
+  const sidebarWidth = isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 ml-64">
+      <motion.main
+        initial={false}
+        animate={{ marginLeft: sidebarWidth }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
+        className="flex-1 lg:ml-64 ml-0"
+      >
         {/* Top gradient line */}
-        <div className="fixed top-0 left-64 right-0 h-px bg-gradient-to-r from-[hsl(var(--accent-primary)/0.2)] via-[hsl(var(--accent-success)/0.2)] to-[hsl(var(--accent-danger)/0.2)] z-40" />
+        <motion.div
+          initial={false}
+          animate={{ left: sidebarWidth }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          className="fixed top-0 right-0 h-px bg-gradient-to-r from-[hsl(var(--accent-primary)/0.2)] via-[hsl(var(--accent-success)/0.2)] to-[hsl(var(--accent-danger)/0.2)] z-40 hidden lg:block"
+          style={{ left: sidebarWidth }}
+        />
         
         {/* Content area */}
         <div className="relative min-h-screen">
           {/* Background effects */}
-          <div 
-            className="fixed inset-0 ml-64 pointer-events-none opacity-30"
+          <motion.div
+            initial={false}
+            animate={{ marginLeft: 0 }}
+            className="fixed inset-0 pointer-events-none opacity-30"
             style={{
               backgroundImage: `
                 radial-gradient(circle at 20% 20%, hsl(var(--accent-primary) / 0.03) 0%, transparent 40%),
@@ -26,7 +42,7 @@ export default function DashboardLayout({
           />
           
           {/* Scan line effect */}
-          <div className="fixed inset-0 ml-64 pointer-events-none overflow-hidden">
+          <div className="fixed inset-0 pointer-events-none overflow-hidden">
             <div 
               className="absolute inset-0"
               style={{
@@ -43,11 +59,23 @@ export default function DashboardLayout({
           </div>
           
           {/* Main content */}
-          <div className="relative z-10 p-6">
+          <div className="relative z-10 p-4 lg:p-6 pt-16 lg:pt-6">
             {children}
           </div>
         </div>
-      </main>
+      </motion.main>
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </SidebarProvider>
   );
 }
