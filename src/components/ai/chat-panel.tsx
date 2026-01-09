@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 // =============================================================================
 // TYPES
@@ -405,10 +406,8 @@ function ChatMessage({ message }: { message: Message }) {
           </div>
         ) : (
           <>
-            <div className="prose prose-sm prose-invert max-w-none">
-              <div className="text-text-primary whitespace-pre-wrap text-sm">
-                {message.content}
-              </div>
+            <div className="prose prose-sm prose-invert max-w-none text-text-primary text-sm [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-4 [&>h2]:mb-2 [&>h2]:text-text-primary [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:mt-3 [&>h3]:mb-1 [&>p]:my-2 [&>ul]:my-2 [&>ul]:pl-4 [&>ol]:my-2 [&>ol]:pl-4 [&>li]:my-1 [&>strong]:text-intel-300 [&>table]:my-3 [&>table]:text-xs [&>table]:w-full [&>table_th]:text-left [&>table_th]:p-2 [&>table_th]:bg-surface-700 [&>table_td]:p-2 [&>table_td]:border-t [&>table_td]:border-border [&>blockquote]:border-l-2 [&>blockquote]:border-intel-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-text-secondary">
+              <ReactMarkdown>{message.content}</ReactMarkdown>
             </div>
             
             {/* Tool Calls */}
