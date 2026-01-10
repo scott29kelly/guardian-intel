@@ -31,18 +31,20 @@ import {
 // ROUTING CONFIGURATION
 // =============================================================================
 
-// Use Gemini for all tasks (simplest configuration)
-// This can be customized later to route specific tasks to other models
+// Model routing configuration
+// Prefer Claude for chat (better at following formatting instructions)
+// Fallback to Gemini if Claude is not available
 const TASK_MODEL_MAP: Record<AITask, AIModel> = {
-  chat: "gemini-2.0-flash-exp",
-  tool_call: "gemini-2.0-flash-exp",
-  simple_tool: "gemini-2.0-flash-exp",
-  research: "gemini-2.0-flash-exp",
-  classify: "gemini-2.0-flash-exp",
-  parse: "gemini-2.0-flash-exp",
-  summarize: "gemini-2.0-flash-exp",
+  chat: "claude-sonnet-4.5",         // Claude Sonnet for formatted chat
+  tool_call: "claude-sonnet-4.5",    // Claude for complex tool calls
+  simple_tool: "claude-haiku-4.5",   // Claude Haiku for simple tools
+  research: "gemini-2.0-flash-exp",  // Gemini for research
+  classify: "claude-haiku-4.5",      // Claude Haiku for classification
+  parse: "claude-haiku-4.5",         // Claude Haiku for parsing
+  summarize: "gemini-2.0-flash-exp", // Gemini for summarization
 };
 
+// Gemini is the fallback when Claude is not configured
 const FALLBACK_MODEL: AIModel = "gemini-2.0-flash-exp";
 
 // =============================================================================
@@ -50,7 +52,7 @@ const FALLBACK_MODEL: AIModel = "gemini-2.0-flash-exp";
 // =============================================================================
 
 export class AIRouter {
-  private adapters: Map<AIModel, AIAdapter> = new Map();
+  private adapters: Map<AIModel | string, AIAdapter> = new Map();
   private fallbackAdapter: AIAdapter | null = null;
 
   constructor() {
@@ -121,11 +123,14 @@ export class AIRouter {
   }
 
   /**
-   * Stream a chat response (uses Kimi K2)
+   * Stream a chat response
    */
   async *chatStream(request: ChatRequest): AsyncIterable<StreamChunk> {
     const task = request.task || "chat";
     const adapter = this.getAdapter(task);
+    if (!adapter.chatStream) {
+      throw new Error(`Adapter ${adapter.model} does not support streaming`);
+    }
     yield* adapter.chatStream(request);
   }
 
@@ -332,7 +337,7 @@ YOUR ROLE:
   /**
    * Get list of registered models
    */
-  getRegisteredModels(): AIModel[] {
+  getRegisteredModels(): (AIModel | string)[] {
     return Array.from(this.adapters.keys());
   }
 }

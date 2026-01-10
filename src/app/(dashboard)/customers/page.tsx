@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -26,7 +26,22 @@ import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
 import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer } from "@/lib/mock-data";
+import { calculateCustomerScores } from "@/lib/services/scoring";
 import { useToast } from "@/components/ui/toast";
+
+// Helper to get calculated scores for a customer
+const getCustomerScores = (customer: Customer) => {
+  const customerIntel = mockIntelItems.filter(i => i.customerId === customer.id);
+  const customerWeather = mockWeatherEvents.filter(e => e.customerId === customer.id);
+  return calculateCustomerScores({
+    customer,
+    intelItems: customerIntel,
+    weatherEvents: customerWeather,
+  });
+};
+
+const getCustomerProfit = (customer: Customer) => getCustomerScores(customer).profitPotential;
+const getCustomerUrgency = (customer: Customer) => getCustomerScores(customer).urgencyScore;
 
 const statusOptions = [
   { value: "all", label: "All Status" },
@@ -50,7 +65,7 @@ const stageOptions = [
 const sortOptions = [
   { value: "leadScore", label: "Lead Score" },
   { value: "urgencyScore", label: "Urgency" },
-  { value: "profitPotential", label: "Profit Potential" },
+  { value: "profitPotential", label: "Est. Profit" },
   { value: "lastContact", label: "Last Contact" },
   { value: "name", label: "Name" },
 ];
@@ -59,6 +74,7 @@ type ViewMode = "cards" | "table";
 
 export default function CustomersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,6 +85,14 @@ export default function CustomersPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
+  
+  // URL-based filtering for storm alerts
+  const countyFilter = searchParams.get("counties");
+  const stormFilter = searchParams.get("filter");
+  const alertId = searchParams.get("alertId");
+  
+  // Show banner when filtering by storm
+  const isStormFiltered = stormFilter === "storm-affected" && countyFilter;
 
   const handleImport = () => {
     // Create a file input and trigger it
@@ -89,7 +113,7 @@ export default function CustomersPage() {
 
   const handleExport = () => {
     // Generate CSV content
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Address", "City", "State", "ZIP", "Status", "Stage", "Lead Score", "Profit Potential"];
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Address", "City", "State", "ZIP", "Status", "Stage", "Lead Score", "Est. Profit"];
     const rows = filteredCustomers.map(c => [
       c.firstName,
       c.lastName,
@@ -102,7 +126,7 @@ export default function CustomersPage() {
       c.status,
       c.stage,
       c.leadScore.toString(),
-      c.profitPotential.toString()
+      getCustomerProfit(c).toString()
     ]);
     
     const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${cell}"`).join(","))].join("\n");
@@ -174,9 +198,69 @@ export default function CustomersPage() {
     router.push(`/customers?profile=${customer.id}`);
   };
 
+  // Parse counties from URL for storm filtering
+  const targetCounties = countyFilter 
+    ? countyFilter.split(",").map(c => c.trim().toLowerCase())
+    : [];
+
   // Filter and sort customers
   const filteredCustomers = customers
     .filter((customer) => {
+      // County filter from storm alerts - match by city or nearby area
+      if (isStormFiltered && targetCounties.length > 0) {
+        // Map cities to their counties for PA, NJ, DE, MD, VA, NY
+        const cityToCounty: Record<string, string> = {
+          // Bucks County, PA
+          "southampton": "bucks",
+          "warminster": "bucks",
+          "doylestown": "bucks",
+          "bensalem": "bucks",
+          "newtown": "bucks",
+          "langhorne": "bucks",
+          "levittown": "bucks",
+          "bristol": "bucks",
+          "quakertown": "bucks",
+          // Montgomery County, PA
+          "king of prussia": "montgomery",
+          "norristown": "montgomery",
+          "lansdale": "montgomery",
+          "plymouth meeting": "montgomery",
+          "blue bell": "montgomery",
+          "conshohocken": "montgomery",
+          "ambler": "montgomery",
+          "horsham": "montgomery",
+          // Philadelphia County
+          "philadelphia": "philadelphia",
+          // Delaware County, PA
+          "media": "delaware",
+          "springfield": "delaware",
+          "upper darby": "delaware",
+          "drexel hill": "delaware",
+          // New Castle County, DE
+          "wilmington": "new castle",
+          "newark": "new castle",
+          "bear": "new castle",
+          // Spotsylvania County, VA
+          "fredericksburg": "spotsylvania",
+          "spotsylvania": "spotsylvania",
+          // Others
+          "baltimore": "baltimore",
+          "cherry hill": "camden",
+          "trenton": "mercer",
+          "richmond": "henrico",
+          "arlington": "arlington",
+          "brooklyn": "kings",
+          "albany": "albany",
+        };
+        
+        const customerCity = customer.city.toLowerCase();
+        const customerCounty = cityToCounty[customerCity];
+        
+        // Check if customer is in one of the target counties
+        const matchesCounty = customerCounty && targetCounties.includes(customerCounty);
+        if (!matchesCounty) return false;
+      }
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -207,12 +291,12 @@ export default function CustomersPage() {
           bVal = b.leadScore;
           break;
         case "urgencyScore":
-          aVal = a.urgencyScore;
-          bVal = b.urgencyScore;
+          aVal = getCustomerUrgency(a);
+          bVal = getCustomerUrgency(b);
           break;
         case "profitPotential":
-          aVal = a.profitPotential;
-          bVal = b.profitPotential;
+          aVal = getCustomerProfit(a);
+          bVal = getCustomerProfit(b);
           break;
         case "lastContact":
           aVal = a.lastContact.getTime();
@@ -270,6 +354,36 @@ export default function CustomersPage() {
           </Button>
         </div>
       </div>
+
+      {/* Storm Filter Banner */}
+      {isStormFiltered && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-alert-500/10 border border-alert-500/30 rounded-lg p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-alert-500/20 flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-alert-500" />
+            </div>
+            <div>
+              <p className="font-medium text-text-primary">
+                ⚡ Storm-Affected Customers
+              </p>
+              <p className="text-sm text-text-muted">
+                Showing customers in: <span className="text-alert-400 font-medium">{countyFilter?.split(",").map(c => c.trim() + " County").join(", ")}</span>
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push("/customers")}
+          >
+            Clear Filter
+          </Button>
+        </motion.div>
+      )}
 
       {/* Filters Bar */}
       <Card>
@@ -441,7 +555,7 @@ export default function CustomersPage() {
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Lead Score</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Status</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Stage</th>
-                    <th className="text-right py-4 px-4 text-sm font-medium text-text-muted">Potential</th>
+                    <th className="text-right py-4 px-4 text-sm font-medium text-text-muted">Est. Profit</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Assigned</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Actions</th>
                   </tr>
@@ -487,7 +601,7 @@ export default function CustomersPage() {
                       </td>
                       <td className="py-4 px-4 text-right">
                         <span className="text-sm font-medium text-accent-success">
-                          {formatCurrency(customer.profitPotential)}
+                          {formatCurrency(getCustomerProfit(customer))}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">

@@ -35,15 +35,8 @@ import type { ActivityType, ActivityOutcome } from "@/lib/services/ai";
 // TYPES
 // =============================================================================
 
-interface QuickLogModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  customerId: string;
-  customerName: string;
-  onLogSaved?: (log: ActivityLog) => void;
-}
-
-interface ActivityLog {
+export interface ActivityLog {
+  id: string;
   customerId: string;
   type: ActivityType;
   outcome?: ActivityOutcome;
@@ -52,6 +45,18 @@ interface ActivityLog {
   nextAction?: string;
   nextActionDate?: string;
   aiInsights?: string[];
+  objections?: string[];
+  createdAt: string;
+  createdBy: string;
+}
+
+interface QuickLogModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  customerId: string;
+  customerName: string;
+  activities?: ActivityLog[];
+  onLogSaved?: (log: ActivityLog) => void;
 }
 
 // =============================================================================
@@ -96,10 +101,12 @@ export function QuickLogModal({
   onClose,
   customerId,
   customerName,
+  activities = [],
   onLogSaved,
 }: QuickLogModalProps) {
   const { showToast } = useToast();
   
+  const [activeTab, setActiveTab] = useState<"log" | "history">("log");
   const [activityType, setActivityType] = useState<ActivityType>("call");
   const [outcome, setOutcome] = useState<ActivityOutcome | undefined>();
   const [notes, setNotes] = useState("");
@@ -193,8 +200,9 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
     setIsProcessing(true);
 
     try {
-      // In production, this would save to the database
+      // Create activity log with all data
       const log: ActivityLog = {
+        id: Date.now().toString(),
         customerId,
         type: activityType,
         outcome,
@@ -203,6 +211,9 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
         nextAction: nextAction || undefined,
         nextActionDate: nextActionDate || undefined,
         aiInsights,
+        objections: selectedObjections.length > 0 ? selectedObjections : undefined,
+        createdAt: new Date().toISOString(),
+        createdBy: "S. Mitchell",
       };
 
       // Simulate API call
@@ -220,7 +231,8 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
       setNextActionDate("");
       setAiInsights([]);
       
-      onClose();
+      // Switch to history tab to show the new activity
+      setActiveTab("history");
     } catch (error) {
       showToast("error", "Save Failed", "Could not save activity log");
     } finally {
@@ -262,9 +274,114 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
             </button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-border">
+            <button
+              onClick={() => setActiveTab("log")}
+              className={`flex-1 px-4 py-3 text-sm font-mono uppercase tracking-wider transition-colors ${
+                activeTab === "log"
+                  ? "text-accent-primary border-b-2 border-accent-primary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              Log New Activity
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`flex-1 px-4 py-3 text-sm font-mono uppercase tracking-wider transition-colors ${
+                activeTab === "history"
+                  ? "text-accent-primary border-b-2 border-accent-primary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              Activity History ({activities.length})
+            </button>
+          </div>
+
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-            {/* Activity Type */}
+            {/* History Tab */}
+            {activeTab === "history" && (
+              <div className="space-y-3">
+                {activities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 text-text-muted mx-auto mb-3 opacity-50" />
+                    <p className="text-text-muted font-mono text-sm">No activities logged yet</p>
+                    <p className="text-text-muted font-mono text-xs mt-1">Log your first activity to see it here</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab("log")}
+                      className="mt-4"
+                    >
+                      Log Activity
+                    </Button>
+                  </div>
+                ) : (
+                  activities.map((activity) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="panel p-4"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {activity.type === "call" && <Phone className="w-4 h-4 text-intel-400" />}
+                          {activity.type === "visit" && <MapPin className="w-4 h-4 text-intel-400" />}
+                          {activity.type === "email" && <Mail className="w-4 h-4 text-intel-400" />}
+                          {activity.type === "text" && <MessageSquare className="w-4 h-4 text-intel-400" />}
+                          {activity.type === "note" && <FileText className="w-4 h-4 text-intel-400" />}
+                          <span className="font-mono text-sm text-text-primary capitalize">{activity.type}</span>
+                          {activity.outcome && (
+                            <Badge variant="secondary" className="text-xs">
+                              {activity.outcome.replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="font-mono text-xs text-text-muted">
+                          {new Date(activity.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="font-mono text-sm text-text-secondary mb-2">{activity.notes}</p>
+                      {activity.objections && activity.objections.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {activity.objections.map((obj, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-storm-500/20 text-storm-400 text-xs rounded-full">
+                              {obj}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {activity.nextAction && (
+                        <div className="flex items-center gap-2 text-xs text-text-muted mt-2 pt-2 border-t border-border">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>Next: {activity.nextAction}</span>
+                          {activity.nextActionDate && (
+                            <span className="text-intel-400">
+                              ({new Date(activity.nextActionDate).toLocaleDateString()})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-xs text-text-muted mt-2">
+                        Logged by {activity.createdBy}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Log Tab - Activity Type */}
+            {activeTab === "log" && (
+              <>
             <div>
               <label className="text-sm font-medium text-text-secondary mb-2 block">
                 Activity Type
@@ -424,26 +541,30 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
                 />
               </div>
             </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
           <div className="p-4 border-t border-border bg-[hsl(var(--surface-secondary))] flex justify-end gap-3">
             <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-              Cancel
+              {activeTab === "history" ? "Close" : "Cancel"}
             </Button>
-            <Button onClick={handleSave} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Save Activity
-                </>
-              )}
-            </Button>
+            {activeTab === "log" && (
+              <Button onClick={handleSave} disabled={isProcessing}>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Save Activity
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </motion.div>
       </motion.div>

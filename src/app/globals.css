@@ -435,3 +435,89 @@ select option {
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
+
+/* =============================================
+   AI RESPONSE CONTENT STYLING
+   ============================================= */
+.ai-response-content {
+  line-height: 1.6;
+}
+
+/* Paragraphs - tighter spacing */
+.ai-response-content p {
+  margin: 0;
+}
+
+/* Add space between paragraphs, but not excessive */
+.ai-response-content p + p {
+  margin-top: 0.5rem;
+}
+
+/* Section headers (emoji + bold text) */
+.ai-response-content p:has(> strong:first-child) {
+  margin-top: 1.25rem;
+  margin-bottom: 0.375rem;
+}
+
+/* First section header shouldn't have top margin */
+.ai-response-content > p:first-child:has(> strong:first-child) {
+  margin-top: 0;
+}
+
+/* Bold text styling (headers and emphasis) */
+.ai-response-content strong {
+  color: hsl(var(--intel-300));
+  font-weight: 600;
+}
+
+/* Italic for emphasis */
+.ai-response-content em {
+  color: hsl(var(--text-secondary));
+  font-style: italic;
+}
+
+/* Bullet lists from markdown */
+.ai-response-content ul {
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 1.75rem;
+  list-style: none;
+}
+
+.ai-response-content ul li {
+  position: relative;
+  margin-bottom: 0.25rem;
+  padding-left: 0;
+}
+
+.ai-response-content ul li::before {
+  content: "•";
+  position: absolute;
+  left: -1.25rem;
+  color: hsl(var(--accent-primary));
+  font-weight: bold;
+}
+
+/* Numbered lists */
+.ai-response-content ol {
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 1.75rem;
+  list-style: decimal;
+  list-style-position: outside;
+}
+
+.ai-response-content ol li {
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.ai-response-content ol li::marker {
+  color: hsl(var(--accent-primary));
+  font-weight: bold;
+}
+
+/* Inline bullets (• text) rendered as paragraphs - indent them */
+.ai-response-content p:not(:has(strong:first-child)) {
+  /* Only indent if starts with bullet character */
+}
+
+/* Handle raw text bullets (• at start of paragraph) */

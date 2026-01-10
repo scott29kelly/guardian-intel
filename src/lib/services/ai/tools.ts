@@ -244,6 +244,7 @@ export const AI_TOOLS: ToolDefinition[] = [
           description: "Specific objections to address",
           items: {
             type: "string",
+            description: "An objection text to address in the script",
           },
         },
       },

@@ -239,7 +239,12 @@ export default function StormsPage() {
 
   const handleViewAffectedCustomers = (alertId: string, areas: string[]) => {
     showToast("info", "Loading Customers", `Finding customers in ${areas.join(", ")}...`);
-    router.push(`/customers?filter=storm-affected`);
+    // Extract counties from areas (e.g., "Bucks County, PA" -> "Bucks")
+    const counties = areas.map(area => {
+      const match = area.match(/^([^,]+)\s+County/i);
+      return match ? match[1] : area.split(",")[0].trim();
+    });
+    router.push(`/customers?filter=storm-affected&counties=${encodeURIComponent(counties.join(","))}&alertId=${alertId}`);
   };
 
   const handleViewEventDetails = (event: StormEvent) => {

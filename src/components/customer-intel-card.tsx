@@ -22,11 +22,12 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
+import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
 import { CustomerProfileModal } from "./modals/customer-profile-modal";
 import { TakeActionModal } from "./modals/take-action-modal";
 import { AIChatPanel } from "./ai/chat-panel";
-import { QuickLogModal } from "./ai/quick-log-modal";
-import { StreetViewThumbnail } from "./property/street-view-preview";
+import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
+import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -59,12 +60,27 @@ export function CustomerIntelCard({
   const [showActionModal, setShowActionModal] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
+  const [showStreetViewModal, setShowStreetViewModal] = useState(false);
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
+
+  const handleActivitySaved = (activity: ActivityLog) => {
+    setActivities(prev => [activity, ...prev]);
+  };
 
   const criticalItems = intelItems.filter((i) => i.priority === "critical");
   const hasStormDamage = weatherEvents.length > 0;
   
-  // Calculate retention score (inverse of churn risk)
-  const retentionScore = 100 - customer.churnRisk;
+  // Calculate dynamic scores based on customer data
+  const scores = calculateCustomerScores({
+    customer,
+    intelItems,
+    weatherEvents,
+  });
+  
+  // Get human-readable explanations for tooltips
+  const urgencyTooltip = `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`;
+  const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
+  const profitTooltip = `Estimated profit based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}, and $${customer.propertyValue.toLocaleString()} property value`;
 
   return (
     <>
@@ -121,11 +137,11 @@ export function CustomerIntelCard({
                   </div>
                 </div>
 
-                {/* Profit Potential */}
-                <div className="text-right">
-                  <span className="font-mono text-xs text-text-muted uppercase">Potential</span>
+                {/* Estimated Profit */}
+                <div className="text-right" title={profitTooltip}>
+                  <span className="font-mono text-xs text-text-muted uppercase">Est. Profit</span>
                   <p className="font-mono text-xl font-bold text-accent-success">
-                    {formatCurrency(customer.profitPotential)}
+                    {formatCurrency(scores.profitPotential)}
                   </p>
                 </div>
               </div>
@@ -178,21 +194,21 @@ export function CustomerIntelCard({
 
             {/* Scores */}
             <div className="flex-shrink-0 flex items-center gap-6">
-              <div className="text-center">
+              <div className="text-center cursor-help" title={urgencyTooltip}>
                 <div className={`
                   w-12 h-12 rounded border flex items-center justify-center mb-1
-                  ${getScoreColor(customer.urgencyScore)}
+                  ${getScoreColor(scores.urgencyScore)}
                 `}>
-                  <span className="font-mono text-lg font-bold">{customer.urgencyScore}</span>
+                  <span className="font-mono text-lg font-bold">{scores.urgencyScore}</span>
                 </div>
                 <span className="font-mono text-[9px] text-text-muted uppercase">Urgency</span>
               </div>
-              <div className="text-center">
+              <div className="text-center cursor-help" title={retentionTooltip}>
                 <div className={`
                   w-12 h-12 rounded border flex items-center justify-center mb-1
-                  ${getScoreColor(retentionScore)}
+                  ${getScoreColor(scores.retentionScore)}
                 `}>
-                  <span className="font-mono text-lg font-bold">{retentionScore}</span>
+                  <span className="font-mono text-lg font-bold">{scores.retentionScore}</span>
                 </div>
                 <span className="font-mono text-[9px] text-text-muted uppercase">Retention</span>
               </div>
@@ -227,14 +243,15 @@ export function CustomerIntelCard({
                       Contact
                     </h4>
                     <div className="flex gap-3">
-                      {/* Street View Thumbnail */}
+                      {/* Street View Thumbnail - Click to open Street View modal */}
                       <StreetViewThumbnail
                         address={customer.address}
                         city={customer.city}
                         state={customer.state}
                         zipCode={customer.zipCode}
                         size={80}
-                        onClick={() => setShowProfileModal(true)}
+                        showLabel={true}
+                        onClick={() => setShowStreetViewModal(true)}
                       />
                       <div className="space-y-2 flex-1">
                         <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-accent-primary hover:text-accent-primary/80 transition-colors">
@@ -465,6 +482,18 @@ export function CustomerIntelCard({
         onClose={() => setShowQuickLog(false)}
         customerId={customer.id}
         customerName={`${customer.firstName} ${customer.lastName}`}
+        activities={activities}
+        onLogSaved={handleActivitySaved}
+      />
+      
+      {/* Street View Modal */}
+      <StreetViewModal
+        isOpen={showStreetViewModal}
+        onClose={() => setShowStreetViewModal(false)}
+        address={customer.address}
+        city={customer.city}
+        state={customer.state}
+        zipCode={customer.zipCode}
       />
     </>
   );

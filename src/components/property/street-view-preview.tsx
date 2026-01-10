@@ -208,7 +208,7 @@ function getDirectionLabel(heading: number): string {
 }
 
 /**
- * Compact Street View thumbnail for lists
+ * Compact Street View thumbnail for lists - now more prominent with label
  */
 export function StreetViewThumbnail({
   address,
@@ -217,6 +217,7 @@ export function StreetViewThumbnail({
   zipCode,
   size = 80,
   onClick,
+  showLabel = true,
 }: {
   address: string;
   city: string;
@@ -224,6 +225,7 @@ export function StreetViewThumbnail({
   zipCode: string;
   size?: number;
   onClick?: () => void;
+  showLabel?: boolean;
 }) {
   const [hasError, setHasError] = useState(false);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -231,7 +233,7 @@ export function StreetViewThumbnail({
 
   let imageUrl: string;
   if (!apiKey) {
-    imageUrl = `https://placehold.co/${size}x${size}/1a1a2e/00d4ff?text=SV`;
+    imageUrl = `https://placehold.co/${size}x${size}/1a1a2e/00d4ff?text=Street+View`;
   } else {
     const params = new URLSearchParams({
       size: `${size}x${size}`,
@@ -246,31 +248,125 @@ export function StreetViewThumbnail({
   if (hasError) {
     return (
       <div
-        className="flex items-center justify-center bg-surface-secondary rounded"
+        className="flex flex-col items-center justify-center bg-surface-secondary rounded gap-1"
         style={{ width: size, height: size }}
       >
         <MapPin className="w-4 h-4 text-text-muted" />
+        {showLabel && <span className="text-[8px] text-text-muted">No Image</span>}
       </div>
     );
   }
 
   return (
     <div
-      className={`relative rounded overflow-hidden ${onClick ? "cursor-pointer hover:ring-2 hover:ring-intel-500/50" : ""}`}
+      className={`relative rounded overflow-hidden group ${onClick ? "cursor-pointer" : ""}`}
       style={{ width: size, height: size }}
       onClick={onClick}
+      title="Click to view property on Google Street View"
     >
       <img
         src={imageUrl}
-        alt={`${city}, ${state}`}
-        className="w-full h-full object-cover"
+        alt={`Street View of ${city}, ${state}`}
+        className="w-full h-full object-cover transition-transform group-hover:scale-105"
         onError={() => setHasError(true)}
       />
+      {/* Always visible overlay with label */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col items-center justify-end pb-1">
+        <Eye className="w-3 h-3 text-white/80 mb-0.5" />
+        {showLabel && (
+          <span className="text-[8px] font-mono uppercase tracking-wider text-white/90 font-semibold">
+            Street View
+          </span>
+        )}
+      </div>
+      {/* Hover ring effect */}
       {onClick && (
-        <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-          <Eye className="w-4 h-4 text-white" />
-        </div>
+        <div className="absolute inset-0 ring-0 group-hover:ring-2 ring-accent-primary/60 rounded transition-all" />
       )}
     </div>
+  );
+}
+
+/**
+ * Street View Modal - Full screen modal for viewing Street View
+ */
+export function StreetViewModal({
+  isOpen,
+  onClose,
+  address,
+  city,
+  state,
+  zipCode,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000]"
+            onClick={onClose}
+          />
+
+          {/* Modal - Properly centered using inset and auto margins */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 m-auto w-[90vw] max-w-[900px] h-[70vh] max-h-[600px] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[10000] overflow-hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-secondary/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-accent-primary/10">
+                  <MapPin className="w-5 h-5 text-accent-primary" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-lg text-text-primary">
+                    Property Street View
+                  </h2>
+                  <p className="font-mono text-xs text-text-muted">
+                    {address}, {city}, {state} {zipCode}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-primary"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Street View Content */}
+            <div className="flex-1">
+              <StreetViewPreview
+                address={address}
+                city={city}
+                state={state}
+                zipCode={zipCode}
+                height="100%"
+                showControls={true}
+                showExpandButton={false}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

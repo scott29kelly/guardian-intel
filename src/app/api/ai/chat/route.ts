@@ -54,16 +54,30 @@ export async function POST(request: Request) {
     }
 
     // Build context if customer ID is provided
-    let systemPrompt: string | undefined;
+    let systemPrompt: string;
     if (customerId) {
       const context = await getCustomerContext(customerId);
       systemPrompt = buildCustomerSystemPrompt(context);
+    } else {
+      // Default system prompt for general chat
+      systemPrompt = `You are Guardian Intel, an AI assistant for Guardian Roofing & Siding, a storm damage restoration company serving PA, NJ, DE, MD, VA, and NY.
+
+You help sales reps with:
+- Customer research and property analysis
+- Weather impact assessment  
+- Sales strategy and next steps
+- Script generation for calls and objections
+- Pipeline prioritization
+
+RESPONSE STYLE:
+- Organize into clear sections with emoji headers (e.g., 📞 **Outreach**)
+- Use bullet points (•) for action items
+- Bold important names and amounts with **text**
+- Be friendly, concise, and action-oriented`;
     }
 
     // Prepare messages with system prompt
-    const allMessages: Message[] = systemPrompt
-      ? [{ role: "system", content: systemPrompt }, ...messages]
-      : messages;
+    const allMessages: Message[] = [{ role: "system", content: systemPrompt }, ...messages];
 
     // Determine if this needs tool calling
     const shouldUseTtools = enableTools || task === "tool_call" || task === "simple_tool";

@@ -281,12 +281,27 @@ export interface RepActivity {
 // ADAPTER INTERFACE
 // =============================================================================
 
+// Legacy AIResponse type for backward compatibility
+export interface AIResponse {
+  message: {
+    role: "assistant";
+    content: string;
+    toolCalls?: ToolCall[];
+  };
+  model: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
 export interface AIAdapter {
   readonly provider: AIProvider;
-  readonly model: AIModel;
+  readonly model: AIModel | string;
   
   chat(request: ChatRequest): Promise<ChatResponse>;
-  chatStream(request: ChatRequest): AsyncIterable<StreamChunk>;
+  chatStream?(request: ChatRequest): AsyncIterable<StreamChunk>;
   
   // Optional capabilities
   research?(request: ResearchRequest): Promise<ResearchResult>;

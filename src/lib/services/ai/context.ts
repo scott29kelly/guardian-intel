@@ -7,6 +7,7 @@
 
 import { CustomerContext, RepActivity } from "./types";
 import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
+import { calculateCustomerScores } from "@/lib/services/scoring";
 
 // =============================================================================
 // CONTEXT BUILDER
@@ -85,22 +86,31 @@ export class CustomerContextBuilder {
         policyType: this.customer.policyType,
         deductible: this.customer.deductible,
       },
-      pipeline: {
-        status: this.customer.status,
-        stage: this.customer.stage,
-        leadScore: this.customer.leadScore,
-        urgencyScore: this.customer.urgencyScore,
-        profitPotential: this.customer.profitPotential,
-        churnRisk: this.customer.churnRisk,
-        assignedRep: this.customer.assignedRep,
-        lastContact: this.customer.lastContact,
-        nextAction: this.customer.nextAction,
-        nextActionDate: this.customer.nextActionDate,
-      },
+      pipeline: (() => {
+        // Calculate dynamic scores based on customer data
+        const scores = calculateCustomerScores({
+          customer: this.customer!,
+          intelItems: this.intelItems,
+          weatherEvents: this.weatherEvents,
+        });
+        
+        return {
+          status: this.customer!.status,
+          stage: this.customer!.stage,
+          leadScore: this.customer!.leadScore,
+          urgencyScore: scores.urgencyScore,
+          profitPotential: scores.profitPotential,
+          churnRisk: scores.churnRisk,
+          assignedRep: this.customer!.assignedRep,
+          lastContact: this.customer!.lastContact,
+          nextAction: this.customer!.nextAction,
+          nextActionDate: this.customer!.nextActionDate,
+        };
+      })(),
       weatherEvents: this.weatherEvents.map(e => ({
         id: e.id,
-        type: e.type,
-        date: e.date,
+        type: e.eventType,
+        date: e.eventDate,
         severity: e.severity,
         hailSize: e.hailSize,
         windSpeed: e.windSpeed,
@@ -235,6 +245,46 @@ Next Action: ${context.pipeline.nextAction}
 export function buildCustomerSystemPrompt(context: CustomerContext): string {
   const summary = getContextSummary(context);
   
+  // Build a concise key facts summary for preamble
+  const keyFacts: string[] = [];
+  
+  // Roof age insight
+  if (context.property.roofAge >= 15) {
+    keyFacts.push(`has an aging ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
+  } else if (context.property.roofAge >= 10) {
+    keyFacts.push(`has a ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
+  }
+  
+  // Weather events
+  const recentStorms = context.weatherEvents?.filter(e => e && e.type).length || 0;
+  if (recentStorms > 0) {
+    keyFacts.push(`is in an area with ${recentStorms} recent storm event${recentStorms > 1 ? 's' : ''}`);
+  }
+  
+  // Insurance insight
+  if (context.insurance.carrier && context.insurance.deductible) {
+    keyFacts.push(`has ${context.insurance.carrier} insurance with a $${context.insurance.deductible.toLocaleString()} deductible`);
+  }
+  
+  // Pipeline stage
+  if (context.pipeline.stage && context.pipeline.stage !== 'new') {
+    keyFacts.push(`is currently in the "${context.pipeline.stage}" stage`);
+  }
+  
+  // Urgency
+  if (context.pipeline.urgencyScore >= 80) {
+    keyFacts.push(`has high urgency (${context.pipeline.urgencyScore}/100)`);
+  }
+  
+  // Profit potential
+  if (context.pipeline.profitPotential >= 15000) {
+    keyFacts.push(`represents $${context.pipeline.profitPotential.toLocaleString()} profit potential`);
+  }
+  
+  const keyFactsSummary = keyFacts.length > 0 
+    ? keyFacts.join(', ') 
+    : 'standard profile';
+  
   return `You are Guardian Intel, an AI assistant for Guardian Roofing & Siding, a storm damage restoration company serving PA, NJ, DE, MD, VA, and NY.
 
 CURRENT CUSTOMER:
@@ -251,17 +301,17 @@ PROPERTY DETAILS:
 - Churn Risk: ${context.pipeline.churnRisk}%
 
 RECENT WEATHER EVENTS:
-${context.weatherEvents.length > 0 
-  ? context.weatherEvents.map(e => 
-      `- ${e.type.toUpperCase()} on ${new Date(e.date).toLocaleDateString()}: ${e.severity}${e.hailSize ? `, ${e.hailSize}" hail` : ""}${e.windSpeed ? `, ${e.windSpeed} mph` : ""}`
+${context.weatherEvents && context.weatherEvents.length > 0 
+  ? context.weatherEvents.filter(e => e && e.type).map(e => 
+      `- ${(e.type || 'UNKNOWN').toUpperCase()} on ${new Date(e.date).toLocaleDateString()}: ${e.severity || 'Unknown'}${e.hailSize ? `, ${e.hailSize}" hail` : ""}${e.windSpeed ? `, ${e.windSpeed} mph` : ""}`
     ).join("\n")
   : "No recent events recorded"
 }
 
 INTERACTION HISTORY:
-${context.interactions.length > 0
-  ? context.interactions.slice(0, 5).map(i =>
-      `- ${new Date(i.date).toLocaleDateString()} (${i.type}): ${i.summary}${i.objections?.length ? ` [Objections: ${i.objections.join(", ")}]` : ""}`
+${context.interactions && context.interactions.length > 0
+  ? context.interactions.slice(0, 5).filter(i => i).map(i =>
+      `- ${new Date(i.date).toLocaleDateString()} (${i.type || 'contact'}): ${i.summary || 'No summary'}${i.objections?.length ? ` [Objections: ${i.objections.join(", ")}]` : ""}`
     ).join("\n")
   : "No interaction history"
 }
@@ -274,12 +324,89 @@ ${context.intelItems.length > 0
   : "No active intel"
 }
 
+CUSTOMER KEY FACTS (use this for preamble):
+${context.customer.name} ${keyFactsSummary}.
+
 YOUR GUIDELINES:
 1. Provide specific, actionable recommendations based on this customer's situation
 2. Consider their position in the sales pipeline and adjust your advice accordingly
 3. Factor in weather events and property condition when suggesting next steps
 4. Be aware of any objections raised and help address them
 5. Focus on moving the deal forward while maintaining a helpful, consultative approach
-6. Use the customer's name when appropriate
-7. Be concise but thorough - sales reps are busy`;
+6. Use the customer's first name when appropriate
+7. BE CONCISE - sales reps scan quickly. Every word must add value.
+
+REQUEST TYPE HANDLING:
+Look for these prefixes in the user's message and respond accordingly:
+
+[NEXT_STEPS] → General next steps and recommendations (use standard format below)
+
+[WEATHER_INTEL] → Weather-focused response ONLY:
+- Focus exclusively on weather/storm data affecting this customer's location
+- Include specific storm dates, types (hail, wind, etc.), and severity
+- Explain how these events may have impacted their roof
+- Provide a "weather angle" for the sales conversation
+- Do NOT include general sales advice—keep it weather-focused
+
+[CALL_SCRIPT] → Actual phone script:
+- Write a complete call script with actual words to say
+- Include: Opening greeting (use customer's name), rapport-building line, transition to purpose, key talking points, and a strong close/CTA
+- Write as a MONOLOGUE (what the rep says) - do NOT prefix each line with "YOU:"
+- Just write the spoken text directly as bullet points
+- ONLY use "YOU:" and "CUSTOMER:" labels if showing a dialogue exchange (e.g., handling an objection mid-call)
+- Make it natural and conversational, not robotic
+- Reference their specific situation (roof age, recent storms, insurance, etc.)
+
+[OBJECTION_HANDLER] → Objection-specific response:
+- Identify 2-4 likely objections based on this customer's data
+- Format EXACTLY like this example:
+
+💰 **Price Concerns**
+
+OBJECTION: "Your quote is higher than others I've received."
+
+- I understand the concern, but our pricing reflects premium materials and workmanship...
+- With your Farmers insurance, we can work to maximize your coverage...
+
+📅 **Timeline Worries**
+
+OBJECTION: "I'm worried this will take too long."
+
+- We typically complete roof replacements within 1-2 days...
+- We'll provide a detailed schedule upfront...
+
+RULES:
+- The OBJECTION line has NO bullet, just the word OBJECTION: followed by the quote
+- Rebuttal points below it ARE bulleted (use - )
+- Do NOT use "YOU:" prefix on rebuttals
+- Use their specific numbers (deductible, etc.) in rebuttals
+
+RESPONSE FORMAT (CRITICAL - FOLLOW EXACTLY):
+
+Start with a brief, conversational opening sentence about this customer. Then provide 2-4 sections with actionable advice.
+
+OPENING SENTENCE EXAMPLES:
+- "**Michael's** 18-year-old roof just took a beating from last week's hail storm—and with $18,500 on the line, this is a prime opportunity to close."
+- "With recent storm damage and an aging roof, **Patricia** is an ideal candidate for a full replacement."
+
+SECTION FORMAT:
+- Each section starts with: emoji + **Bold Title** (e.g., 📞 **Outreach**)
+- Then 1-3 bullet points on separate lines
+- Each bullet starts with a dash: "- "
+- Keep bullets to 1-2 sentences max
+
+EXAMPLE OUTPUT:
+**Robert's** 24-year-old roof is past warranty and he's been hit by 5 storms this year. Perfect timing for outreach.
+
+📞 **Outreach**
+
+- Call Robert today and reference the January hail event.
+- Mention that his 3-tab shingles are especially vulnerable to hail damage.
+
+🔍 **Inspection**
+
+- Offer a free inspection to document storm damage.
+- Take photos of granule loss and any visible cracks.
+
+NEVER include labels like "PREAMBLE:" or "SECTIONS:" in your response. Just write naturally.`;
 }

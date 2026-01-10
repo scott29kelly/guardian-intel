@@ -29,10 +29,11 @@ import {
 
 type ClaudeModel = "claude-opus-4.5" | "claude-sonnet-4.5" | "claude-haiku-4.5";
 
+// Actual Anthropic API model identifiers
 const CLAUDE_MODEL_IDS: Record<ClaudeModel, string> = {
-  "claude-opus-4.5": "claude-opus-4-20250514", // Update with actual model ID
-  "claude-sonnet-4.5": "claude-sonnet-4-20250514", // Update with actual model ID
-  "claude-haiku-4.5": "claude-haiku-4-20250514", // Update with actual model ID
+  "claude-opus-4.5": "claude-sonnet-4-20250514",   // Use Sonnet 4 as Opus equivalent
+  "claude-sonnet-4.5": "claude-sonnet-4-20250514", // Claude Sonnet 4
+  "claude-haiku-4.5": "claude-3-5-haiku-20241022", // Claude 3.5 Haiku (fast)
 };
 
 interface ClaudeConfig {

@@ -27,10 +27,163 @@ import {
   MessageSquare,
   Zap,
   RefreshCw,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  Expand,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+
+// =============================================================================
+// FORMAT AI RESPONSE - Aggressive formatter for clean, readable output
+// =============================================================================
+
+function formatAIResponse(content: string): string {
+  // === STEP 1: Pre-process - Fix common AI output issues ===
+  let text = content;
+  
+  // Remove literal instruction echoes that the AI sometimes includes
+  // These appear when AI follows format instructions too literally
+  // Match various formats: "- **PREAMBLE** text", "**PREAMBLE**", "PREAMBLE:", etc.
+  // For lines that have content after the label, keep the content
+  text = text.replace(/^[-•*]\s*\*?\*?PREAMBLE\*?\*?:?\s*/gim, '');
+  text = text.replace(/^[-•*]\s*\*?\*?SECTIONS?\*?\*?:?\s*\n?/gim, '');
+  text = text.replace(/^\*?\*?PREAMBLE\*?\*?:?\s*/gim, '');
+  text = text.replace(/^\*?\*?SECTIONS?\*?\*?:?\s*\n?/gim, '');
+  
+  // Fix malformed bold/italic patterns that AI models often produce
+  // Pattern: *Text** (single asterisk start, double asterisk end) -> **Text**
+  text = text.replace(/(?<![*])\*([^*\n]+)\*\*/g, '**$1**');
+  
+  // Pattern: **Text* (double asterisk start, single asterisk end) -> **Text**
+  text = text.replace(/\*\*([^*\n]+)\*(?![*])/g, '**$1**');
+  
+  // Clean trailing asterisks from bold: **Text*** -> **Text**
+  text = text.replace(/\*\*([^*]+)\*\*\*+/g, '**$1**');
+  
+  // Remove orphan asterisks after bold text (leftover from malformed patterns)
+  text = text.replace(/\*\*([^*]+)\*\*\s*\*/g, '**$1**');
+  
+  // === STEP 2: Detect and split inline bullets ===
+  // The AI often outputs: "**Header** • Point 1. • Point 2. • Point 3."
+  // We need to split these onto separate lines
+  
+  // Split on " • " pattern (unicode bullet with spaces)
+  text = text.replace(/\s•\s/g, '\n• ');
+  
+  // Split on " · " pattern (middle dot with spaces)  
+  text = text.replace(/\s·\s/g, '\n• ');
+  
+  // === STEP 3: Split header+content on same line ===
+  // Pattern: emoji **Bold Header** followed by bullet or text
+  // Example: "📞 **Outreach** • Call the customer..."
+  text = text.replace(
+    /^([\p{Emoji}\u{2600}-\u{27BF}]\s*\*\*[^*]+\*\*)\s*•\s*/gmu,
+    '$1\n\n• '
+  );
+  
+  // === STEP 4: Process sections and build clean output ===
+  const lines = text.split('\n');
+  const output: string[] = [];
+  let inSection = false;
+  
+  const isEmoji = (char: string): boolean => {
+    if (!char) return false;
+    const code = char.codePointAt(0) || 0;
+    return (
+      (code >= 0x1F300 && code <= 0x1F9FF) ||
+      (code >= 0x2600 && code <= 0x27BF) ||
+      (code >= 0x2300 && code <= 0x23FF) ||
+      (code >= 0x1F600 && code <= 0x1F64F) ||
+      (code >= 0x1F680 && code <= 0x1F6FF) ||
+      (code >= 0x2B50 && code <= 0x2B55)
+    );
+  };
+  
+  const getFirstCodePoint = (str: string): string => {
+    const cp = str.codePointAt(0);
+    if (cp && cp > 0xFFFF) return String.fromCodePoint(cp);
+    return str.charAt(0);
+  };
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Empty line
+    if (!line) {
+      if (output.length > 0 && output[output.length - 1] !== '') {
+        output.push('');
+      }
+      inSection = false;
+      continue;
+    }
+    
+    const firstChar = getFirstCodePoint(line);
+    
+    // === SECTION HEADER (emoji + bold text) ===
+    if (isEmoji(firstChar)) {
+      // Add blank line before section (unless first element)
+      if (output.length > 0 && output[output.length - 1] !== '') {
+        output.push('');
+      }
+      
+      // Clean up header line
+      let header = line;
+      // Remove any bullet attached after emoji
+      header = header.replace(/^([\p{Emoji}\u{2600}-\u{27BF}])\s*[•\-\*]\s*/u, '$1 ');
+      
+      // Fix malformed bold patterns in headers
+      // Pattern: emoji **Text (no closing) -> emoji **Text**
+      if (/^\p{Emoji}.*\*\*[^*]+$/u.test(header) && !header.endsWith('**')) {
+        header = header + '**';
+      }
+      
+      // *Header** -> **Header**
+      header = header.replace(/(?<![*])\*([^*\n]+)\*\*/g, '**$1**');
+      // **Header* -> **Header**
+      header = header.replace(/\*\*([^*\n]+)\*(?![*])/g, '**$1**');
+      // **Header*** -> **Header**
+      header = header.replace(/\*\*([^*]+)\*\*\*+/g, '**$1**');
+      // **Header** * -> **Header**
+      header = header.replace(/\*\*([^*]+)\*\*\s*\*/g, '**$1**');
+      
+      output.push(header);
+      output.push(''); // Blank line after header
+      inSection = true;
+      continue;
+    }
+    
+    // === BULLET POINT ===
+    if (/^[•\-\*]\s/.test(line)) {
+      // Convert to proper markdown list marker (-)
+      const bulletContent = line.slice(2).trim();
+      output.push(`- ${bulletContent}`);
+      continue;
+    }
+    
+    // === CONTENT AFTER HEADER (should become bullet) ===
+    if (inSection && /^[A-Z]/.test(line)) {
+      output.push(`- ${line}`);
+      continue;
+    }
+    
+    // === REGULAR TEXT ===
+    output.push(line);
+  }
+  
+  // === STEP 5: Final cleanup ===
+  let result = output.join('\n');
+  
+  // Remove excessive blank lines
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  // Clean up start/end
+  result = result.replace(/^\n+/, '').replace(/\n+$/, '');
+  
+  return result;
+}
 
 // =============================================================================
 // TYPES
@@ -50,6 +203,8 @@ interface Message {
   }>;
 }
 
+type ViewMode = "panel" | "expanded" | "fullscreen";
+
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -66,22 +221,22 @@ const SUGGESTED_PROMPTS = [
   {
     icon: Target,
     label: "Next steps",
-    prompt: "What are the recommended next steps for this customer?",
+    prompt: "[NEXT_STEPS] What are the recommended next steps for this customer?",
   },
   {
     icon: CloudLightning,
     label: "Weather check",
-    prompt: "Check for recent storm activity near this customer's location",
+    prompt: "[WEATHER_INTEL] Give me a weather briefing for this customer. What storm events have affected their area? How does this impact their roof and our sales approach?",
   },
   {
     icon: FileText,
     label: "Generate script",
-    prompt: "Generate a follow-up call script for this customer",
+    prompt: "[CALL_SCRIPT] Write me a phone call script for this specific customer. Include an opening, key talking points based on their situation, and a strong close. Use their name and reference their specific circumstances.",
   },
   {
     icon: Sparkles,
     label: "Objection handling",
-    prompt: "How should I handle price objections for this customer?",
+    prompt: "[OBJECTION_HANDLER] Based on this customer's profile and interaction history, what objections are they likely to raise? Give me specific rebuttals I can use.",
   },
 ];
 
@@ -100,6 +255,7 @@ export function AIChatPanel({
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("panel");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -235,20 +391,36 @@ export function AIChatPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className={cn(
+              "fixed inset-0 z-40",
+              viewMode === "panel" 
+                ? "bg-black/40 backdrop-blur-sm" 
+                : "bg-black/60 backdrop-blur-md"
+            )}
             onClick={onClose}
           />
 
           {/* Panel */}
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            initial={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-[hsl(var(--surface-primary))] border-l border-border shadow-2xl z-50 flex flex-col"
+            className={cn(
+              "fixed bg-[hsl(var(--surface-primary))] border border-border shadow-2xl z-50 flex flex-col",
+              // Panel mode - slide from right
+              viewMode === "panel" && "right-0 top-0 bottom-0 w-full max-w-lg border-l rounded-none",
+              // Expanded mode - centered modal, large
+              viewMode === "expanded" && "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-4xl h-[85vh] rounded-xl",
+              // Fullscreen mode
+              viewMode === "fullscreen" && "inset-4 rounded-xl"
+            )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-[hsl(var(--surface-secondary))]">
+            <div className={cn(
+              "flex items-center justify-between p-4 border-b border-border bg-[hsl(var(--surface-secondary))]",
+              viewMode !== "panel" && "rounded-t-xl"
+            )}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-intel-500 to-guardian-500 flex items-center justify-center">
                   <Bot className="w-5 h-5 text-white" />
@@ -260,7 +432,49 @@ export function AIChatPanel({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              
+              {/* View Mode Controls */}
+              <div className="flex items-center gap-1">
+                {/* View mode toggles */}
+                <div className="flex items-center border border-border rounded-lg p-0.5 mr-2">
+                  <button
+                    onClick={() => setViewMode("panel")}
+                    className={cn(
+                      "p-1.5 rounded transition-colors",
+                      viewMode === "panel" 
+                        ? "bg-intel-500/20 text-intel-400" 
+                        : "text-text-muted hover:text-text-primary"
+                    )}
+                    title="Side panel"
+                  >
+                    <PanelRightClose className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("expanded")}
+                    className={cn(
+                      "p-1.5 rounded transition-colors",
+                      viewMode === "expanded" 
+                        ? "bg-intel-500/20 text-intel-400" 
+                        : "text-text-muted hover:text-text-primary"
+                    )}
+                    title="Expanded view"
+                  >
+                    <Expand className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("fullscreen")}
+                    className={cn(
+                      "p-1.5 rounded transition-colors",
+                      viewMode === "fullscreen" 
+                        ? "bg-intel-500/20 text-intel-400" 
+                        : "text-text-muted hover:text-text-primary"
+                    )}
+                    title="Fullscreen"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
                 {messages.length > 0 && (
                   <Button
                     variant="ghost"
@@ -365,8 +579,19 @@ function EmptyState({ onSuggestedPrompt }: { onSuggestedPrompt: (prompt: string)
   );
 }
 
+// Strip internal prompt type tags from display
+function cleanDisplayMessage(content: string): string {
+  // Remove the [TAG] prefixes used for prompt routing
+  return content.replace(/^\[(NEXT_STEPS|WEATHER_INTEL|CALL_SCRIPT|OBJECTION_HANDLER)\]\s*/i, '');
+}
+
 function ChatMessage({ message }: { message: Message }) {
   const isAssistant = message.role === "assistant";
+  
+  // For user messages, strip internal tags; for assistant, format properly
+  const displayContent = isAssistant 
+    ? formatAIResponse(message.content)
+    : cleanDisplayMessage(message.content);
 
   return (
     <motion.div
@@ -406,8 +631,20 @@ function ChatMessage({ message }: { message: Message }) {
           </div>
         ) : (
           <>
-            <div className="prose prose-sm prose-invert max-w-none text-text-primary text-sm [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-4 [&>h2]:mb-2 [&>h2]:text-text-primary [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:mt-3 [&>h3]:mb-1 [&>p]:my-2 [&>ul]:my-2 [&>ul]:pl-4 [&>ol]:my-2 [&>ol]:pl-4 [&>li]:my-1 [&>strong]:text-intel-300 [&>table]:my-3 [&>table]:text-xs [&>table]:w-full [&>table_th]:text-left [&>table_th]:p-2 [&>table_th]:bg-surface-700 [&>table_td]:p-2 [&>table_td]:border-t [&>table_td]:border-border [&>blockquote]:border-l-2 [&>blockquote]:border-intel-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-text-secondary">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+            <div className="ai-response-content text-sm text-text-primary leading-relaxed">
+              <ReactMarkdown
+                components={{
+                  p: ({children}) => <p className="my-3">{children}</p>,
+                  strong: ({children}) => <strong className="text-intel-300 font-semibold">{children}</strong>,
+                  ul: ({children}) => <ul className="my-2 ml-4 space-y-1">{children}</ul>,
+                  ol: ({children}) => <ol className="my-2 ml-4 space-y-1 list-decimal">{children}</ol>,
+                  li: ({children}) => <li className="text-text-primary">{children}</li>,
+                  h2: ({children}) => <h2 className="text-base font-bold mt-4 mb-2 text-text-primary">{children}</h2>,
+                  h3: ({children}) => <h3 className="text-sm font-semibold mt-3 mb-1 text-text-primary">{children}</h3>,
+                }}
+              >
+                {displayContent}
+              </ReactMarkdown>
             </div>
             
             {/* Tool Calls */}

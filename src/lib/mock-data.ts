@@ -21,9 +21,11 @@ export interface Customer {
   policyType: string;
   deductible: number;
   leadScore: number;
-  urgencyScore: number;
-  profitPotential: number;
-  churnRisk: number;
+  // Legacy score fields - now calculated dynamically by scoring service
+  // Kept for backwards compatibility and as reference data
+  urgencyScore?: number;
+  profitPotential?: number;
+  churnRisk?: number;
   status: string;
   stage: string;
   assignedRep: string;

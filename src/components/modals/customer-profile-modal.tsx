@@ -19,7 +19,8 @@ import {
   ExternalLink,
   Camera,
 } from "lucide-react";
-import { Customer } from "@/lib/mock-data";
+import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+import { calculateCustomerScores } from "@/lib/services/scoring";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
 
 interface CustomerProfileModalProps {
@@ -36,12 +37,53 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+interface Note {
+  id: string;
+  date: string;
+  note: string;
+  user: string;
+}
+
 export function CustomerProfileModal({
   customer,
   isOpen,
   onClose,
 }: CustomerProfileModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "history" | "notes">("overview");
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
+  const [notes, setNotes] = useState<Note[]>([
+    { id: "1", date: "Jan 5, 2026", note: "Customer very interested in insurance claim process. Has visible hail damage on north-facing roof slope.", user: "Sarah Mitchell" },
+    { id: "2", date: "Jan 2, 2026", note: "Roof is 24 years old, 3-tab shingles. Multiple storm events in area. High priority for inspection.", user: "System" },
+  ]);
+
+  // Calculate dynamic scores based on customer data
+  const customerIntel = mockIntelItems.filter(i => i.customerId === customer.id);
+  const customerWeather = mockWeatherEvents.filter(e => e.customerId === customer.id);
+  const scores = calculateCustomerScores({
+    customer,
+    intelItems: customerIntel,
+    weatherEvents: customerWeather,
+  });
+
+  const handleAddNote = () => {
+    if (!newNoteText.trim()) return;
+    
+    const newNote: Note = {
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      note: newNoteText.trim(),
+      user: "S. Mitchell", // Current user
+    };
+    
+    setNotes([newNote, ...notes]);
+    setNewNoteText("");
+    setShowAddNote(false);
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    setNotes(notes.filter(n => n.id !== noteId));
+  };
 
   if (!isOpen) return null;
 
@@ -58,12 +100,12 @@ export function CustomerProfileModal({
             onClick={onClose}
           />
 
-          {/* Modal */}
+          {/* Modal - Properly centered using inset and auto margins */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[800px] md:max-h-[85vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 m-auto w-[95vw] max-w-[800px] h-[90vh] max-h-[85vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary/50">
@@ -243,20 +285,20 @@ export function CustomerProfileModal({
                           <div className="text-2xl font-mono font-bold text-accent-success">{customer.leadScore}</div>
                           <div className="text-[10px] font-mono text-text-muted uppercase">Lead</div>
                         </div>
-                        <div className="text-center p-2 bg-surface-secondary rounded">
-                          <div className="text-2xl font-mono font-bold text-accent-primary">{customer.urgencyScore}</div>
+                        <div className="text-center p-2 bg-surface-secondary rounded cursor-help" title="Priority based on roof age, storms, and timing">
+                          <div className="text-2xl font-mono font-bold text-accent-primary">{scores.urgencyScore}</div>
                           <div className="text-[10px] font-mono text-text-muted uppercase">Urgency</div>
                         </div>
-                        <div className="text-center p-2 bg-surface-secondary rounded">
-                          <div className="text-2xl font-mono font-bold text-accent-warning">{customer.churnRisk}%</div>
-                          <div className="text-[10px] font-mono text-text-muted uppercase">Churn</div>
+                        <div className="text-center p-2 bg-surface-secondary rounded cursor-help" title="Likelihood of closing based on engagement">
+                          <div className="text-2xl font-mono font-bold text-accent-warning">{scores.retentionScore}</div>
+                          <div className="text-[10px] font-mono text-text-muted uppercase">Retention</div>
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex justify-between items-center">
-                          <span className="font-mono text-xs text-text-muted">Profit Potential</span>
+                        <div className="flex justify-between items-center cursor-help" title={`Based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}`}>
+                          <span className="font-mono text-xs text-text-muted">Est. Profit</span>
                           <span className="font-mono text-lg font-bold text-accent-success">
-                            {formatCurrency(customer.profitPotential)}
+                            {formatCurrency(scores.profitPotential)}
                           </span>
                         </div>
                       </div>
@@ -318,25 +360,75 @@ export function CustomerProfileModal({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-text-muted font-mono text-sm">Customer notes:</p>
-                    <button className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all">
-                      + Add Note
+                    <button 
+                      onClick={() => setShowAddNote(!showAddNote)}
+                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
+                    >
+                      {showAddNote ? "Cancel" : "+ Add Note"}
                     </button>
                   </div>
-                  {/* Mock notes */}
-                  {[
-                    { date: "Jan 5, 2026", note: "Customer very interested in insurance claim process. Has visible hail damage on north-facing roof slope.", user: "Sarah Mitchell" },
-                    { date: "Jan 2, 2026", note: "Roof is 24 years old, 3-tab shingles. Multiple storm events in area. High priority for inspection.", user: "System" },
-                  ].map((item, i) => (
-                    <div key={i} className="panel p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-mono text-xs text-text-muted">{item.user} • {item.date}</span>
-                        <button className="text-text-muted hover:text-accent-danger">
-                          <Trash2 className="w-3.5 h-3.5" />
+
+                  {/* Add Note Form */}
+                  {showAddNote && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="panel p-4 border-accent-primary/50"
+                    >
+                      <textarea
+                        value={newNoteText}
+                        onChange={(e) => setNewNoteText(e.target.value)}
+                        placeholder="Enter note about this customer..."
+                        className="w-full h-24 px-3 py-2 bg-surface-secondary border border-border rounded font-mono text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary resize-none"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2 mt-3">
+                        <button
+                          onClick={() => {
+                            setShowAddNote(false);
+                            setNewNoteText("");
+                          }}
+                          className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-muted hover:text-text-primary transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleAddNote}
+                          disabled={!newNoteText.trim()}
+                          className="px-3 py-1.5 rounded font-mono text-xs text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: newNoteText.trim() ? `linear-gradient(90deg, var(--gradient-start), var(--gradient-end))` : undefined }}
+                        >
+                          Save Note
                         </button>
                       </div>
-                      <p className="font-mono text-sm text-text-secondary">{item.note}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Notes List */}
+                  {notes.length === 0 ? (
+                    <div className="panel p-8 text-center">
+                      <FileText className="w-8 h-8 text-text-muted mx-auto mb-2" />
+                      <p className="font-mono text-sm text-text-muted">No notes yet</p>
+                      <p className="font-mono text-xs text-text-muted mt-1">Click "+ Add Note" to create one</p>
                     </div>
-                  ))}
+                  ) : (
+                    notes.map((item) => (
+                      <div key={item.id} className="panel p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-xs text-text-muted">{item.user} • {item.date}</span>
+                          <button 
+                            onClick={() => handleDeleteNote(item.id)}
+                            className="text-text-muted hover:text-accent-danger transition-colors"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="font-mono text-sm text-text-secondary">{item.note}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
