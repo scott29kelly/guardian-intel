@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -16,6 +16,12 @@ import {
   Wind,
   CloudRain,
   Zap,
+  Thermometer,
+  Droplets,
+  Cloud,
+  Sun,
+  CloudSnow,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +155,98 @@ const stormTypeIcons: Record<string, typeof CloudLightning> = {
   thunderstorm: Zap,
   tornado: CloudLightning,
 };
+
+// Location coordinates mapping
+const locationCoords: Record<string, { lat: number; lon: number }> = {
+  "Southampton, PA": { lat: 40.1773, lon: -75.0035 },
+  "Doylestown, PA": { lat: 40.3101, lon: -75.1299 },
+  "Bensalem, PA": { lat: 40.1046, lon: -74.9518 },
+  "Fredericksburg, VA": { lat: 38.3032, lon: -77.4605 },
+};
+
+// Weather icon helper
+function getWeatherIcon(forecast: string) {
+  const lower = forecast.toLowerCase();
+  if (lower.includes("snow") || lower.includes("flurr")) return CloudSnow;
+  if (lower.includes("rain") || lower.includes("shower")) return CloudRain;
+  if (lower.includes("thunder") || lower.includes("storm")) return Zap;
+  if (lower.includes("cloud") || lower.includes("overcast")) return Cloud;
+  if (lower.includes("wind")) return Wind;
+  return Sun;
+}
+
+// Weather Preview Widget Component
+function WeatherPreview({ location }: { location: string }) {
+  const [forecast, setForecast] = useState<{
+    temperature: number;
+    temperatureUnit: string;
+    shortForecast: string;
+    windSpeed: string;
+    probabilityOfPrecipitation?: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const coords = locationCoords[location];
+    if (!coords) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const fetchForecast = async () => {
+      try {
+        const response = await fetch(`/api/weather/forecast?lat=${coords.lat}&lon=${coords.lon}`);
+        if (!response.ok) throw new Error("Failed to fetch");
+        const data = await response.json();
+        if (data.periods && data.periods.length > 0) {
+          setForecast(data.periods[0]);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchForecast();
+  }, [location]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-text-muted">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-xs">Loading...</span>
+      </div>
+    );
+  }
+
+  if (error || !forecast) {
+    return null;
+  }
+
+  const WeatherIcon = getWeatherIcon(forecast.shortForecast);
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 bg-surface-secondary/50 rounded-lg border border-border">
+      <WeatherIcon className="w-5 h-5 text-accent-primary" />
+      <div className="flex items-center gap-3 text-sm">
+        <span className="flex items-center gap-1 font-medium text-text-primary">
+          <Thermometer className="w-3.5 h-3.5 text-text-muted" />
+          {forecast.temperature}°{forecast.temperatureUnit}
+        </span>
+        <span className="text-text-muted hidden sm:inline">{forecast.shortForecast}</span>
+        {forecast.probabilityOfPrecipitation !== undefined && forecast.probabilityOfPrecipitation > 0 && (
+          <span className="flex items-center gap-1 text-blue-400">
+            <Droplets className="w-3.5 h-3.5" />
+            {forecast.probabilityOfPrecipitation}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const severityColors: Record<string, string> = {
   minor: "bg-accent-primary/20 text-accent-primary border-accent-primary/30",
@@ -551,6 +649,10 @@ export default function StormsPage() {
                             <Calendar className="w-3.5 h-3.5" />
                             {event.date.toLocaleDateString()}
                           </span>
+                        </div>
+                        {/* Weather Preview */}
+                        <div className="mt-3">
+                          <WeatherPreview location={event.location} />
                         </div>
                       </div>
                       

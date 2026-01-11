@@ -247,6 +247,36 @@
 }
 
 @layer components {
+  /* Glass panel for cards */
+  .glass-panel {
+    position: relative;
+    background-color: hsl(var(--surface-primary) / 0.9);
+    border: 1px solid hsl(var(--border));
+    backdrop-filter: blur(16px);
+  }
+
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--text-primary) / 0.03) 0%,
+      transparent 50%
+    );
+  }
+
+  /* Input autofill override */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px hsl(var(--bg-tertiary)) inset !important;
+    -webkit-text-fill-color: hsl(var(--text-primary)) !important;
+    caret-color: hsl(var(--text-primary));
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
   /* Tactical panel styling */
   .panel {
     position: relative;

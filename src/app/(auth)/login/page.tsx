@@ -126,7 +126,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@guardian.com"
-                    className="w-full pl-11 pr-4 py-3 bg-surface-800/50 border border-surface-700 rounded-lg text-white placeholder:text-surface-500 focus:outline-none focus:border-guardian-500/50 focus:ring-1 focus:ring-guardian-500/25 transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
                     required
                   />
                 </div>
@@ -142,7 +142,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-12 py-3 bg-surface-800/50 border border-surface-700 rounded-lg text-white placeholder:text-surface-500 focus:outline-none focus:border-guardian-500/50 focus:ring-1 focus:ring-guardian-500/25 transition-all"
+                    className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
                     required
                   />
                   <button
