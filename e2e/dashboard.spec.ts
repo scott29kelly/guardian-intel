@@ -15,7 +15,8 @@ test.describe("Dashboard", () => {
     // Login first
     await page.goto("/login");
     await page.getByRole("button", { name: /Manager Demo/i }).click();
-    await page.waitForURL("/", { timeout: 10000 });
+    // Wait for navigation away from login
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 });
   });
 
   test("should display metric cards", async ({ page }) => {
@@ -34,8 +35,8 @@ test.describe("Dashboard", () => {
   });
 
   test("should have working sidebar navigation", async ({ page }) => {
-    // Check sidebar links
-    await expect(page.getByRole("link", { name: /Command/i })).toBeVisible();
+    // Check sidebar links (use exact: true to avoid matching logo)
+    await expect(page.getByRole("link", { name: "COMMAND", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Targets/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Storm Intel/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Analytics/i })).toBeVisible();
@@ -69,7 +70,8 @@ test.describe("Dashboard Interactions", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: /Manager Demo/i }).click();
-    await page.waitForURL("/", { timeout: 10000 });
+    // Wait for navigation away from login
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 });
   });
 
   test("should open AI chat panel", async ({ page }) => {

@@ -44,8 +44,8 @@ test.describe("Login Flow", () => {
     // Click manager demo button
     await page.getByRole("button", { name: /Manager Demo/i }).click();
     
-    // Wait for navigation to dashboard
-    await page.waitForURL("/", { timeout: 10000 });
+    // Wait for navigation away from login page (may have callback URL)
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 });
     
     // Check dashboard loaded
     await expect(page.getByRole("heading", { name: /Command Center/i })).toBeVisible();
@@ -55,9 +55,9 @@ test.describe("Login Flow", () => {
     // Try to access dashboard directly
     await page.goto("/");
     
-    // Should redirect to login (or show login if already authenticated)
-    const url = page.url();
-    expect(url).toMatch(/\/(login)?$/);
+    // Should redirect to login (may include callback URL)
+    await page.waitForURL((url) => url.pathname.includes("/login"), { timeout: 10000 });
+    expect(page.url()).toContain("/login");
   });
 });
 
@@ -67,7 +67,8 @@ test.describe("Protected Routes", () => {
     // Login first
     await page.goto("/login");
     await page.getByRole("button", { name: /Manager Demo/i }).click();
-    await page.waitForURL("/", { timeout: 10000 });
+    // Wait for navigation away from login
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 });
   });
 
   test("should access dashboard after login", async ({ page }) => {

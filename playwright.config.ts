@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: "html",
   
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3002",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
@@ -44,8 +44,8 @@ export default defineConfig({
 
   // Auto-start dev server for tests
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: "npm run dev -- -p 3002",
+    url: "http://localhost:3002",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
