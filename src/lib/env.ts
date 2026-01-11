@@ -33,6 +33,7 @@ const envSchema = z.object({
   LEAP_API_KEY: z.string().optional(),
   LEAP_COMPANY_ID: z.string().optional(),
   LEAP_BASE_URL: z.string().url().optional(),
+  LEAP_WEBHOOK_SECRET: z.string().optional(), // For verifying incoming webhooks
   
   // Rate Limiting (optional - falls back to in-memory)
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
