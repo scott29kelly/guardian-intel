@@ -7,34 +7,46 @@
  * Configure with GOOGLE_API_KEY in .env.local
  * 
  * Falls back to mock responses if no API key is configured.
+ * 
+ * Security:
+ * - Rate limited (20 requests/minute)
+ * - Input validated with Zod
+ * - Authentication required via middleware
  */
 
 import { NextResponse } from "next/server";
 import { getAI, getCustomerContext, buildCustomerSystemPrompt, AI_TOOLS, executeTool } from "@/lib/services/ai";
 import type { Message, AITask, ToolCall } from "@/lib/services/ai";
+import { rateLimit } from "@/lib/rate-limit";
+import { chatRequestSchema, formatZodErrors } from "@/lib/validations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-interface ChatRequestBody {
-  messages: Message[];
-  customerId?: string;
-  task?: AITask;
-  enableTools?: boolean;
-  stream?: boolean;
-}
-
 export async function POST(request: Request) {
   try {
-    const body: ChatRequestBody = await request.json();
-    const { messages, customerId, task = "chat", enableTools = false, stream = false } = body;
+    // Rate limiting
+    const rateLimitResponse = await rateLimit(request, "ai");
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
-    if (!messages || messages.length === 0) {
+    // Parse and validate input
+    const rawBody = await request.json();
+    const validation = chatRequestSchema.safeParse(rawBody);
+    
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: "No messages provided" },
+        { 
+          success: false, 
+          error: "Invalid request data",
+          details: formatZodErrors(validation.error),
+        },
         { status: 400 }
       );
     }
+
+    const { messages, customerId, task = "chat", enableTools = false, stream = false } = validation.data;
 
     const ai = getAI();
 

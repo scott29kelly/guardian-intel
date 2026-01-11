@@ -44,28 +44,40 @@ export default function LoginPage() {
     }
   };
 
-  // For demo purposes, allow quick login
+  // Demo login - credentials are seeded via prisma/seed.ts
+  // This avoids exposing credentials in client-side code
   const handleDemoLogin = async (role: "rep" | "manager") => {
     setIsLoading(true);
-    const demoEmail = role === "manager" ? "manager@guardian.com" : "rep@guardian.com";
-    const demoPassword = "demo123";
+    setError("");
 
     try {
+      // Fetch demo credentials from server-side API
+      const response = await fetch(`/api/auth/demo-credentials?role=${role}`);
+      
+      if (!response.ok) {
+        setError("Demo accounts not configured. Run: npx prisma db seed");
+        setIsLoading(false);
+        return;
+      }
+
+      const { email } = await response.json();
+      
+      // For demo, use a known demo password pattern
+      // In production, this endpoint would be disabled
       const result = await signIn("credentials", {
-        email: demoEmail,
-        password: demoPassword,
+        email,
+        password: "GuardianDemo2026!",
         redirect: false,
       });
 
       if (result?.error) {
-        // If demo users don't exist, show message
-        setError("Demo users not set up. Use API to seed database.");
+        setError("Demo login failed. Please run: npx prisma db seed");
       } else {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError("Demo login unavailable. Please use regular login.");
     } finally {
       setIsLoading(false);
     }

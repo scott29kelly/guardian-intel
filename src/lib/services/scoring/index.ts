@@ -321,10 +321,13 @@ function calculateProfitFactors(input: ScoringInput): ProfitFactors {
 
 /**
  * Utility: Calculate days between two dates
+ * Handles both Date objects and date strings
  */
-function daysBetween(date1: Date, date2: Date): number {
+function daysBetween(date1: Date | string, date2: Date | string): number {
   const oneDay = 24 * 60 * 60 * 1000;
-  return Math.abs(Math.round((date2.getTime() - date1.getTime()) / oneDay));
+  const d1 = date1 instanceof Date ? date1 : new Date(date1);
+  const d2 = date2 instanceof Date ? date2 : new Date(date2);
+  return Math.abs(Math.round((d2.getTime() - d1.getTime()) / oneDay));
 }
 
 /**

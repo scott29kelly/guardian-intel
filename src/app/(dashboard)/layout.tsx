@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
+import { ErrorBoundary, SectionErrorBoundary } from "@/components/error-boundary";
 
 export default function DashboardLayout({
   children,
@@ -6,6 +7,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
+    <ErrorBoundary>
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1 ml-64">
@@ -44,10 +46,13 @@ export default function DashboardLayout({
           
           {/* Main content */}
           <div className="relative z-10 p-6">
-            {children}
+            <SectionErrorBoundary sectionName="Page content">
+              {children}
+            </SectionErrorBoundary>
           </div>
         </div>
       </main>
     </div>
+    </ErrorBoundary>
   );
 }

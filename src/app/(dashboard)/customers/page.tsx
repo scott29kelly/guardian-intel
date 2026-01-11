@@ -17,6 +17,7 @@ import {
   FileText,
   Calendar,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,23 +26,42 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
-import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer } from "@/lib/mock-data";
-import { calculateCustomerScores } from "@/lib/services/scoring";
+import { useCustomers, useCreateCustomer } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 
-// Helper to get calculated scores for a customer
-const getCustomerScores = (customer: Customer) => {
-  const customerIntel = mockIntelItems.filter(i => i.customerId === customer.id);
-  const customerWeather = mockWeatherEvents.filter(e => e.customerId === customer.id);
-  return calculateCustomerScores({
-    customer,
-    intelItems: customerIntel,
-    weatherEvents: customerWeather,
-  });
-};
+// Customer type matching the API response
+interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  propertyType: string | null;
+  yearBuilt: number | null;
+  squareFootage: number | null;
+  roofType: string | null;
+  roofAge: number | null;
+  propertyValue: number | null;
+  insuranceCarrier: string | null;
+  policyType: string | null;
+  deductible: number | null;
+  leadScore: number;
+  urgencyScore: number;
+  profitPotential: number;
+  status: string;
+  stage: string;
+  createdAt: string;
+  updatedAt: string;
+  assignedRep?: { id: string; name: string; email: string } | null;
+}
 
-const getCustomerProfit = (customer: Customer) => getCustomerScores(customer).profitPotential;
-const getCustomerUrgency = (customer: Customer) => getCustomerScores(customer).urgencyScore;
+// Helper to get profit and urgency from customer object
+const getCustomerProfit = (customer: Customer) => customer.profitPotential || 0;
+const getCustomerUrgency = (customer: Customer) => customer.urgencyScore || 0;
 
 const statusOptions = [
   { value: "all", label: "All Status" },
@@ -76,7 +96,9 @@ export default function CustomersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const createCustomer = useCreateCustomer();
+  
+  // Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
@@ -85,6 +107,7 @@ export default function CustomersPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   
   // URL-based filtering for storm alerts
   const countyFilter = searchParams.get("counties");
@@ -93,6 +116,21 @@ export default function CustomersPage() {
   
   // Show banner when filtering by storm
   const isStormFiltered = stormFilter === "storm-affected" && countyFilter;
+  
+  // Fetch customers from API
+  const { data: customersData, isLoading, error } = useCustomers({
+    page,
+    limit: 20,
+    search: searchQuery || undefined,
+    status: statusFilter !== "all" ? statusFilter as any : undefined,
+    stage: stageFilter !== "all" ? stageFilter as any : undefined,
+    sortBy,
+    sortOrder,
+    stormAffected: stormFilter === "storm-affected" ? true : undefined,
+  });
+  
+  const customers = customersData?.data || [];
+  const pagination = customersData?.pagination;
 
   const handleImport = () => {
     // Create a file input and trigger it
@@ -143,39 +181,26 @@ export default function CustomersPage() {
     showToast("success", "Export Complete", `${filteredCustomers.length} customers exported to CSV`);
   };
 
-  const handleAddCustomer = (formData: CustomerFormData) => {
-    const newCustomer: Customer = {
-      id: `new-${Date.now()}`,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      city: formData.city,
-      state: formData.state,
-      zipCode: formData.zipCode,
-      propertyType: formData.propertyType,
-      yearBuilt: 2000,
-      squareFootage: 2500,
-      roofType: formData.roofType,
-      roofAge: formData.roofAge,
-      propertyValue: 350000,
-      insuranceCarrier: formData.insuranceCarrier,
-      policyType: "HO-3",
-      deductible: 1000,
-      leadScore: 50,
-      urgencyScore: 50,
-      profitPotential: 18000,
-      churnRisk: 15,
-      status: "lead",
-      stage: "new",
-      assignedRep: "Current User",
-      lastContact: new Date(),
-      nextAction: "Initial contact",
-      nextActionDate: new Date(Date.now() + 86400000),
-    };
-    
-    setCustomers(prev => [newCustomer, ...prev]);
+  const handleAddCustomer = async (formData: CustomerFormData) => {
+    try {
+      await createCustomer.mutateAsync({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        propertyType: formData.propertyType || undefined,
+        roofType: formData.roofType || undefined,
+        roofAge: formData.roofAge || undefined,
+        insuranceCarrier: formData.insuranceCarrier || undefined,
+      });
+      showToast("success", "Customer Added", `${formData.firstName} ${formData.lastName} has been added to your customers.`);
+    } catch (err) {
+      showToast("error", "Failed to add customer", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
   const handleCallCustomer = (customer: Customer) => {
@@ -203,125 +228,32 @@ export default function CustomersPage() {
     ? countyFilter.split(",").map(c => c.trim().toLowerCase())
     : [];
 
-  // Filter and sort customers
-  const filteredCustomers = customers
-    .filter((customer) => {
-      // County filter from storm alerts - match by city or nearby area
-      if (isStormFiltered && targetCounties.length > 0) {
-        // Map cities to their counties for PA, NJ, DE, MD, VA, NY
-        const cityToCounty: Record<string, string> = {
-          // Bucks County, PA
-          "southampton": "bucks",
-          "warminster": "bucks",
-          "doylestown": "bucks",
-          "bensalem": "bucks",
-          "newtown": "bucks",
-          "langhorne": "bucks",
-          "levittown": "bucks",
-          "bristol": "bucks",
-          "quakertown": "bucks",
-          // Montgomery County, PA
-          "king of prussia": "montgomery",
-          "norristown": "montgomery",
-          "lansdale": "montgomery",
-          "plymouth meeting": "montgomery",
-          "blue bell": "montgomery",
-          "conshohocken": "montgomery",
-          "ambler": "montgomery",
-          "horsham": "montgomery",
-          // Philadelphia County
-          "philadelphia": "philadelphia",
-          // Delaware County, PA
-          "media": "delaware",
-          "springfield": "delaware",
-          "upper darby": "delaware",
-          "drexel hill": "delaware",
-          // New Castle County, DE
-          "wilmington": "new castle",
-          "newark": "new castle",
-          "bear": "new castle",
-          // Spotsylvania County, VA
-          "fredericksburg": "spotsylvania",
-          "spotsylvania": "spotsylvania",
-          // Others
-          "baltimore": "baltimore",
-          "cherry hill": "camden",
-          "trenton": "mercer",
-          "richmond": "henrico",
-          "arlington": "arlington",
-          "brooklyn": "kings",
-          "albany": "albany",
-        };
-        
+  // County filter from storm alerts (client-side since API doesn't support it yet)
+  const cityToCounty: Record<string, string> = {
+    // Bucks County, PA
+    "southampton": "bucks", "warminster": "bucks", "doylestown": "bucks",
+    "bensalem": "bucks", "newtown": "bucks", "langhorne": "bucks",
+    // Montgomery County, PA
+    "king of prussia": "montgomery", "norristown": "montgomery", "lansdale": "montgomery",
+    // Philadelphia County
+    "philadelphia": "philadelphia",
+    // Delaware County, PA
+    "media": "delaware", "springfield": "delaware", "upper darby": "delaware",
+    // New Castle County, DE
+    "wilmington": "new castle", "newark": "new castle",
+    // Others
+    "baltimore": "baltimore", "cherry hill": "camden", "trenton": "mercer",
+    "richmond": "henrico", "arlington": "arlington", "brooklyn": "kings",
+  };
+  
+  // Apply county filter if storm-affected filter is active
+  const filteredCustomers = isStormFiltered && targetCounties.length > 0
+    ? customers.filter((customer) => {
         const customerCity = customer.city.toLowerCase();
         const customerCounty = cityToCounty[customerCity];
-        
-        // Check if customer is in one of the target counties
-        const matchesCounty = customerCounty && targetCounties.includes(customerCounty);
-        if (!matchesCounty) return false;
-      }
-
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const fullName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
-        const matchesSearch =
-          fullName.includes(query) ||
-          customer.email?.toLowerCase().includes(query) ||
-          customer.phone?.includes(query) ||
-          customer.address.toLowerCase().includes(query) ||
-          customer.city.toLowerCase().includes(query);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter
-      if (statusFilter !== "all" && customer.status !== statusFilter) return false;
-
-      // Stage filter
-      if (stageFilter !== "all" && customer.stage !== stageFilter) return false;
-
-      return true;
-    })
-    .sort((a, b) => {
-      let aVal: any, bVal: any;
-      
-      switch (sortBy) {
-        case "leadScore":
-          aVal = a.leadScore;
-          bVal = b.leadScore;
-          break;
-        case "urgencyScore":
-          aVal = getCustomerUrgency(a);
-          bVal = getCustomerUrgency(b);
-          break;
-        case "profitPotential":
-          aVal = getCustomerProfit(a);
-          bVal = getCustomerProfit(b);
-          break;
-        case "lastContact":
-          aVal = a.lastContact.getTime();
-          bVal = b.lastContact.getTime();
-          break;
-        case "name":
-          aVal = `${a.firstName} ${a.lastName}`;
-          bVal = `${b.firstName} ${b.lastName}`;
-          break;
-        default:
-          aVal = a.leadScore;
-          bVal = b.leadScore;
-      }
-
-      if (sortOrder === "asc") {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
-
-  const getCustomerIntel = (customerId: string) =>
-    mockIntelItems.filter((i) => i.customerId === customerId);
-
-  const getCustomerWeather = (customerId: string) =>
-    mockWeatherEvents.filter((w) => w.customerId === customerId);
+        return customerCounty && targetCounties.includes(customerCounty);
+      })
+    : customers;
 
   return (
     <motion.div
@@ -526,7 +458,19 @@ export default function CustomersPage() {
       </Card>
 
       {/* Results */}
-      {viewMode === "cards" ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-primary" />
+          <span className="ml-3 text-text-muted">Loading customers...</span>
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-accent-danger mb-2">Failed to load customers</p>
+            <p className="text-text-muted text-sm">{error instanceof Error ? error.message : "Unknown error"}</p>
+          </CardContent>
+        </Card>
+      ) : viewMode === "cards" ? (
         <div className="space-y-4">
           {filteredCustomers.map((customer, index) => (
             <motion.div
@@ -537,8 +481,8 @@ export default function CustomersPage() {
             >
               <CustomerIntelCard
                 customer={customer}
-                intelItems={getCustomerIntel(customer.id)}
-                weatherEvents={getCustomerWeather(customer.id)}
+                intelItems={[]}
+                weatherEvents={[]}
               />
             </motion.div>
           ))}
@@ -668,7 +612,7 @@ export default function CustomersPage() {
       )}
 
       {/* Empty State */}
-      {filteredCustomers.length === 0 && (
+      {!isLoading && !error && filteredCustomers.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <div className="w-16 h-16 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-4">
@@ -690,6 +634,31 @@ export default function CustomersPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+      
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={!pagination.hasPrev}
+          >
+            Previous
+          </Button>
+          <span className="text-text-muted text-sm">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => p + 1)}
+            disabled={!pagination.hasNext}
+          >
+            Next
+          </Button>
+        </div>
       )}
 
       {/* Add Customer Modal */}

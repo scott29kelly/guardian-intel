@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/ui/toast";
+import { QueryProvider } from "@/lib/query-provider";
 
 // Display font - bold, distinctive
 const outfit = Outfit({ 
@@ -46,15 +47,17 @@ export default function RootLayout({
           sans.variable
         )}
       >
-        <ThemeProvider>
-          <ToastProvider>
-            {/* Noise texture overlay */}
-            <div className="noise-overlay" aria-hidden="true" />
-            
-            {/* Main content */}
-            {children}
-          </ToastProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              {/* Noise texture overlay */}
+              <div className="noise-overlay" aria-hidden="true" />
+              
+              {/* Main content */}
+              {children}
+            </ToastProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

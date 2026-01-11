@@ -161,7 +161,7 @@ export function CustomerIntelCard({
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="font-mono text-xs">
-                    {Math.floor((Date.now() - customer.lastContact.getTime()) / (1000 * 60 * 60 * 24))}d ago
+                    {Math.floor((Date.now() - new Date(customer.lastContact).getTime()) / (1000 * 60 * 60 * 24))}d ago
                   </span>
                 </div>
               </div>

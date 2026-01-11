@@ -23,9 +23,10 @@ import {
   Droplets,
   X,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
-import { mockCustomers, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
 
@@ -45,19 +46,17 @@ const WeatherRadarMap = dynamic(
   }
 );
 
-// Simulated live data
-const liveMetrics = {
-  revenue: { value: 409500, change: 23.4, target: 500000 },
-  pipeline: { value: 892000, deals: 127 },
-  stormOpportunity: { value: 1781000, affected: 123 },
-  activeAlerts: 2,
-  hotLeads: 8,
+// Default metrics while loading
+const defaultMetrics = {
+  revenue: { value: 0, change: 0, target: 500000 },
+  pipeline: { value: 0, deals: 0 },
+  stormOpportunity: { value: 0, affected: 0 },
+  activeAlerts: 0,
+  hotLeads: 0,
 };
 
-const recentAlerts = [
-  { id: 1, type: "storm", message: "Severe thunderstorm warning - Bucks County, PA", time: "2m ago", severity: "critical" },
-  { id: 2, type: "lead", message: "High-value lead detected: Chen property", time: "15m ago", severity: "high" },
-  { id: 3, type: "deal", message: "Henderson deal approaching cold status", time: "1h ago", severity: "warning" },
+const defaultAlerts = [
+  { id: "1", type: "storm", message: "Loading alerts...", time: "", severity: "warning" as const },
 ];
 
 const formatCurrency = (value: number) => {
@@ -69,10 +68,18 @@ const formatCurrency = (value: number) => {
 export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { data, isLoading, error } = useDashboard();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [showStormWatch, setShowStormWatch] = useState(false);
+
+  // Use real data or defaults while loading
+  const liveMetrics = data?.metrics || defaultMetrics;
+  const recentAlerts = data?.alerts?.length ? data.alerts : defaultAlerts;
+  const priorityCustomers = data?.priorityCustomers || [];
+  const intelItems = data?.intelItems || [];
+  const weatherEvents = data?.weatherEvents || [];
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -81,14 +88,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const alertTimer = setInterval(() => {
-      setActiveAlert((prev) => (prev + 1) % recentAlerts.length);
+      setActiveAlert((prev) => (prev + 1) % (recentAlerts.length || 1));
     }, 5000);
     return () => clearInterval(alertTimer);
-  }, []);
-
-  const priorityCustomers = mockCustomers
-    .sort((a, b) => b.leadScore - a.leadScore)
-    .slice(0, 3);
+  }, [recentAlerts.length]);
 
   const handleStormCanvass = () => {
     showToast("info", "Storm Canvass Started", "Loading affected properties in your area...");
@@ -98,11 +101,13 @@ export default function DashboardPage() {
   };
 
   const handleDialNextLead = () => {
-    const nextLead = mockCustomers.find(c => c.status === "lead" || c.status === "prospect");
-    if (nextLead) {
+    const nextLead = priorityCustomers.find(c => c.status === "lead" || c.status === "prospect");
+    if (nextLead && nextLead.phone) {
       showToast("success", "Connecting...", `Dialing ${nextLead.firstName} ${nextLead.lastName} at ${nextLead.phone}`);
       // In real app, this would integrate with phone system
       window.location.href = `tel:${nextLead.phone}`;
+    } else {
+      showToast("info", "No leads available", "All priority leads have been contacted");
     }
   };
 
@@ -505,20 +510,32 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {priorityCustomers.map((customer, index) => (
-              <motion.div
-                key={customer.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-              >
-                <CustomerIntelCard
-                  customer={customer}
-                  intelItems={mockIntelItems.filter((i) => i.customerId === customer.id)}
-                  weatherEvents={mockWeatherEvents.filter((w) => w.customerId === customer.id)}
-                />
-              </motion.div>
-            ))}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                <span className="ml-2 text-text-muted text-sm">Loading customers...</span>
+              </div>
+            ) : priorityCustomers.length === 0 ? (
+              <div className="panel p-8 text-center">
+                <Target className="w-8 h-8 text-text-muted mx-auto mb-3" />
+                <p className="text-text-muted text-sm">No priority customers found</p>
+              </div>
+            ) : (
+              priorityCustomers.map((customer, index) => (
+                <motion.div
+                  key={customer.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                >
+                  <CustomerIntelCard
+                    customer={customer}
+                    intelItems={intelItems.filter((i) => i.customerId === customer.id)}
+                    weatherEvents={weatherEvents.filter((w) => w.customerId === customer.id)}
+                  />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
 
