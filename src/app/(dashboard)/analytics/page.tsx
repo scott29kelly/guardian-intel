@@ -24,203 +24,14 @@ import {
   Phone,
   Calendar,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterModal } from "@/components/modals/filter-modal";
 import { useToast } from "@/components/ui/toast";
-
-// Mock data for team members
-const teamMembers = [
-  {
-    id: "1",
-    name: "Sarah Mitchell",
-    role: "Senior Sales Rep",
-    avatar: "SM",
-    phone: "(555) 111-2222",
-    email: "sarah.mitchell@guardian.com",
-    stats: {
-      leadsContacted: 42,
-      appointmentsSet: 18,
-      dealsClosed: 7,
-      revenue: 145000,
-      conversionRate: 38.9,
-      avgDealSize: 20714,
-      callsPerDay: 12.5,
-      responseTime: "1.2 hrs",
-    },
-    trend: "up",
-    rank: 1,
-    coachingNotes: ["Excellent closing techniques", "Could improve follow-up timing"],
-  },
-  {
-    id: "2",
-    name: "Marcus Johnson",
-    role: "Sales Rep",
-    avatar: "MJ",
-    phone: "(555) 222-3333",
-    email: "marcus.johnson@guardian.com",
-    stats: {
-      leadsContacted: 38,
-      appointmentsSet: 14,
-      dealsClosed: 5,
-      revenue: 98500,
-      conversionRate: 35.7,
-      avgDealSize: 19700,
-      callsPerDay: 10.2,
-      responseTime: "1.8 hrs",
-    },
-    trend: "up",
-    rank: 2,
-    coachingNotes: ["Strong objection handling", "Work on initial pitch delivery"],
-  },
-  {
-    id: "3",
-    name: "Jessica Torres",
-    role: "Sales Rep",
-    avatar: "JT",
-    phone: "(555) 333-4444",
-    email: "jessica.torres@guardian.com",
-    stats: {
-      leadsContacted: 35,
-      appointmentsSet: 12,
-      dealsClosed: 4,
-      revenue: 76000,
-      conversionRate: 33.3,
-      avgDealSize: 19000,
-      callsPerDay: 9.8,
-      responseTime: "2.1 hrs",
-    },
-    trend: "stable",
-    rank: 3,
-    coachingNotes: ["Consistent performer", "Opportunity to increase call volume"],
-  },
-  {
-    id: "4",
-    name: "David Kim",
-    role: "Sales Rep",
-    avatar: "DK",
-    phone: "(555) 444-5555",
-    email: "david.kim@guardian.com",
-    stats: {
-      leadsContacted: 30,
-      appointmentsSet: 8,
-      dealsClosed: 3,
-      revenue: 52000,
-      conversionRate: 26.7,
-      avgDealSize: 17333,
-      callsPerDay: 8.5,
-      responseTime: "2.8 hrs",
-    },
-    trend: "down",
-    rank: 4,
-    coachingNotes: ["Needs closing support", "Schedule ride-along with Sarah"],
-  },
-  {
-    id: "5",
-    name: "Emily Rodriguez",
-    role: "New Rep",
-    avatar: "ER",
-    phone: "(555) 555-6666",
-    email: "emily.rodriguez@guardian.com",
-    stats: {
-      leadsContacted: 22,
-      appointmentsSet: 6,
-      dealsClosed: 2,
-      revenue: 38000,
-      conversionRate: 27.3,
-      avgDealSize: 19000,
-      callsPerDay: 7.2,
-      responseTime: "3.2 hrs",
-    },
-    trend: "up",
-    rank: 5,
-    coachingNotes: ["Great progress for new hire", "Focus on product knowledge"],
-  },
-];
-
-// Team-wide KPIs
-const teamKPIs = {
-  totalRevenue: 409500,
-  revenueTarget: 500000,
-  revenueGrowth: 23.4,
-  totalDeals: 21,
-  dealsTarget: 30,
-  avgDealSize: 19500,
-  teamConversion: 32.8,
-  avgResponseTime: "2.2 hrs",
-  pipelineValue: 892000,
-  atRiskDeals: 4,
-};
-
-// Weekly activity data
-const weeklyActivity = [
-  { day: "Mon", calls: 45, appointments: 12, closures: 2 },
-  { day: "Tue", calls: 52, appointments: 15, closures: 4 },
-  { day: "Wed", calls: 48, appointments: 10, closures: 3 },
-  { day: "Thu", calls: 55, appointments: 18, closures: 5 },
-  { day: "Fri", calls: 42, appointments: 8, closures: 2 },
-  { day: "Sat", calls: 15, appointments: 5, closures: 3 },
-  { day: "Sun", calls: 0, appointments: 0, closures: 0 },
-];
-
-// Pipeline stages with values
-const pipelineData = [
-  { stage: "New Leads", count: 45, value: 675000 },
-  { stage: "Contacted", count: 32, value: 480000 },
-  { stage: "Qualified", count: 24, value: 360000 },
-  { stage: "Proposal", count: 18, value: 270000 },
-  { stage: "Negotiation", count: 8, value: 120000 },
-  { stage: "Closed", count: 21, value: 409500 },
-];
-
-// Recent alerts for managers
-const alerts = [
-  {
-    id: "1",
-    type: "warning",
-    message: "4 deals at risk of going cold (no contact > 7 days)",
-    action: "View Deals",
-    route: "/customers?filter=at-risk",
-  },
-  {
-    id: "2",
-    type: "success",
-    message: "Sarah Mitchell hit 150% of monthly target",
-    action: "View Details",
-    repId: "1",
-  },
-  {
-    id: "3",
-    type: "info",
-    message: "New storm event detected - 23 customers affected",
-    action: "View Storm",
-    route: "/storms",
-  },
-  {
-    id: "4",
-    type: "warning",
-    message: "David Kim's response time needs attention (>2.5 hrs)",
-    action: "View Metrics",
-    repId: "4",
-  },
-];
-
-// At-risk deals for the manager
-const atRiskDeals = [
-  { id: "1", customer: "Henderson", value: 22000, daysCold: 18, assignedRep: "Marcus Johnson" },
-  { id: "2", customer: "Walsh", value: 18500, daysCold: 12, assignedRep: "David Kim", stage: "Proposal" },
-  { id: "3", customer: "Brooks", value: 25000, daysCold: 9, assignedRep: "Jessica Torres" },
-  { id: "4", customer: "Foster", value: 19500, daysCold: 8, assignedRep: "Emily Rodriguez" },
-];
-
-// Hot opportunities
-const hotOpportunities = [
-  { id: "1", customer: "Chen", value: 22500, probability: 85, closeDate: "2026-01-10" },
-  { id: "2", customer: "Martinez", value: 18000, probability: 90, closeDate: "2026-01-09" },
-  { id: "3", customer: "Patel", value: 28000, probability: 75, closeDate: "2026-01-12" },
-];
+import { useAnalytics, useLeaderboard } from "@/lib/hooks/use-analytics";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("en-US", {
@@ -286,18 +97,6 @@ const analyticsFilterConfig = [
     ],
   },
   {
-    id: "rep",
-    label: "Team Member",
-    options: [
-      { value: "all", label: "All Team Members" },
-      { value: "1", label: "Sarah Mitchell" },
-      { value: "2", label: "Marcus Johnson" },
-      { value: "3", label: "Jessica Torres" },
-      { value: "4", label: "David Kim" },
-      { value: "5", label: "Emily Rodriguez" },
-    ],
-  },
-  {
     id: "metric",
     label: "Focus Metric",
     options: [
@@ -312,12 +111,33 @@ const analyticsFilterConfig = [
 export default function AnalyticsPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [timeRange, setTimeRange] = useState("this-month");
+  const [timeRange, setTimeRange] = useState("month");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showCoachingModal, setShowCoachingModal] = useState(false);
-  const [selectedRep, setSelectedRep] = useState<typeof teamMembers[0] | null>(null);
+  const [selectedRep, setSelectedRep] = useState<{
+    id: string;
+    name: string;
+    role: string;
+    avatar: string;
+    phone: string;
+    email: string;
+    stats: {
+      dealsClosed: number;
+      conversionRate: number;
+      callsPerDay: number;
+      responseTime: string;
+      revenue: number;
+    };
+    rank: number;
+    trend: string;
+    coachingNotes: string[];
+  } | null>(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+
+  // Fetch real data
+  const { data: analyticsData, isLoading: isLoadingAnalytics } = useAnalytics(timeRange);
+  const { data: leaderboardData, isLoading: isLoadingLeaderboard } = useLeaderboard(timeRange);
 
   const handleApplyFilters = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -328,7 +148,8 @@ export default function AnalyticsPage() {
   };
 
   const handleExportReport = () => {
-    // Generate a comprehensive report
+    if (!analyticsData || !leaderboardData) return;
+    
     const reportDate = new Date().toLocaleDateString();
     const report = `
 GUARDIAN INTEL - MANAGER DASHBOARD REPORT
@@ -338,34 +159,33 @@ Time Range: ${timeRange}
 
 REVENUE SUMMARY
 ---------------
-Total Revenue: ${formatCurrency(teamKPIs.totalRevenue)}
-Revenue Target: ${formatCurrency(teamKPIs.revenueTarget)}
-Progress: ${Math.round((teamKPIs.totalRevenue / teamKPIs.revenueTarget) * 100)}%
-Growth: +${teamKPIs.revenueGrowth}% vs last period
+Total Revenue: ${formatCurrency(analyticsData.kpis.totalRevenue)}
+Revenue Target: ${formatCurrency(analyticsData.kpis.revenueTarget)}
+Progress: ${Math.round((analyticsData.kpis.totalRevenue / analyticsData.kpis.revenueTarget) * 100)}%
+Growth: ${analyticsData.kpis.revenueGrowth > 0 ? '+' : ''}${analyticsData.kpis.revenueGrowth}% vs last period
 
 TEAM PERFORMANCE
 ----------------
-Total Deals Closed: ${teamKPIs.totalDeals}
-Avg Deal Size: ${formatCurrency(teamKPIs.avgDealSize)}
-Team Conversion Rate: ${teamKPIs.teamConversion}%
-Avg Response Time: ${teamKPIs.avgResponseTime}
+Total Deals Closed: ${analyticsData.kpis.totalDeals}
+Avg Deal Size: ${formatCurrency(analyticsData.kpis.avgDealSize)}
+Pipeline Value: ${formatCurrency(analyticsData.kpis.pipelineValue)}
+At-Risk Deals: ${analyticsData.kpis.atRiskCount}
 
 LEADERBOARD
 -----------
-${teamMembers.map(m => `${m.rank}. ${m.name} - ${formatCurrency(m.stats.revenue)} (${m.stats.dealsClosed} deals)`).join("\n")}
+${leaderboardData.leaderboard.map(m => `${m.rank}. ${m.name} - ${formatCurrency(m.stats.revenue)} (${m.stats.dealsClosed} deals)`).join("\n")}
 
 PIPELINE BREAKDOWN
 ------------------
-${pipelineData.map(p => `${p.stage}: ${p.count} deals (${formatCurrency(p.value)})`).join("\n")}
+${analyticsData.pipelineData.map(p => `${p.stage}: ${p.count} deals (${formatCurrency(p.value)})`).join("\n")}
 
 AT-RISK DEALS
 -------------
-${atRiskDeals.map(d => `${d.customer}: ${formatCurrency(d.value)} - ${d.daysCold} days cold (${d.assignedRep})`).join("\n")}
+${analyticsData.atRiskDeals.map(d => `${d.customer}: ${formatCurrency(d.value)} - ${d.daysCold} days cold (${d.assignedRep})`).join("\n")}
 
 Report generated by Guardian Intel
     `.trim();
 
-    // Download the report
     const blob = new Blob([report], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -377,32 +197,13 @@ Report generated by Guardian Intel
     showToast("success", "Report Downloaded", "Analytics report has been saved");
   };
 
-  const handleAlertAction = (alert: typeof alerts[0]) => {
-    if (alert.route) {
-      router.push(alert.route);
-    } else if (alert.repId) {
-      const rep = teamMembers.find(m => m.id === alert.repId);
-      if (rep) {
-        setSelectedRep(rep);
-        setShowCoachingModal(true);
-      }
-    }
-  };
-
-  const handleReviewDeal = (dealId: string, customerName: string) => {
+  const handleReviewDeal = (customerName: string) => {
     router.push(`/customers?search=${customerName}`);
   };
 
-  const handleViewOpportunity = (customerName: string) => {
-    router.push(`/customers?search=${customerName}`);
-  };
-
-  const handleCoachRep = (repId: string) => {
-    const rep = teamMembers.find(m => m.id === repId);
-    if (rep) {
-      setSelectedRep(rep);
-      setShowCoachingModal(true);
-    }
+  const handleCoachRep = (rep: typeof selectedRep) => {
+    setSelectedRep(rep);
+    setShowCoachingModal(true);
   };
 
   const handleCallRep = (phone: string, name: string) => {
@@ -418,6 +219,60 @@ Report generated by Guardian Intel
   const handleScheduleMeeting = (repName: string) => {
     showToast("success", "Meeting Scheduled", `1:1 meeting scheduled with ${repName}`);
   };
+
+  // Loading state
+  if (isLoadingAnalytics || isLoadingLeaderboard) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-intel-500 mx-auto mb-4" />
+          <p className="text-text-muted">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const kpis = analyticsData?.kpis || {
+    totalRevenue: 0,
+    revenueTarget: 500000,
+    revenueGrowth: 0,
+    totalDeals: 0,
+    dealsTarget: 30,
+    avgDealSize: 0,
+    pipelineValue: 0,
+    pipelineCount: 0,
+    atRiskCount: 0,
+  };
+
+  const teamMembers = leaderboardData?.leaderboard || [];
+  const pipelineData = analyticsData?.pipelineData || [];
+  const weeklyActivity = analyticsData?.weeklyActivity || [];
+  const atRiskDeals = analyticsData?.atRiskDeals || [];
+
+  // Create alerts from real data
+  const alerts = [
+    ...(atRiskDeals.length > 0 ? [{
+      id: "at-risk",
+      type: "warning",
+      message: `${atRiskDeals.length} deals at risk of going cold (no contact > 7 days)`,
+      action: "View Deals",
+      route: "/customers?filter=at-risk",
+    }] : []),
+    ...(teamMembers[0] ? [{
+      id: "top-performer",
+      type: "success",
+      message: `${teamMembers[0].name} is the top performer with ${formatCurrency(teamMembers[0].stats.revenue)}`,
+      action: "View Details",
+      repId: teamMembers[0].id,
+    }] : []),
+    ...(analyticsData?.kpis.weatherEvents ? [{
+      id: "storm",
+      type: "info",
+      message: `${analyticsData.kpis.weatherEvents} storm events - ${analyticsData.kpis.affectedCustomers} customers affected`,
+      action: "View Storm",
+      route: "/storms",
+    }] : []),
+  ];
 
   return (
     <motion.div
@@ -442,10 +297,10 @@ Report generated by Guardian Intel
             className="px-4 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-primary/50 cursor-pointer"
           >
             <option value="today">Today</option>
-            <option value="this-week">This Week</option>
-            <option value="this-month">This Month</option>
-            <option value="this-quarter">This Quarter</option>
-            <option value="this-year">This Year</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
           </select>
           <Button variant="outline" onClick={() => setShowFilterModal(true)}>
             <Filter className="w-4 h-4" />
@@ -476,7 +331,9 @@ Report generated by Guardian Intel
                   <Badge
                     key={alert.id}
                     className="bg-surface-secondary text-text-secondary cursor-pointer hover:bg-surface-hover"
-                    onClick={() => handleAlertAction(alert)}
+                    onClick={() => {
+                      if (alert.route) router.push(alert.route);
+                    }}
                   >
                     {alert.message.substring(0, 40)}...
                   </Badge>
@@ -521,7 +378,7 @@ Report generated by Guardian Intel
                   <div
                     key={alert.id}
                     className="p-4 bg-surface-secondary/50 rounded-lg border border-border hover:border-accent-primary/50 transition-colors cursor-pointer"
-                    onClick={() => { handleAlertAction(alert); setShowAllAlerts(false); }}
+                    onClick={() => { if (alert.route) router.push(alert.route); setShowAllAlerts(false); }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
@@ -618,26 +475,8 @@ Report generated by Guardian Intel
                     <div className="text-xs text-text-muted">Calls/Day</div>
                   </div>
                   <div className="p-3 bg-surface-secondary/50 rounded-lg text-center">
-                    <div className={`text-xl font-bold ${
-                      parseFloat(selectedRep.stats.responseTime) <= 1.5 ? "text-emerald-400" :
-                      parseFloat(selectedRep.stats.responseTime) <= 2.5 ? "text-amber-400" : "text-rose-400"
-                    }`}>
-                      {selectedRep.stats.responseTime}
-                    </div>
+                    <div className="text-xl font-bold text-text-primary">{selectedRep.stats.responseTime}</div>
                     <div className="text-xs text-text-muted">Response Time</div>
-                  </div>
-                </div>
-
-                {/* Coaching Notes */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-text-secondary mb-2">Coaching Notes</h4>
-                  <div className="space-y-2">
-                    {selectedRep.coachingNotes.map((note, i) => (
-                      <div key={i} className="flex items-start gap-2 p-2 bg-surface-secondary/30 rounded-lg">
-                        <span className="text-accent-primary">•</span>
-                        <span className="text-sm text-text-secondary">{note}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -667,32 +506,32 @@ Report generated by Guardian Intel
               <div>
                 <p className="text-text-muted text-sm mb-1">Total Revenue</p>
                 <p className="text-4xl font-bold text-text-primary mb-2">
-                  {formatCurrency(teamKPIs.totalRevenue)}
+                  {formatCurrency(kpis.totalRevenue)}
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 text-emerald-400 text-sm">
-                    <TrendingUp className="w-4 h-4" />
-                    +{teamKPIs.revenueGrowth}%
+                  <div className={`flex items-center gap-1 text-sm ${kpis.revenueGrowth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {kpis.revenueGrowth >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                    {kpis.revenueGrowth >= 0 ? '+' : ''}{kpis.revenueGrowth}%
                   </div>
-                  <span className="text-text-muted text-sm">vs last month</span>
+                  <span className="text-text-muted text-sm">vs last period</span>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-text-muted text-sm mb-1">Target</p>
                 <p className="text-2xl font-semibold text-text-primary">
-                  {formatCurrency(teamKPIs.revenueTarget)}
+                  {formatCurrency(kpis.revenueTarget)}
                 </p>
                 <div className="mt-3">
                   <div className="w-40 h-2 bg-surface-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full"
                       style={{
-                        width: `${(teamKPIs.totalRevenue / teamKPIs.revenueTarget) * 100}%`,
+                        width: `${Math.min((kpis.totalRevenue / kpis.revenueTarget) * 100, 100)}%`,
                       }}
                     />
                   </div>
                   <p className="text-xs text-text-muted mt-1 text-right">
-                    {Math.round((teamKPIs.totalRevenue / teamKPIs.revenueTarget) * 100)}% achieved
+                    {Math.round((kpis.totalRevenue / kpis.revenueTarget) * 100)}% achieved
                   </p>
                 </div>
               </div>
@@ -708,10 +547,10 @@ Report generated by Guardian Intel
               <BarChart2 className="w-4 h-4 text-accent-primary" />
             </div>
             <p className="text-3xl font-bold text-text-primary mb-1">
-              {formatCurrency(teamKPIs.pipelineValue)}
+              {formatCurrency(kpis.pipelineValue)}
             </p>
             <p className="text-sm text-text-muted">
-              Across 127 opportunities
+              Across {kpis.pipelineCount} opportunities
             </p>
           </CardContent>
         </Card>
@@ -724,10 +563,10 @@ Report generated by Guardian Intel
               <AlertTriangle className="w-4 h-4 text-rose-400" />
             </div>
             <p className="text-3xl font-bold text-rose-400 mb-1">
-              {teamKPIs.atRiskDeals}
+              {kpis.atRiskCount}
             </p>
             <p className="text-sm text-text-muted">
-              {formatCurrency(85000)} value at stake
+              {formatCurrency(atRiskDeals.reduce((sum, d) => sum + d.value, 0))} value at stake
             </p>
           </CardContent>
         </Card>
@@ -742,14 +581,14 @@ Report generated by Guardian Intel
                 <Target className="w-5 h-5 text-accent-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-text-primary">{teamKPIs.totalDeals}</p>
+                <p className="text-2xl font-bold text-text-primary">{kpis.totalDeals}</p>
                 <p className="text-xs text-text-muted">Deals Closed</p>
               </div>
             </div>
             <div className="mt-2 flex items-center gap-1 text-xs text-text-muted">
-              Target: {teamKPIs.dealsTarget}
+              Target: {kpis.dealsTarget}
               <span className="text-emerald-400">
-                ({Math.round((teamKPIs.totalDeals / teamKPIs.dealsTarget) * 100)}%)
+                ({Math.round((kpis.totalDeals / kpis.dealsTarget) * 100)}%)
               </span>
             </div>
           </CardContent>
@@ -763,14 +602,10 @@ Report generated by Guardian Intel
               </div>
               <div>
                 <p className="text-2xl font-bold text-text-primary">
-                  {formatCurrency(teamKPIs.avgDealSize)}
+                  {formatCurrency(kpis.avgDealSize)}
                 </p>
                 <p className="text-xs text-text-muted">Avg Deal Size</p>
               </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-400">
-              <TrendingUp className="w-3 h-3" />
-              +8% vs last month
             </div>
           </CardContent>
         </Card>
@@ -782,13 +617,11 @@ Report generated by Guardian Intel
                 <TrendingUp className="w-5 h-5 text-violet-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-text-primary">{teamKPIs.teamConversion}%</p>
+                <p className="text-2xl font-bold text-text-primary">
+                  {leaderboardData?.teamTotals.avgConversion || 0}%
+                </p>
                 <p className="text-xs text-text-muted">Team Conversion</p>
               </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-400">
-              <TrendingUp className="w-3 h-3" />
-              +2.3% vs last month
             </div>
           </CardContent>
         </Card>
@@ -800,13 +633,11 @@ Report generated by Guardian Intel
                 <Clock className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-text-primary">{teamKPIs.avgResponseTime}</p>
-                <p className="text-xs text-text-muted">Avg Response</p>
+                <p className="text-2xl font-bold text-text-primary">
+                  {analyticsData?.kpis.weatherEvents || 0}
+                </p>
+                <p className="text-xs text-text-muted">Storm Events</p>
               </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-rose-400">
-              <TrendingDown className="w-3 h-3" />
-              +15min vs target
             </div>
           </CardContent>
         </Card>
@@ -821,9 +652,6 @@ Report generated by Guardian Intel
                 <p className="text-2xl font-bold text-text-primary">{teamMembers.length}</p>
                 <p className="text-xs text-text-muted">Active Reps</p>
               </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-text-muted">
-              4 hitting target
             </div>
           </CardContent>
         </Card>
@@ -855,17 +683,19 @@ Report generated by Guardian Intel
                   <div className="h-6 bg-surface-secondary rounded overflow-hidden">
                     <div
                       className={`h-full rounded flex items-center justify-end pr-2 transition-all hover:opacity-80 ${
-                        index === pipelineData.length - 1
+                        stage.stage.toLowerCase() === "closed"
                           ? "bg-gradient-to-r from-emerald-600 to-green-500"
                           : "bg-gradient-to-r from-accent-primary to-accent-primary/70"
                       }`}
                       style={{
-                        width: `${(stage.value / pipelineData[0].value) * 100}%`,
+                        width: `${pipelineData[0]?.value > 0 ? (stage.value / pipelineData[0].value) * 100 : 0}%`,
                       }}
                     >
-                      <span className="text-xs text-white font-medium">
-                        {Math.round((stage.value / pipelineData[0].value) * 100)}%
-                      </span>
+                      {stage.value > 0 && pipelineData[0]?.value > 0 && (
+                        <span className="text-xs text-white font-medium">
+                          {Math.round((stage.value / pipelineData[0].value) * 100)}%
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -884,28 +714,32 @@ Report generated by Guardian Intel
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2 h-48">
-              {weeklyActivity.map((day) => (
-                <div key={day.day} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full flex flex-col gap-0.5">
-                    <div
-                      className="w-full bg-accent-primary/80 rounded-t"
-                      style={{ height: `${(day.calls / 60) * 120}px` }}
-                      title={`${day.calls} calls`}
-                    />
-                    <div
-                      className="w-full bg-emerald-500/80"
-                      style={{ height: `${(day.appointments / 20) * 40}px` }}
-                      title={`${day.appointments} appointments`}
-                    />
-                    <div
-                      className="w-full bg-violet-500/80 rounded-b"
-                      style={{ height: `${(day.closures / 6) * 20}px` }}
-                      title={`${day.closures} closures`}
-                    />
+              {weeklyActivity.map((day) => {
+                const maxCalls = Math.max(...weeklyActivity.map(d => d.calls), 1);
+                const maxAppts = Math.max(...weeklyActivity.map(d => d.appointments), 1);
+                return (
+                  <div key={day.day} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex flex-col gap-0.5">
+                      <div
+                        className="w-full bg-accent-primary/80 rounded-t"
+                        style={{ height: `${(day.calls / maxCalls) * 120}px` }}
+                        title={`${day.calls} calls`}
+                      />
+                      <div
+                        className="w-full bg-emerald-500/80"
+                        style={{ height: `${(day.appointments / maxAppts) * 40}px` }}
+                        title={`${day.appointments} appointments`}
+                      />
+                      <div
+                        className="w-full bg-violet-500/80 rounded-b"
+                        style={{ height: `${day.closures * 10}px` }}
+                        title={`${day.closures} closures`}
+                      />
+                    </div>
+                    <span className="text-xs text-text-muted">{day.day}</span>
                   </div>
-                  <span className="text-xs text-text-muted">{day.day}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-border">
               <div className="flex items-center gap-2">
@@ -933,11 +767,9 @@ Report generated by Guardian Intel
               <Star className="w-5 h-5 text-amber-400" />
               Team Leaderboard
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-surface-secondary text-text-secondary">
-                Ranked by Revenue
-              </Badge>
-            </div>
+            <Badge className="bg-surface-secondary text-text-secondary">
+              Ranked by Revenue
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -952,7 +784,6 @@ Report generated by Guardian Intel
                   <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Conversion</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Avg Deal</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Calls/Day</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Response</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Trend</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-text-muted">Actions</th>
                 </tr>
@@ -1008,24 +839,13 @@ Report generated by Guardian Intel
                       <p className="text-text-secondary">{member.stats.callsPerDay}</p>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <p className={`${
-                        parseFloat(member.stats.responseTime) <= 1.5
-                          ? "text-emerald-400"
-                          : parseFloat(member.stats.responseTime) <= 2.5
-                          ? "text-amber-400"
-                          : "text-rose-400"
-                      }`}>
-                        {member.stats.responseTime}
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 text-center">
                       {getTrendIcon(member.trend)}
                     </td>
                     <td className="py-4 px-4 text-center">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleCoachRep(member.id)}
+                        onClick={() => handleCoachRep(member)}
                         className="text-accent-primary"
                       >
                         Coach
@@ -1059,11 +879,14 @@ Report generated by Guardian Intel
                     <span className="text-sm text-text-secondary">{deal.customer}</span>
                     <span className="text-xs text-text-muted ml-2">- {deal.daysCold} days cold</span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-amber-400" onClick={() => handleReviewDeal(deal.id, deal.customer)}>
+                  <Button variant="ghost" size="sm" className="h-7 text-amber-400" onClick={() => handleReviewDeal(deal.customer)}>
                     Review
                   </Button>
                 </div>
               ))}
+              {atRiskDeals.length === 0 && (
+                <p className="text-sm text-text-muted text-center py-2">No at-risk deals</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1075,15 +898,15 @@ Report generated by Guardian Intel
                 <Zap className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-text-primary">Hot Opportunities</h4>
-                <p className="text-xs text-text-muted">High-probability closes this week</p>
+                <h4 className="font-semibold text-text-primary">Top Performers</h4>
+                <p className="text-xs text-text-muted">Leading the team this period</p>
               </div>
             </div>
             <div className="space-y-2">
-              {hotOpportunities.slice(0, 2).map((opp) => (
-                <div key={opp.id} className="flex items-center justify-between p-2 rounded bg-surface-secondary/30">
-                  <span className="text-sm text-text-secondary">{opp.customer} - {formatCurrency(opp.value)} ({opp.probability}%)</span>
-                  <Button variant="ghost" size="sm" className="h-7 text-emerald-400" onClick={() => handleViewOpportunity(opp.customer)}>
+              {teamMembers.slice(0, 2).map((rep) => (
+                <div key={rep.id} className="flex items-center justify-between p-2 rounded bg-surface-secondary/30">
+                  <span className="text-sm text-text-secondary">{rep.name} - {formatCurrency(rep.stats.revenue)}</span>
+                  <Button variant="ghost" size="sm" className="h-7 text-emerald-400" onClick={() => handleCoachRep(rep)}>
                     View
                   </Button>
                 </div>
@@ -1104,18 +927,17 @@ Report generated by Guardian Intel
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 rounded bg-surface-secondary/30">
-                <span className="text-sm text-text-secondary">David Kim - Closing rate</span>
-                <Button variant="ghost" size="sm" className="h-7 text-violet-400" onClick={() => handleCoachRep("4")}>
-                  Coach
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-surface-secondary/30">
-                <span className="text-sm text-text-secondary">Emily Rodriguez - New hire</span>
-                <Button variant="ghost" size="sm" className="h-7 text-violet-400" onClick={() => handleCoachRep("5")}>
-                  Coach
-                </Button>
-              </div>
+              {teamMembers.filter(r => r.trend === "down").slice(0, 2).map((rep) => (
+                <div key={rep.id} className="flex items-center justify-between p-2 rounded bg-surface-secondary/30">
+                  <span className="text-sm text-text-secondary">{rep.name} - Trending down</span>
+                  <Button variant="ghost" size="sm" className="h-7 text-violet-400" onClick={() => handleCoachRep(rep)}>
+                    Coach
+                  </Button>
+                </div>
+              ))}
+              {teamMembers.filter(r => r.trend === "down").length === 0 && (
+                <p className="text-sm text-text-muted text-center py-2">All reps performing well</p>
+              )}
             </div>
           </CardContent>
         </Card>
