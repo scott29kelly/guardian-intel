@@ -88,6 +88,7 @@ model User {
   interactions  Interaction[]
   notes         Note[]
   activities    Activity[]
+  conversations Conversation[]
 }
 
 model Customer {
@@ -558,4 +559,48 @@ model CrmFieldMapping {
   isActive      Boolean  @default(true)
   
   @@unique([crmSource, entityType, localField])
+}
+
+// ============================================
+// AI CONVERSATION HISTORY
+// ============================================
+
+model Conversation {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Optional customer context
+  customerId    String?
+  
+  // Auto-generated from first message
+  title         String?
+  
+  // Conversation state
+  isArchived    Boolean   @default(false)
+  
+  messages      Message[]
+  
+  @@index([userId])
+  @@index([customerId])
+}
+
+model Message {
+  id              String       @id @default(cuid())
+  createdAt       DateTime     @default(now())
+  
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  role            String       // user, assistant, system
+  content         String
+  
+  // AI metadata
+  model           String?      // Which AI model generated this
+  toolCalls       String?      // JSON array of tool calls
+  
+  @@index([conversationId])
 }
