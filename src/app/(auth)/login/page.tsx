@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -18,6 +18,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ===========================================================================
+  // DEV BYPASS: Auto-login when NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+  // ===========================================================================
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
+      setIsLoading(true);
+      signIn("credentials", {
+        email: "dev@bypass",
+        password: "dev",
+        redirect: false,
+      }).then((result) => {
+        if (!result?.error) {
+          router.push(callbackUrl);
+          router.refresh();
+        } else {
+          setIsLoading(false);
+        }
+      });
+    }
+  }, [callbackUrl, router]);
+  // ===========================================================================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

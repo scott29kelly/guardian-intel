@@ -4,6 +4,18 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+// =============================================================================
+// DEV BYPASS: Mock user for development (controlled by env var)
+// Remove NEXT_PUBLIC_DEV_AUTH_BYPASS from env or set to "false" for production
+// =============================================================================
+const DEV_BYPASS_USER = {
+  id: "dev-user-001",
+  email: "dev@guardian.local",
+  name: "Dev User",
+  role: "manager",
+  image: null,
+};
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   session: {
@@ -22,6 +34,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // =============================================================
+        // DEV BYPASS: Skip authentication in development
+        // =============================================================
+        if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
+          console.log("[Auth] 🔓 DEV BYPASS ACTIVE - Skipping authentication");
+          return DEV_BYPASS_USER;
+        }
+        // =============================================================
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");
         }
