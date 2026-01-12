@@ -87,48 +87,44 @@ export function Sidebar() {
       
       {/* Logo Section */}
       <div className={`p-5 border-b border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-4' : ''}`}>
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 bg-surface-secondary border border-[hsl(var(--accent-primary)/0.3)] rounded flex items-center justify-center corner-cut">
-                <Shield className="w-5 h-5 text-accent-primary" />
-              </div>
-              {/* Animated ping */}
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--accent-success))] opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--accent-success))]" />
-              </div>
+        <div className="flex items-center gap-3">
+          {/* Shield icon - Click to toggle sidebar */}
+          <button
+            onClick={toggle}
+            className="relative flex-shrink-0 group/shield"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <div className="w-10 h-10 bg-surface-secondary border border-[hsl(var(--accent-primary)/0.3)] rounded flex items-center justify-center corner-cut group-hover/shield:border-[hsl(var(--accent-primary)/0.6)] group-hover/shield:bg-[hsl(var(--accent-primary)/0.1)] transition-all cursor-pointer">
+              <Shield className="w-5 h-5 text-accent-primary" />
             </div>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
+            {/* Animated ping */}
+            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--accent-success))] opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--accent-success))]" />
+            </div>
+          </button>
+          
+          {/* Logo text - Click to go home */}
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <Link href="/" className="group">
                   <div className="font-display font-bold text-lg tracking-wide text-text-primary group-hover:text-accent-primary transition-colors whitespace-nowrap">
                     GUARDIAN
                   </div>
                   <div className="font-mono text-[10px] text-accent-primary tracking-[0.2em] whitespace-nowrap">
                     INTEL COMMAND
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Link>
-          
-          {/* Collapse Toggle Button - Prominent placement */}
-          {!isCollapsed && (
-            <button
-              onClick={toggle}
-              className="w-8 h-8 rounded flex items-center justify-center bg-surface-secondary border border-[hsl(var(--sidebar-border))] text-text-secondary hover:text-accent-primary hover:border-[hsl(var(--accent-primary)/0.5)] hover:bg-surface-hover transition-all flex-shrink-0"
-              title="Collapse sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
