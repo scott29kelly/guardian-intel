@@ -123,7 +123,7 @@ export function Sidebar() {
           {!isCollapsed && (
             <button
               onClick={toggle}
-              className="w-8 h-8 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all"
+              className="w-8 h-8 rounded flex items-center justify-center bg-surface-secondary border border-[hsl(var(--sidebar-border))] text-text-secondary hover:text-accent-primary hover:border-[hsl(var(--accent-primary)/0.5)] hover:bg-surface-hover transition-all flex-shrink-0"
               title="Collapse sidebar"
             >
               <ChevronLeft className="w-4 h-4" />
