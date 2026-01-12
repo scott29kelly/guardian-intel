@@ -18,8 +18,6 @@ import {
   Activity,
   Bot,
   Sparkles,
-  PanelLeftClose,
-  PanelLeft,
 } from "lucide-react";
 import { useState } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -88,36 +86,51 @@ export function Sidebar() {
       {/* Logo Section */}
       <div className={`p-5 border-b border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-4' : ''}`}>
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 bg-surface-secondary border border-[hsl(var(--accent-primary)/0.3)] rounded flex items-center justify-center corner-cut">
-                <Shield className="w-5 h-5 text-accent-primary" />
+          {/* When collapsed: clicking shield expands. When expanded: navigates home */}
+          {isCollapsed ? (
+            <button
+              onClick={toggle}
+              className="flex items-center gap-3 group"
+              title="Expand sidebar"
+            >
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 bg-surface-secondary border border-[hsl(var(--accent-primary)/0.3)] rounded flex items-center justify-center corner-cut hover:bg-surface-hover transition-all">
+                  <Shield className="w-5 h-5 text-accent-primary" />
+                </div>
+                {/* Animated ping */}
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--accent-success))] opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--accent-success))]" />
+                </div>
               </div>
-              {/* Animated ping */}
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--accent-success))] opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--accent-success))]" />
+            </button>
+          ) : (
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 bg-surface-secondary border border-[hsl(var(--accent-primary)/0.3)] rounded flex items-center justify-center corner-cut">
+                  <Shield className="w-5 h-5 text-accent-primary" />
+                </div>
+                {/* Animated ping */}
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--accent-success))] opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--accent-success))]" />
+                </div>
               </div>
-            </div>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="font-display font-bold text-lg tracking-wide text-text-primary group-hover:text-accent-primary transition-colors whitespace-nowrap">
-                    GUARDIAN
-                  </div>
-                  <div className="font-mono text-[10px] text-accent-primary tracking-[0.2em] whitespace-nowrap">
-                    INTEL COMMAND
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Link>
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="font-display font-bold text-lg tracking-wide text-text-primary group-hover:text-accent-primary transition-colors whitespace-nowrap">
+                  GUARDIAN
+                </div>
+                <div className="font-mono text-[10px] text-accent-primary tracking-[0.2em] whitespace-nowrap">
+                  INTEL COMMAND
+                </div>
+              </motion.div>
+            </Link>
+          )}
           
           {/* Collapse Toggle Button - Prominent placement */}
           {!isCollapsed && (
@@ -297,7 +310,7 @@ export function Sidebar() {
       {/* Theme Toggle & Settings */}
       <div className={`p-3 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
         <div className={`flex items-center gap-2 mb-2 ${isCollapsed ? 'justify-center' : ''}`}>
-          <ThemeToggle />
+          <ThemeToggle isCollapsed={isCollapsed} />
         </div>
         <Link
           href="/settings"
@@ -339,19 +352,6 @@ export function Sidebar() {
           )}
         </div>
       </div>
-
-      {/* Expand Button - Only visible when collapsed, at bottom */}
-      {isCollapsed && (
-        <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
-          <button
-            onClick={toggle}
-            className="w-full h-10 rounded flex items-center justify-center text-text-muted hover:text-accent-primary hover:bg-surface-hover transition-all border border-dashed border-[hsl(var(--sidebar-border))] hover:border-[hsl(var(--accent-primary)/0.5)]"
-            title="Expand sidebar"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
 
       {/* Decorative bottom line */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent-secondary)/0.3)] to-transparent" />

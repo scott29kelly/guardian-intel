@@ -12,7 +12,11 @@ const themes = [
   { id: "light-gray", label: "Lt Gray", icon: Monitor, description: "Professional light" },
 ] as const;
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  isCollapsed?: boolean;
+}
+
+export function ThemeToggle({ isCollapsed = false }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -23,13 +27,20 @@ export function ThemeToggle() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-secondary border border-border hover:bg-surface-hover transition-all group"
+        title={isCollapsed ? `Theme: ${currentTheme.label}` : undefined}
+        className={`flex items-center gap-2 rounded-lg bg-surface-secondary border border-border hover:bg-surface-hover transition-all group ${
+          isCollapsed ? 'p-2 justify-center' : 'px-3 py-2'
+        }`}
       >
-        <CurrentIcon className="w-4 h-4 text-accent-primary" />
-        <span className="font-mono text-xs text-text-secondary uppercase tracking-wider">
-          {currentTheme.label}
-        </span>
-        <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <CurrentIcon className="w-4 h-4 text-accent-primary flex-shrink-0" />
+        {!isCollapsed && (
+          <>
+            <span className="font-mono text-xs text-text-secondary uppercase tracking-wider">
+              {currentTheme.label}
+            </span>
+            <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          </>
+        )}
       </button>
 
       <AnimatePresence>
@@ -41,13 +52,17 @@ export function ThemeToggle() {
               onClick={() => setIsOpen(false)} 
             />
             
-            {/* Dropdown */}
+            {/* Dropdown - positions to the right when collapsed */}
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: isCollapsed ? 0 : 10, x: isCollapsed ? -10 : 0, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+              exit={{ opacity: 0, y: isCollapsed ? 0 : 10, x: isCollapsed ? -10 : 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-0 bottom-full mb-2 w-48 z-[100] rounded-lg border border-border bg-[hsl(var(--surface-primary))] shadow-xl overflow-hidden"
+              className={`absolute w-48 z-[100] rounded-lg border border-border bg-[hsl(var(--surface-primary))] shadow-xl overflow-hidden ${
+                isCollapsed 
+                  ? 'left-full ml-2 bottom-0' 
+                  : 'left-0 bottom-full mb-2'
+              }`}
             >
               <div className="p-1">
                 {themes.map((t) => {
