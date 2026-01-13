@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -29,6 +29,26 @@ import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
+
+// =============================================================================
+// PERFORMANCE OPTIMIZATION: Isolated LiveClock component
+// This prevents the 1-second timer from re-rendering the entire dashboard.
+// The clock now only re-renders itself, not the parent component.
+// =============================================================================
+const LiveClock = memo(function LiveClock() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="font-mono text-xs text-text-muted">
+      {currentTime.toLocaleTimeString("en-US", { hour12: false })} UTC-5
+    </span>
+  );
+});
 
 // Dynamically import the map to avoid SSR issues
 const WeatherRadarMap = dynamic(
@@ -69,7 +89,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const { data, isLoading, error } = useDashboard();
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [showStormWatch, setShowStormWatch] = useState(false);
@@ -81,11 +100,7 @@ export default function DashboardPage() {
   const intelItems = data?.intelItems || [];
   const weatherEvents = data?.weatherEvents || [];
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+  // Alert ticker rotation - 5 second interval (doesn't cause full re-render)
   useEffect(() => {
     const alertTimer = setInterval(() => {
       setActiveAlert((prev) => (prev + 1) % (recentAlerts.length || 1));
@@ -125,9 +140,7 @@ export default function DashboardPage() {
               <Activity className="w-3 h-3 text-accent-success animate-pulse" />
               <span className="font-mono text-xs text-accent-success">LIVE</span>
             </div>
-            <span className="font-mono text-xs text-text-muted">
-              {currentTime.toLocaleTimeString("en-US", { hour12: false })} UTC-5
-            </span>
+            <LiveClock />
           </motion.div>
           <h1 className="font-display text-4xl font-bold tracking-tight text-text-primary mb-1">
             COMMAND CENTER

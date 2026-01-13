@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -50,7 +50,11 @@ const getScoreColor = (score: number) => {
   return "text-text-muted bg-surface-secondary border-border";
 };
 
-export function CustomerIntelCard({
+// =============================================================================
+// PERFORMANCE OPTIMIZATION: Wrap component with memo
+// Prevents re-renders when parent updates but props haven't changed.
+// =============================================================================
+export const CustomerIntelCard = memo(function CustomerIntelCard({
   customer,
   intelItems,
   weatherEvents,
@@ -70,17 +74,30 @@ export function CustomerIntelCard({
   const criticalItems = intelItems.filter((i) => i.priority === "critical");
   const hasStormDamage = weatherEvents.length > 0;
   
-  // Calculate dynamic scores based on customer data
-  const scores = calculateCustomerScores({
-    customer,
-    intelItems,
-    weatherEvents,
-  });
+  // =============================================================================
+  // PERFORMANCE OPTIMIZATION: Memoize expensive score calculations
+  // This prevents recalculating complex scoring logic on every render.
+  // Only recalculates when customer, intelItems, or weatherEvents change.
+  // =============================================================================
+  const scores = useMemo(() => 
+    calculateCustomerScores({
+      customer,
+      intelItems,
+      weatherEvents,
+    }),
+    [customer, intelItems, weatherEvents]
+  );
   
-  // Get human-readable explanations for tooltips
-  const urgencyTooltip = `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`;
-  const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
-  const profitTooltip = `Estimated profit based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}, and $${customer.propertyValue.toLocaleString()} property value`;
+  // Memoize tooltip strings to prevent recalculation on every render
+  const tooltips = useMemo(() => ({
+    urgency: `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`,
+    retention: `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`,
+    profit: `Estimated profit based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}, and $${customer.propertyValue.toLocaleString()} property value`,
+  }), [scores.factors.urgency, scores.factors.churn, customer.squareFootage, customer.roofType, customer.propertyValue]);
+  
+  const urgencyTooltip = tooltips.urgency;
+  const retentionTooltip = tooltips.retention;
+  const profitTooltip = tooltips.profit;
 
   return (
     <>
@@ -497,4 +514,4 @@ export function CustomerIntelCard({
       />
     </>
   );
-}
+});

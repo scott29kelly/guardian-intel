@@ -1,10 +1,15 @@
 /**
  * Dashboard Data Hook
  * 
- * Fetches aggregated dashboard data from the API
+ * PERFORMANCE OPTIMIZED: Now uses React Query for:
+ * - Automatic caching with stale-while-revalidate
+ * - Proper refetch functionality
+ * - Background updates without loading spinners
+ * - Deduplication of concurrent requests
+ * - Smart polling with pause when window is hidden
  */
 
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface DashboardCustomer {
   id: string;
@@ -86,49 +91,60 @@ export interface DashboardData {
   alerts: DashboardAlert[];
 }
 
+// Query key for dashboard data - enables proper cache invalidation
+export const dashboardKeys = {
+  all: ["dashboard"] as const,
+  data: () => [...dashboardKeys.all, "data"] as const,
+};
+
+// Fetch function extracted for reuse
+async function fetchDashboardData(): Promise<DashboardData> {
+  const response = await fetch("/api/dashboard");
+  
+  if (!response.ok) {
+    throw new Error("Failed to fetch dashboard data");
+  }
+
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Unknown error");
+  }
+
+  return {
+    priorityCustomers: result.priorityCustomers,
+    intelItems: result.intelItems,
+    weatherEvents: result.weatherEvents,
+    metrics: result.metrics,
+    alerts: result.alerts,
+  };
+}
+
 export function useDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: dashboardKeys.data(),
+    queryFn: fetchDashboardData,
+    // Cache data for 2 minutes before considering it stale
+    staleTime: 1000 * 60 * 2,
+    // Keep cached data for 5 minutes even after unmount
+    gcTime: 1000 * 60 * 5,
+    // Auto-refresh every 60 seconds when window is focused
+    refetchInterval: 60000,
+    // Pause polling when window is hidden (saves resources)
+    refetchIntervalInBackground: false,
+    // Show stale data while refetching in background
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/dashboard");
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch dashboard data");
-        }
-
-        const result = await response.json();
-        
-        if (!result.success) {
-          throw new Error(result.error || "Unknown error");
-        }
-
-        setData({
-          priorityCustomers: result.priorityCustomers,
-          intelItems: result.intelItems,
-          weatherEvents: result.weatherEvents,
-          metrics: result.metrics,
-          alerts: result.alerts,
-        });
-        setError(null);
-      } catch (err) {
-        console.error("[Dashboard] Fetch error:", err);
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchDashboard();
-    
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchDashboard, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { data, isLoading, error, refetch: () => {} };
+  return {
+    data: data ?? null,
+    isLoading,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
+    refetch: () => refetch(),
+    // Expose cache invalidation for manual refresh
+    invalidate: () => queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
+  };
 }
