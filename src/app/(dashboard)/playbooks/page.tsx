@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   Search,
   Plus,
-  ChevronRight,
   Clock,
   Target,
   CheckCircle2,
@@ -27,275 +26,138 @@ import {
   Pause,
   SkipForward,
   RotateCcw,
-  Save,
   Loader2,
+  Edit3,
+  Presentation,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { PlaybookCard, getCategoryInfo } from "@/components/playbooks";
+import { PlaybookEditor } from "@/components/playbooks/playbook-editor";
+import { PlaybookModal } from "@/components/modals/playbook-modal";
+import { 
+  usePlaybooks, 
+  useCreatePlaybook, 
+  useUpdatePlaybook, 
+  useDeletePlaybook,
+  type Playbook 
+} from "@/lib/hooks/use-playbooks";
+import type { CreatePlaybookInput, UpdatePlaybookInput } from "@/lib/validations";
 
-// Playbook Categories with Icons
+// Category tabs configuration
 const categories = [
   { id: "all", label: "All Playbooks", icon: BookOpen },
   { id: "storm", label: "Storm Response", icon: CloudLightning },
-  { id: "objections", label: "Objection Handling", icon: Shield },
+  { id: "objection-handling", label: "Objection Handling", icon: Shield },
   { id: "closing", label: "Closing Techniques", icon: Target },
   { id: "retention", label: "Customer Retention", icon: Users },
   { id: "cold-call", label: "Cold Calling", icon: Phone },
+  { id: "discovery", label: "Discovery", icon: MessageSquare },
+  { id: "presentation", label: "Presentation", icon: Presentation },
+  { id: "follow-up", label: "Follow-up", icon: RotateCcw },
 ];
-
-// Mock Playbooks Data
-const playbooks = [
-  {
-    id: "1",
-    title: "Storm Damage Discovery Call",
-    category: "storm",
-    description: "Script for initial contact after a storm event has been detected in the customer's area.",
-    difficulty: "beginner",
-    duration: "5-10 min",
-    successRate: 78,
-    timesUsed: 234,
-    steps: [
-      {
-        title: "Opening Hook",
-        content: `"Hi [Name], this is [Your Name] with Guardian Roofing. I'm reaching out because our weather monitoring system detected significant storm activity in your neighborhood on [Date]. Many homeowners in [Area] are discovering hidden damage to their roofs that could lead to costly water damage if not addressed. Do you have just 2 minutes to discuss how we can help protect your home?"`,
-        tips: ["Speak with concern, not urgency", "Pause after the question"],
-      },
-      {
-        title: "Establish Credibility",
-        content: `"We've been helping homeowners across Pennsylvania, New Jersey, Delaware, Maryland, Virginia, and New York for years. After major storms, we offer complimentary inspections to help identify any damage before it becomes a bigger problem. Insurance typically covers storm damage, so there's often no out-of-pocket cost to homeowners."`,
-        tips: ["Mention local experience", "Lead with value, not sales"],
-      },
-      {
-        title: "Schedule Inspection",
-        content: `"Would tomorrow afternoon or Thursday morning work better for a quick 15-minute inspection? We'll document everything with photos and provide a detailed report you can use with your insurance company if needed."`,
-        tips: ["Always offer two choices", "Confirm address before ending"],
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "Insurance Deductible Objection",
-    category: "objections",
-    description: "How to address concerns about insurance deductibles and out-of-pocket costs.",
-    difficulty: "intermediate",
-    duration: "3-5 min",
-    successRate: 82,
-    timesUsed: 189,
-    steps: [
-      {
-        title: "Acknowledge & Validate",
-        content: `"I completely understand your concern about the deductible. That's something many homeowners worry about, and it's a smart question to ask upfront."`,
-        tips: ["Never dismiss their concern", "Use empathetic tone"],
-      },
-      {
-        title: "Reframe the Value",
-        content: `"Let me share some perspective: the average roof replacement costs between $12,000-$25,000 out of pocket. If your insurance approves the claim, you're only responsible for the deductible—typically $1,000-$2,500. That means you could be getting a brand new roof worth $20,000+ for a fraction of the cost."`,
-        tips: ["Use specific numbers", "Frame as investment"],
-      },
-      {
-        title: "Offer Solutions",
-        content: `"We also offer flexible payment options for deductibles if needed. And here's something most people don't know: if we find that the damage isn't significant enough for a full replacement, we provide a complimentary maintenance package to extend your roof's life. Either way, you win."`,
-        tips: ["Always provide alternatives", "End on positive note"],
-      },
-    ],
-  },
-  {
-    id: "3",
-    title: "The Competitor Price Match",
-    category: "objections",
-    description: "Handling situations when a customer has a lower quote from another contractor.",
-    difficulty: "advanced",
-    duration: "5-8 min",
-    successRate: 65,
-    timesUsed: 156,
-    steps: [
-      {
-        title: "Express Interest",
-        content: `"Thanks for sharing that with me. It's smart to get multiple quotes—that's exactly what I'd do too. Do you mind if I take a look at what they're proposing?"`,
-        tips: ["Never badmouth competitors", "Ask to see the quote"],
-      },
-      {
-        title: "Identify Differences",
-        content: `"I see they're using [Product X]. Let me explain the difference: [Our Product] has a 50-year warranty vs their 25-year, is rated for higher wind speeds, and has a Class 4 impact rating. On a $20,000 roof, that extra $2,000 difference works out to about $6 per month over the life of the roof for significantly better protection."`,
-        tips: ["Focus on value, not price", "Break down cost over time"],
-      },
-      {
-        title: "Confidence Close",
-        content: `"Here's my commitment: if you find anyone offering the exact same products, warranty, and installation quality for less, I'll match it. But I think you'll find that our quote represents the best value for protecting your biggest investment. What questions can I answer?"`,
-        tips: ["Show confidence", "Offer price match on equal specs"],
-      },
-    ],
-  },
-  {
-    id: "4",
-    title: "Aging Roof Conversation",
-    category: "retention",
-    description: "Proactive outreach to customers with roofs approaching end of warranty.",
-    difficulty: "beginner",
-    duration: "5-7 min",
-    successRate: 71,
-    timesUsed: 98,
-    steps: [
-      {
-        title: "Warm Opening",
-        content: `"Hi [Name], this is [Your Name] from Guardian Roofing. We installed your roof back in [Year] and I wanted to personally reach out because it's approaching the 15-year mark. How has everything been holding up?"`,
-        tips: ["Lead with relationship", "Ask open-ended question"],
-      },
-      {
-        title: "Value Proposition",
-        content: `"Great to hear! At this stage in a roof's life, we like to offer our customers a complimentary condition assessment. Even if everything looks fine from the ground, there can be wear patterns that only show up on closer inspection. We can catch small issues before they become expensive problems."`,
-        tips: ["Position as service, not sale", "Emphasize prevention"],
-      },
-      {
-        title: "Transition to Inspection",
-        content: `"I have availability next week for a quick 20-minute inspection. We'll also check your gutters and flashing while we're up there. Would Tuesday or Wednesday work better for you?"`,
-        tips: ["Add extra value", "Use alternative choice close"],
-      },
-    ],
-  },
-  {
-    id: "5",
-    title: "The Spousal Buy-In",
-    category: "closing",
-    description: "Techniques for when one decision-maker needs to consult with their spouse.",
-    difficulty: "intermediate",
-    duration: "5-10 min",
-    successRate: 58,
-    timesUsed: 212,
-    steps: [
-      {
-        title: "Validate the Decision",
-        content: `"Absolutely, this is a big decision and you should definitely discuss it together. In fact, I'd be concerned if you didn't want to! A roof is one of the biggest investments you'll make in your home."`,
-        tips: ["Never pressure", "Validate their process"],
-      },
-      {
-        title: "Arm Them with Information",
-        content: `"Let me put together a summary that makes it easy to share with [Spouse Name]. I'll include the before/after photos, the detailed scope of work, the warranty information, and the financing options we discussed. What's the best email to send that to?"`,
-        tips: ["Make their job easier", "Maintain control of materials"],
-      },
-      {
-        title: "Set Follow-Up",
-        content: `"When do you typically have time to discuss things like this together—evenings or weekends? I'll call you [Day] around [Time] to answer any questions that come up. And if you'd like, I'm happy to jump on a quick video call with both of you to walk through everything together."`,
-        tips: ["Always schedule follow-up", "Offer joint presentation"],
-      },
-    ],
-  },
-  {
-    id: "6",
-    title: "Cold Call: New Move-In",
-    category: "cold-call",
-    description: "Script for reaching out to new homeowners who recently purchased.",
-    difficulty: "beginner",
-    duration: "3-5 min",
-    successRate: 45,
-    timesUsed: 178,
-    steps: [
-      {
-        title: "Congratulatory Opening",
-        content: `"Hi [Name], congratulations on your new home on [Street Name]! This is [Your Name] with Guardian Roofing. I'm reaching out to new homeowners in the neighborhood to offer a complimentary roof assessment—no strings attached."`,
-        tips: ["Sound genuinely happy for them", "Mention specific street"],
-      },
-      {
-        title: "Create Relevance",
-        content: `"When you bought the home, you probably got a general inspection, but those typically don't include a detailed roof analysis. Since you're new to the property, it's a great time to establish a baseline for your roof's condition and understand what maintenance might be needed in the future."`,
-        tips: ["Point out inspection gap", "Position as smart ownership"],
-      },
-      {
-        title: "Low-Pressure Close",
-        content: `"We're in your neighborhood next week working on a few projects. I could swing by Tuesday or Thursday for a quick look—takes about 15 minutes. Which works better for you?"`,
-        tips: ["Mention proximity", "Keep time commitment low"],
-      },
-    ],
-  },
-];
-
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty) {
-    case "beginner":
-      return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-    case "intermediate":
-      return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-    case "advanced":
-      return "bg-rose-500/20 text-rose-400 border-rose-500/30";
-    default:
-      return "bg-surface-secondary text-text-muted border-border";
-  }
-};
-
-const getCategoryIcon = (category: string) => {
-  const cat = categories.find((c) => c.id === category);
-  return cat?.icon || BookOpen;
-};
-
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case "storm":
-      return "from-sky-500 to-blue-600";
-    case "objections":
-      return "from-amber-500 to-orange-600";
-    case "closing":
-      return "from-emerald-500 to-green-600";
-    case "retention":
-      return "from-violet-500 to-purple-600";
-    case "cold-call":
-      return "from-rose-500 to-pink-600";
-    default:
-      return "from-accent-primary to-accent-primary/70";
-  }
-};
 
 export default function PlaybooksPage() {
   const { showToast } = useToast();
+  
+  // State
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlaybook, setSelectedPlaybook] = useState<string | null>(null);
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
-  const [favorited, setFavorited] = useState<Set<string>>(new Set(["1"])); // Pre-favorite one
+  const [favorited, setFavorited] = useState<Set<string>>(new Set());
   const [showPracticeMode, setShowPracticeMode] = useState(false);
   const [practiceStep, setPracticeStep] = useState(0);
   const [isPracticePaused, setIsPracticePaused] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newPlaybook, setNewPlaybook] = useState({ title: "", category: "storm", description: "" });
-  const [isSaving, setIsSaving] = useState(false);
-  const [userPlaybooks, setUserPlaybooks] = useState<typeof playbooks>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingPlaybook, setEditingPlaybook] = useState<Playbook | null>(null);
 
-  const allPlaybooks = [...userPlaybooks, ...playbooks];
+  // API Hooks
+  const { data: playbooksData, isLoading, error } = usePlaybooks({
+    category: selectedCategory !== "all" ? selectedCategory as CreatePlaybookInput["category"] : undefined,
+    search: searchQuery || undefined,
+    limit: 100,
+  });
 
-  const handleCreatePlaybook = async () => {
-    if (!newPlaybook.title.trim()) {
-      showToast("error", "Required", "Please enter a title for your playbook");
-      return;
+  const createMutation = useCreatePlaybook();
+  const updateMutation = useUpdatePlaybook();
+  const deleteMutation = useDeletePlaybook();
+
+  // Derived state
+  const playbooks = playbooksData?.data || [];
+  const selectedPlaybook = useMemo(
+    () => playbooks.find((p) => p.id === selectedPlaybookId),
+    [playbooks, selectedPlaybookId]
+  );
+
+  // Parse markdown content into steps (for display)
+  const parseContentToSteps = (content: string) => {
+    if (!content) return [];
+    
+    // Split by ## headers
+    const sections = content.split(/(?=^## )/gm).filter(Boolean);
+    
+    return sections.map((section, index) => {
+      const lines = section.trim().split("\n");
+      const titleLine = lines[0];
+      const title = titleLine.replace(/^##\s*/, "").trim() || `Step ${index + 1}`;
+      const contentLines = lines.slice(1).join("\n").trim();
+      
+      // Extract tips (lines starting with > or - Tip:)
+      const tips: string[] = [];
+      const contentWithoutTips = contentLines
+        .split("\n")
+        .filter((line) => {
+          if (line.match(/^>\s*\*?Tip/i) || line.match(/^-\s*\*?Tip/i)) {
+            tips.push(line.replace(/^[>\-]\s*\*?Tip:?\s*/i, "").replace(/\*$/g, "").trim());
+            return false;
+          }
+          return true;
+        })
+        .join("\n")
+        .trim();
+      
+      return {
+        title,
+        content: contentWithoutTips || section.trim(),
+        tips,
+      };
+    });
+  };
+
+  const steps = selectedPlaybook ? parseContentToSteps(selectedPlaybook.content) : [];
+
+  // Handlers
+  const handleCreatePlaybook = () => {
+    setEditingPlaybook(null);
+    setShowModal(true);
+  };
+
+  const handleEditPlaybook = (playbook: Playbook) => {
+    setEditingPlaybook(playbook);
+    setShowModal(true);
+  };
+
+  const handleSavePlaybook = async (data: CreatePlaybookInput | UpdatePlaybookInput) => {
+    if (editingPlaybook) {
+      await updateMutation.mutateAsync({ id: editingPlaybook.id, data });
+      showToast("success", "Playbook Updated", `"${(data as UpdatePlaybookInput).title || editingPlaybook.title}" has been saved`);
+    } else {
+      const result = await createMutation.mutateAsync(data as CreatePlaybookInput);
+      showToast("success", "Playbook Created", `"${result.playbook.title}" has been added`);
+      setSelectedPlaybookId(result.playbook.id);
     }
-    
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const created = {
-      id: `user-${Date.now()}`,
-      title: newPlaybook.title,
-      category: newPlaybook.category,
-      description: newPlaybook.description || "Custom playbook",
-      difficulty: "beginner" as const,
-      duration: "5-10 min",
-      successRate: 0,
-      timesUsed: 0,
-      steps: [
-        {
-          title: "Step 1",
-          content: "Add your script content here...",
-          tips: ["Add tips for this step"],
-        },
-      ],
-    };
-    
-    setUserPlaybooks(prev => [...prev, created]);
-    setNewPlaybook({ title: "", category: "storm", description: "" });
-    setShowCreateModal(false);
-    setIsSaving(false);
-    setSelectedPlaybook(created.id);
-    showToast("success", "Playbook Created", `"${created.title}" has been added to your playbooks`);
+  };
+
+  const handleDeletePlaybook = async (id: string) => {
+    const playbook = playbooks.find((p) => p.id === id);
+    await deleteMutation.mutateAsync(id);
+    showToast("success", "Playbook Deleted", `"${playbook?.title}" has been removed`);
+    if (selectedPlaybookId === id) {
+      setSelectedPlaybookId(null);
+    }
   };
 
   const handleFavorite = (playbookId: string, playbookTitle: string) => {
@@ -318,9 +180,8 @@ export default function PlaybooksPage() {
   };
 
   const handleNextPracticeStep = () => {
-    const activePlaybook = allPlaybooks.find((p) => p.id === selectedPlaybook);
-    if (activePlaybook && practiceStep < activePlaybook.steps.length - 1) {
-      setPracticeStep(prev => prev + 1);
+    if (practiceStep < steps.length - 1) {
+      setPracticeStep((prev) => prev + 1);
     } else {
       showToast("success", "Practice Complete!", "Great job completing the playbook!");
       setShowPracticeMode(false);
@@ -331,20 +192,10 @@ export default function PlaybooksPage() {
     const messages = {
       positive: `Thanks for the feedback! "${playbookTitle}" marked as effective`,
       improvement: `Feedback submitted for "${playbookTitle}"`,
-      notes: `Note saved for "${playbookTitle}"`
+      notes: `Note saved for "${playbookTitle}"`,
     };
     showToast(type === "positive" ? "success" : "info", "Feedback Recorded", messages[type]);
   };
-
-  const filteredPlaybooks = allPlaybooks.filter((playbook) => {
-    const matchesCategory = selectedCategory === "all" || playbook.category === selectedCategory;
-    const matchesSearch = searchQuery === "" || 
-      playbook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      playbook.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const activePlaybook = allPlaybooks.find((p) => p.id === selectedPlaybook);
 
   const handleCopyStep = (stepContent: string, stepId: string) => {
     navigator.clipboard.writeText(stepContent);
@@ -353,12 +204,14 @@ export default function PlaybooksPage() {
     setTimeout(() => setCopiedStep(null), 2000);
   };
 
+  // Category color helper
+  const getCategoryColor = (category: string) => {
+    const config = getCategoryInfo(category);
+    return config.gradient;
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="h-full"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full">
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Sidebar - Categories & Playbook List */}
         <div className="w-96 flex flex-col">
@@ -391,7 +244,10 @@ export default function PlaybooksPage() {
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setSelectedPlaybookId(null);
+                  }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
                     selectedCategory === cat.id
                       ? "bg-accent-primary/20 text-accent-primary border border-accent-primary/30"
@@ -407,71 +263,39 @@ export default function PlaybooksPage() {
 
           {/* Playbook List */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-2 -mr-2">
-            {filteredPlaybooks.map((playbook) => {
-              const CategoryIcon = getCategoryIcon(playbook.category);
-              return (
-                <motion.div
-                  key={playbook.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={`group cursor-pointer rounded-xl border transition-all ${
-                    selectedPlaybook === playbook.id
-                      ? "border-accent-primary/50 bg-accent-primary/10"
-                      : "border-border bg-surface-secondary/30 hover:border-text-muted"
-                  }`}
-                  onClick={() => setSelectedPlaybook(playbook.id)}
-                >
-                  <div className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getCategoryColor(playbook.category)} flex items-center justify-center flex-shrink-0`}>
-                        <CategoryIcon className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-text-primary truncate group-hover:text-accent-primary transition-colors">
-                            {playbook.title}
-                          </h3>
-                          {favorited.has(playbook.id) && (
-                            <Star className="w-3.5 h-3.5 text-amber-400 fill-current flex-shrink-0" />
-                          )}
-                        </div>
-                        <p className="text-xs text-text-muted line-clamp-2 mt-1">
-                          {playbook.description}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <Badge className={`text-[10px] ${getDifficultyColor(playbook.difficulty)}`}>
-                            {playbook.difficulty}
-                          </Badge>
-                          <span className="text-[10px] text-text-muted flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {playbook.duration}
-                          </span>
-                          <span className="text-[10px] text-text-muted flex items-center gap-1">
-                            <Target className="w-3 h-3" />
-                            {playbook.successRate}%
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${
-                        selectedPlaybook === playbook.id ? "rotate-90" : ""
-                      }`} />
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-
-            {filteredPlaybooks.length === 0 && (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-accent-primary animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-rose-400 mx-auto mb-3" />
+                <p className="text-text-muted">Failed to load playbooks</p>
+                <p className="text-sm text-text-muted mt-1">{error.message}</p>
+              </div>
+            ) : playbooks.length === 0 ? (
               <div className="text-center py-8">
                 <BookOpen className="w-12 h-12 text-text-muted mx-auto mb-3" />
                 <p className="text-text-muted">No playbooks found</p>
+                <p className="text-sm text-text-muted mt-1">
+                  {searchQuery ? "Try a different search term" : "Create your first playbook"}
+                </p>
               </div>
+            ) : (
+              playbooks.map((playbook) => (
+                <PlaybookCard
+                  key={playbook.id}
+                  playbook={playbook}
+                  isSelected={selectedPlaybookId === playbook.id}
+                  isFavorited={favorited.has(playbook.id)}
+                  onClick={() => setSelectedPlaybookId(playbook.id)}
+                />
+              ))
             )}
           </div>
 
           {/* Add New Button */}
-          <Button className="mt-4 w-full" onClick={() => setShowCreateModal(true)}>
+          <Button className="mt-4 w-full" onClick={handleCreatePlaybook}>
             <Plus className="w-4 h-4" />
             Create Custom Playbook
           </Button>
@@ -480,9 +304,9 @@ export default function PlaybooksPage() {
         {/* Right Panel - Playbook Details */}
         <div className="flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
-            {activePlaybook ? (
+            {selectedPlaybook ? (
               <motion.div
-                key={activePlaybook.id}
+                key={selectedPlaybook.id}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -493,52 +317,82 @@ export default function PlaybooksPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${getCategoryColor(activePlaybook.category)} flex items-center justify-center shadow-lg shadow-accent-primary/20`}>
+                        <div
+                          className={`w-14 h-14 rounded-xl bg-gradient-to-br ${getCategoryColor(
+                            selectedPlaybook.category
+                          )} flex items-center justify-center shadow-lg shadow-accent-primary/20`}
+                        >
                           {(() => {
-                            const Icon = getCategoryIcon(activePlaybook.category);
+                            const { icon: Icon } = getCategoryInfo(selectedPlaybook.category);
                             return <Icon className="w-7 h-7 text-white" />;
                           })()}
                         </div>
                         <div>
                           <h2 className="text-2xl font-bold text-text-primary mb-1">
-                            {activePlaybook.title}
+                            {selectedPlaybook.title}
                           </h2>
-                          <p className="text-text-muted max-w-2xl">
-                            {activePlaybook.description}
-                          </p>
+                          {selectedPlaybook.description && (
+                            <p className="text-text-muted max-w-2xl">
+                              {selectedPlaybook.description}
+                            </p>
+                          )}
                           <div className="flex items-center gap-4 mt-3">
-                            <Badge className={getDifficultyColor(activePlaybook.difficulty)}>
-                              {activePlaybook.difficulty}
+                            <Badge className="capitalize">
+                              {selectedPlaybook.type}
                             </Badge>
-                            <span className="text-sm text-text-muted flex items-center gap-1.5">
-                              <Clock className="w-4 h-4" />
-                              {activePlaybook.duration}
-                            </span>
-                            <span className="text-sm text-emerald-400 flex items-center gap-1.5">
-                              <Target className="w-4 h-4" />
-                              {activePlaybook.successRate}% success rate
-                            </span>
+                            {selectedPlaybook.stage && (
+                              <span className="text-sm text-text-muted flex items-center gap-1.5">
+                                <Clock className="w-4 h-4" />
+                                {selectedPlaybook.stage} stage
+                              </span>
+                            )}
                             <span className="text-sm text-text-muted flex items-center gap-1.5">
                               <Users className="w-4 h-4" />
-                              Used {activePlaybook.timesUsed} times
+                              Used {selectedPlaybook.usageCount} times
                             </span>
+                            {selectedPlaybook.rating && (
+                              <span className="text-sm text-amber-400 flex items-center gap-1.5">
+                                <Star className="w-4 h-4 fill-current" />
+                                {selectedPlaybook.rating.toFixed(1)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
-                          onClick={() => handleFavorite(activePlaybook.id, activePlaybook.title)}
-                          className={favorited.has(activePlaybook.id) ? "bg-amber-500/20 border-amber-500/50 text-amber-400" : ""}
+                          onClick={() => handleEditPlaybook(selectedPlaybook)}
                         >
-                          <Star className={`w-4 h-4 ${favorited.has(activePlaybook.id) ? "fill-current" : ""}`} />
-                          {favorited.has(activePlaybook.id) ? "Favorited" : "Favorite"}
+                          <Edit3 className="w-4 h-4" />
+                          Edit
                         </Button>
-                        <Button size="sm" onClick={handleStartPracticeMode}>
-                          <Zap className="w-4 h-4" />
-                          Practice Mode
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleFavorite(selectedPlaybook.id, selectedPlaybook.title)
+                          }
+                          className={
+                            favorited.has(selectedPlaybook.id)
+                              ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                              : ""
+                          }
+                        >
+                          <Star
+                            className={`w-4 h-4 ${
+                              favorited.has(selectedPlaybook.id) ? "fill-current" : ""
+                            }`}
+                          />
+                          {favorited.has(selectedPlaybook.id) ? "Favorited" : "Favorite"}
                         </Button>
+                        {steps.length > 0 && (
+                          <Button size="sm" onClick={handleStartPracticeMode}>
+                            <Zap className="w-4 h-4" />
+                            Practice Mode
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -546,7 +400,7 @@ export default function PlaybooksPage() {
 
                 {/* Practice Mode Overlay */}
                 <AnimatePresence>
-                  {showPracticeMode && (
+                  {showPracticeMode && steps.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: -20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -559,9 +413,12 @@ export default function PlaybooksPage() {
                             <Play className="w-5 h-5 text-accent-primary" />
                           </div>
                           <div>
-                            <h3 className="font-medium text-text-primary">Practice Mode Active</h3>
+                            <h3 className="font-medium text-text-primary">
+                              Practice Mode Active
+                            </h3>
                             <p className="text-sm text-text-muted">
-                              Step {practiceStep + 1} of {activePlaybook.steps.length}: {activePlaybook.steps[practiceStep].title}
+                              Step {practiceStep + 1} of {steps.length}:{" "}
+                              {steps[practiceStep]?.title}
                             </p>
                           </div>
                         </div>
@@ -579,15 +436,16 @@ export default function PlaybooksPage() {
                             size="sm"
                             onClick={() => setIsPracticePaused(!isPracticePaused)}
                           >
-                            {isPracticePaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                            {isPracticePaused ? (
+                              <Play className="w-4 h-4" />
+                            ) : (
+                              <Pause className="w-4 h-4" />
+                            )}
                             {isPracticePaused ? "Resume" : "Pause"}
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleNextPracticeStep}
-                          >
+                          <Button size="sm" onClick={handleNextPracticeStep}>
                             <SkipForward className="w-4 h-4" />
-                            {practiceStep === activePlaybook.steps.length - 1 ? "Finish" : "Next Step"}
+                            {practiceStep === steps.length - 1 ? "Finish" : "Next Step"}
                           </Button>
                           <Button
                             variant="ghost"
@@ -602,104 +460,152 @@ export default function PlaybooksPage() {
                       <div className="mt-3 h-2 bg-surface-secondary rounded-full overflow-hidden">
                         <div
                           className="h-full bg-accent-primary transition-all duration-300"
-                          style={{ width: `${((practiceStep + 1) / activePlaybook.steps.length) * 100}%` }}
+                          style={{
+                            width: `${((practiceStep + 1) / steps.length) * 100}%`,
+                          }}
                         />
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Steps */}
+                {/* Content */}
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4">
-                  {activePlaybook.steps.map((step, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Card className={`overflow-hidden transition-all ${
-                        showPracticeMode && practiceStep === index 
-                          ? "ring-2 ring-accent-primary shadow-lg shadow-accent-primary/20" 
-                          : ""
-                      }`}>
-                        <div className={`h-1 bg-gradient-to-r ${getCategoryColor(activePlaybook.category)}`} />
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold ${
-                              showPracticeMode && practiceStep === index
-                                ? "bg-accent-primary text-white"
-                                : "bg-surface-secondary text-accent-primary"
-                            }`}>
-                              {showPracticeMode && practiceStep > index ? (
-                                <CheckCircle2 className="w-5 h-5" />
-                              ) : (
-                                index + 1
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-lg font-semibold text-text-primary">
-                                  {step.title}
-                                </h3>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleCopyStep(step.content, `${activePlaybook.id}-${index}`)}
-                                  className="text-text-muted hover:text-text-primary"
-                                >
-                                  {copiedStep === `${activePlaybook.id}-${index}` ? (
-                                    <>
-                                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                      Copied!
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="w-4 h-4" />
-                                      Copy Script
-                                    </>
-                                  )}
-                                </Button>
+                  {steps.length > 0 ? (
+                    // Render parsed steps
+                    steps.map((step, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card
+                          className={`overflow-hidden transition-all ${
+                            showPracticeMode && practiceStep === index
+                              ? "ring-2 ring-accent-primary shadow-lg shadow-accent-primary/20"
+                              : ""
+                          }`}
+                        >
+                          <div
+                            className={`h-1 bg-gradient-to-r ${getCategoryColor(
+                              selectedPlaybook.category
+                            )}`}
+                          />
+                          <CardContent className="p-6">
+                            <div className="flex items-start gap-4">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold ${
+                                  showPracticeMode && practiceStep === index
+                                    ? "bg-accent-primary text-white"
+                                    : "bg-surface-secondary text-accent-primary"
+                                }`}
+                              >
+                                {showPracticeMode && practiceStep > index ? (
+                                  <CheckCircle2 className="w-5 h-5" />
+                                ) : (
+                                  index + 1
+                                )}
                               </div>
-                              
-                              {/* Script Content */}
-                              <div className="bg-surface-secondary/50 rounded-lg p-4 border border-border mb-4">
-                                <p className="text-text-secondary leading-relaxed whitespace-pre-wrap">
-                                  {step.content}
-                                </p>
-                              </div>
-
-                              {/* Tips */}
-                              {step.tips && step.tips.length > 0 && (
-                                <div className="flex items-start gap-2 text-sm">
-                                  <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <AlertTriangle className="w-3 h-3 text-amber-400" />
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {step.tips.map((tip, tipIndex) => (
-                                      <span
-                                        key={tipIndex}
-                                        className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded text-xs"
-                                      >
-                                        {tip}
-                                      </span>
-                                    ))}
-                                  </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h3 className="text-lg font-semibold text-text-primary">
+                                    {step.title}
+                                  </h3>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleCopyStep(
+                                        step.content,
+                                        `${selectedPlaybook.id}-${index}`
+                                      )
+                                    }
+                                    className="text-text-muted hover:text-text-primary"
+                                  >
+                                    {copiedStep === `${selectedPlaybook.id}-${index}` ? (
+                                      <>
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                        Copied!
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-4 h-4" />
+                                        Copy Script
+                                      </>
+                                    )}
+                                  </Button>
                                 </div>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Arrow to next step */}
-                          {index < activePlaybook.steps.length - 1 && (
-                            <div className="flex justify-center mt-4">
-                              <ArrowRight className="w-5 h-5 text-text-muted rotate-90" />
+                                {/* Script Content */}
+                                <div className="bg-surface-secondary/50 rounded-lg p-4 border border-border mb-4">
+                                  <p className="text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                    {step.content}
+                                  </p>
+                                </div>
+
+                                {/* Tips */}
+                                {step.tips && step.tips.length > 0 && (
+                                  <div className="flex items-start gap-2 text-sm">
+                                    <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {step.tips.map((tip, tipIndex) => (
+                                        <span
+                                          key={tipIndex}
+                                          className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded text-xs"
+                                        >
+                                          {tip}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
+
+                            {/* Arrow to next step */}
+                            {index < steps.length - 1 && (
+                              <div className="flex justify-center mt-4">
+                                <ArrowRight className="w-5 h-5 text-text-muted rotate-90" />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))
+                  ) : selectedPlaybook.content ? (
+                    // Render raw content with markdown
+                    <Card>
+                      <CardContent className="p-6">
+                        <PlaybookEditor
+                          content={selectedPlaybook.content}
+                          onChange={() => {}}
+                          readOnly
+                        />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    // Empty content
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="text-center py-8">
+                          <FileText className="w-12 h-12 text-text-muted mx-auto mb-3" />
+                          <p className="text-text-muted">No content yet</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={() => handleEditPlaybook(selectedPlaybook)}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Add Content
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Feedback Section */}
                   <Card className="mt-6">
@@ -712,26 +618,32 @@ export default function PlaybooksPage() {
                           Your feedback helps improve our playbooks for everyone
                         </p>
                         <div className="flex justify-center gap-3">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleFeedback("positive", activePlaybook.title)}
+                            onClick={() =>
+                              handleFeedback("positive", selectedPlaybook.title)
+                            }
                           >
                             <ThumbsUp className="w-4 h-4" />
                             Worked Great
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleFeedback("improvement", activePlaybook.title)}
+                            onClick={() =>
+                              handleFeedback("improvement", selectedPlaybook.title)
+                            }
                           >
                             <MessageSquare className="w-4 h-4" />
                             Suggest Improvement
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleFeedback("notes", activePlaybook.title)}
+                            onClick={() =>
+                              handleFeedback("notes", selectedPlaybook.title)
+                            }
                           >
                             <FileText className="w-4 h-4" />
                             Add Notes
@@ -756,11 +668,12 @@ export default function PlaybooksPage() {
                     Select a Playbook
                   </h3>
                   <p className="text-text-muted mb-6">
-                    Choose a playbook from the list to view detailed scripts, objection handlers, and proven closing techniques.
+                    Choose a playbook from the list to view detailed scripts, objection
+                    handlers, and proven closing techniques.
                   </p>
                   <div className="flex justify-center gap-3">
                     <Badge className="bg-emerald-500/20 text-emerald-400">
-                      {allPlaybooks.length} Playbooks
+                      {playbooks.length} Playbooks
                     </Badge>
                     <Badge className="bg-violet-500/20 text-violet-400">
                       {categories.length - 1} Categories
@@ -773,92 +686,19 @@ export default function PlaybooksPage() {
         </div>
       </div>
 
-      {/* Create Playbook Modal */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowCreateModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <h2 className="font-display font-bold text-lg text-text-primary flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-accent-primary" />
-                  Create Custom Playbook
-                </h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-surface-hover rounded">
-                  <X className="w-5 h-5 text-text-muted" />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-secondary">Playbook Title *</label>
-                  <input
-                    type="text"
-                    value={newPlaybook.title}
-                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
-                    placeholder="e.g., Insurance Objection Handler"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-secondary">Category</label>
-                  <select
-                    value={newPlaybook.category}
-                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary cursor-pointer"
-                  >
-                    {categories.filter(c => c.id !== "all").map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-secondary">Description</label>
-                  <textarea
-                    value={newPlaybook.description}
-                    onChange={(e) => setNewPlaybook(prev => ({ ...prev, description: e.target.value }))}
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary resize-none"
-                    placeholder="Brief description of when to use this playbook..."
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-surface-secondary/30">
-                <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreatePlaybook} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Create Playbook
-                    </>
-                  )}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Create/Edit Modal */}
+      <PlaybookModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setEditingPlaybook(null);
+        }}
+        playbook={editingPlaybook}
+        onSave={handleSavePlaybook}
+        onDelete={handleDeletePlaybook}
+        isSaving={createMutation.isPending || updateMutation.isPending}
+        isDeleting={deleteMutation.isPending}
+      />
     </motion.div>
   );
 }

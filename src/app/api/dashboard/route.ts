@@ -8,19 +8,36 @@
  * - Recent weather events
  * - Intel items for priority customers
  * - Aggregated metrics
+ * 
+ * Caching: 30 second TTL with cache-control headers
  */
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
+
+// Cache key for dashboard data
+const DASHBOARD_CACHE_KEY = buildCacheKey("dashboard", "main");
 
 export async function GET(request: Request) {
   try {
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Check cache first
+    const cached = await cacheGet<Record<string, unknown>>(DASHBOARD_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=10`,
+          "X-Cache": "HIT",
+        },
+      });
+    }
 
     // Fetch priority customers (top 3 by lead score)
     const priorityCustomers = await prisma.customer.findMany({
@@ -126,7 +143,8 @@ export async function GET(request: Request) {
                 storm.severity === "moderate" ? "high" : "warning",
     }));
 
-    return NextResponse.json({
+    // Build response data
+    const responseData = {
       success: true,
       priorityCustomers: priorityCustomers.map((c) => ({
         id: c.id,
@@ -183,6 +201,16 @@ export async function GET(request: Request) {
       })),
       metrics,
       alerts,
+    };
+
+    // Cache the response
+    await cacheSet(DASHBOARD_CACHE_KEY, responseData, CACHE_TTL.dashboard);
+
+    return NextResponse.json(responseData, {
+      headers: {
+        "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=10`,
+        "X-Cache": "MISS",
+      },
     });
   } catch (error) {
     console.error("[API] GET /api/dashboard error:", error);

@@ -10,12 +10,12 @@
  * 
  * Features:
  * - Real-time animated weather radar
- * - Storm markers for recent reports
+ * - Storm markers for recent reports with clustering
  * - Customer location pins
  * - Click to get coordinates
  */
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Cloud, Play, Pause, SkipForward, SkipBack, Layers, RefreshCw } from "lucide-react";
 
@@ -53,6 +53,8 @@ interface WeatherRadarMapProps {
   onLocationClick?: (lat: number, lon: number) => void;
   className?: string;
   compact?: boolean; // Compact mode for smaller containers
+  enableClustering?: boolean; // Enable marker clustering for many markers
+  clusterRadius?: number; // Cluster radius in pixels (default: 60)
 }
 
 // Dynamically import map to avoid SSR issues
@@ -78,6 +80,12 @@ const Popup = dynamic(
 
 const Circle = dynamic(
   () => import("react-leaflet").then((mod) => mod.Circle),
+  { ssr: false }
+);
+
+// Marker cluster group - dynamically imported
+const MarkerClusterGroup = dynamic(
+  () => import("react-leaflet-cluster").then((mod) => mod.default),
   { ssr: false }
 );
 
@@ -113,6 +121,8 @@ export function WeatherRadarMap({
   onLocationClick,
   className = "",
   compact = false, // Compact mode for dashboard widget
+  enableClustering = true, // Enable clustering by default
+  clusterRadius = 60, // Cluster radius in pixels
 }: WeatherRadarMapProps) {
   const [isClient, setIsClient] = useState(false);
   const [radarData, setRadarData] = useState<RainViewerData | null>(null);
@@ -266,6 +276,61 @@ export function WeatherRadarMap({
     });
   };
 
+  // Custom cluster icon - styled to match app theme
+  const createClusterIcon = (cluster: { getChildCount: () => number }) => {
+    const count = cluster.getChildCount();
+    
+    // Size based on count
+    let size = 36;
+    let bgColor = "#22d3ee"; // intel color
+    
+    if (count > 50) {
+      size = 48;
+      bgColor = "#ef4444"; // danger
+    } else if (count > 20) {
+      size = 44;
+      bgColor = "#f97316"; // warning/storm
+    } else if (count > 10) {
+      size = 40;
+      bgColor = "#eab308"; // yellow
+    }
+
+    return L.divIcon({
+      html: `
+        <div style="
+          width: ${size}px;
+          height: ${size}px;
+          background: ${bgColor};
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: ${count > 99 ? '11px' : '13px'};
+          font-family: system-ui, sans-serif;
+        ">
+          ${count > 99 ? '99+' : count}
+        </div>
+      `,
+      className: "custom-cluster-icon",
+      iconSize: L.point(size, size),
+      iconAnchor: [size / 2, size / 2],
+    });
+  };
+
+  // Separate storm and customer markers for different clustering behavior
+  const stormMarkers = useMemo(
+    () => markers.filter((m) => m.type !== "customer"),
+    [markers]
+  );
+  const customerMarkers = useMemo(
+    () => markers.filter((m) => m.type === "customer"),
+    [markers]
+  );
+
   const radarTileUrl = getRadarTileUrl();
 
   return (
@@ -291,59 +356,166 @@ export function WeatherRadarMap({
           />
         )}
 
-        {/* Storm markers */}
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            position={[marker.lat, marker.lon]}
-            icon={createIcon(marker.type, marker.severity)}
+        {/* Storm markers with clustering */}
+        {enableClustering && stormMarkers.length > 5 ? (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={clusterRadius}
+            spiderfyOnMaxZoom
+            showCoverageOnHover={false}
+            iconCreateFunction={createClusterIcon}
+            animate
+            animateAddingMarkers={false}
           >
-            <Popup>
-              <div className="text-sm">
-                <div className="font-bold text-gray-900">{marker.label}</div>
-                {marker.details && (
-                  <div className="text-gray-600 mt-1">{marker.details}</div>
-                )}
-                <div className="text-xs text-gray-500 mt-1">
-                  {marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}
+            {stormMarkers.map((marker) => (
+              <Marker
+                key={marker.id}
+                position={[marker.lat, marker.lon]}
+                icon={createIcon(marker.type, marker.severity)}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <div className="font-bold text-gray-900">{marker.label}</div>
+                    {marker.details && (
+                      <div className="text-gray-600 mt-1">{marker.details}</div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      {marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        ) : (
+          stormMarkers.map((marker) => (
+            <Marker
+              key={marker.id}
+              position={[marker.lat, marker.lon]}
+              icon={createIcon(marker.type, marker.severity)}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <div className="font-bold text-gray-900">{marker.label}</div>
+                  {marker.details && (
+                    <div className="text-gray-600 mt-1">{marker.details}</div>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          ))
+        )}
+
+        {/* Customer markers - separate cluster group or no clustering */}
+        {enableClustering && customerMarkers.length > 10 ? (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={40}
+            spiderfyOnMaxZoom
+            showCoverageOnHover={false}
+            iconCreateFunction={(cluster: { getChildCount: () => number }) => {
+              const count = cluster.getChildCount();
+              return L.divIcon({
+                html: `
+                  <div style="
+                    width: 32px;
+                    height: 32px;
+                    background: #22d3ee;
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 11px;
+                    font-family: system-ui, sans-serif;
+                  ">
+                    ${count}
+                  </div>
+                `,
+                className: "customer-cluster-icon",
+                iconSize: L.point(32, 32),
+                iconAnchor: [16, 16],
+              });
+            }}
+          >
+            {customerMarkers.map((marker) => (
+              <Marker
+                key={marker.id}
+                position={[marker.lat, marker.lon]}
+                icon={createIcon(marker.type)}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <div className="font-bold text-gray-900">{marker.label}</div>
+                    {marker.details && (
+                      <div className="text-gray-600 mt-1">{marker.details}</div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      {marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        ) : (
+          customerMarkers.map((marker) => (
+            <Marker
+              key={marker.id}
+              position={[marker.lat, marker.lon]}
+              icon={createIcon(marker.type)}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <div className="font-bold text-gray-900">{marker.label}</div>
+                  {marker.details && (
+                    <div className="text-gray-600 mt-1">{marker.details}</div>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))
+        )}
 
         {/* Affected area circles for storm markers */}
-        {markers
-          .filter((m) => m.type !== "customer")
-          .map((marker) => (
-            <Circle
-              key={`circle-${marker.id}`}
-              center={[marker.lat, marker.lon]}
-              radius={
-                marker.severity === "critical"
-                  ? 16000
-                  : marker.severity === "high"
-                  ? 12000
-                  : 8000
-              }
-              pathOptions={{
-                color:
-                  marker.type === "hail"
-                    ? "#f97316"
-                    : marker.type === "tornado"
-                    ? "#dc2626"
-                    : "#3b82f6",
-                fillColor:
-                  marker.type === "hail"
-                    ? "#f97316"
-                    : marker.type === "tornado"
-                    ? "#dc2626"
-                    : "#3b82f6",
-                fillOpacity: 0.15,
-                weight: 1,
-              }}
-            />
-          ))}
+        {stormMarkers.map((marker) => (
+          <Circle
+            key={`circle-${marker.id}`}
+            center={[marker.lat, marker.lon]}
+            radius={
+              marker.severity === "critical"
+                ? 16000
+                : marker.severity === "high"
+                ? 12000
+                : 8000
+            }
+            pathOptions={{
+              color:
+                marker.type === "hail"
+                  ? "#f97316"
+                  : marker.type === "tornado"
+                  ? "#dc2626"
+                  : "#3b82f6",
+              fillColor:
+                marker.type === "hail"
+                  ? "#f97316"
+                  : marker.type === "tornado"
+                  ? "#dc2626"
+                  : "#3b82f6",
+              fillOpacity: 0.15,
+              weight: 1,
+            }}
+          />
+        ))}
       </MapContainer>
 
       {/* Radar controls overlay - Compact mode for small containers */}

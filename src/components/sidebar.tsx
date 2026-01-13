@@ -14,10 +14,12 @@ import {
   ChevronLeft,
   Bot,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
 import { ThemeToggle } from "./theme-toggle";
+import { ShortcutsModal } from "./modals/shortcuts-modal";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useKeyboardShortcuts, useModifierKey } from "@/lib/hooks/use-keyboard-shortcuts";
 
 // Exported constants for layout calculations
 export const SIDEBAR_WIDTH = 256; // 16rem = 256px
@@ -56,16 +58,56 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const { isCollapsed, toggle } = useSidebar();
+  const modKey = useModifierKey();
 
   const sidebarWidth = isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
+  // Close handlers
+  const closeAIChat = useCallback(() => setShowAIChat(false), []);
+  const closeShortcuts = useCallback(() => setShowShortcuts(false), []);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: "k",
+        meta: true,
+        ctrl: true,
+        description: "Open AI Assistant",
+        action: () => setShowAIChat(true),
+      },
+      {
+        key: "?",
+        shift: true,
+        description: "Show keyboard shortcuts",
+        action: () => setShowShortcuts(true),
+        ignoreInputs: true,
+      },
+      {
+        key: "Escape",
+        description: "Close modal/panel",
+        action: () => {
+          if (showAIChat) setShowAIChat(false);
+          else if (showShortcuts) setShowShortcuts(false);
+        },
+      },
+    ],
+  });
 
   return (
     <>
     {/* AI Chat Panel */}
     <AIChatPanel
       isOpen={showAIChat}
-      onClose={() => setShowAIChat(false)}
+      onClose={closeAIChat}
+    />
+    
+    {/* Shortcuts Help Modal */}
+    <ShortcutsModal
+      isOpen={showShortcuts}
+      onClose={closeShortcuts}
     />
     <motion.aside
       initial={false}
@@ -165,14 +207,14 @@ export function Sidebar() {
       <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
         <button
           onClick={() => setShowAIChat(true)}
-          title={isCollapsed ? "AI Assist (⌘K)" : undefined}
+          title={isCollapsed ? `AI Assist (${modKey}+K)` : undefined}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors bg-surface-secondary border border-border hover:bg-surface-hover ${isCollapsed ? 'justify-center px-2' : ''}`}
         >
           <Bot className="w-4 h-4 text-accent-primary flex-shrink-0" />
           {!isCollapsed && (
             <>
               <span className="text-sm text-text-secondary">AI Assist</span>
-              <span className="ml-auto text-xs text-text-muted">⌘K</span>
+              <span className="ml-auto text-xs text-text-muted font-mono">{modKey}+K</span>
             </>
           )}
         </button>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Plus,
@@ -18,6 +18,12 @@ import {
   Calendar,
   Eye,
   Loader2,
+  CheckSquare,
+  Square,
+  Minus,
+  UserPlus,
+  Trash2,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +32,8 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
-import { useCustomers, useCreateCustomer } from "@/lib/hooks";
+import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers } from "@/lib/hooks";
+import { BulkActionModal } from "@/components/modals/bulk-action-modal";
 import { useToast } from "@/components/ui/toast";
 
 // Customer type matching the API response
@@ -97,6 +104,11 @@ export default function CustomersPage() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const createCustomer = useCreateCustomer();
+  const bulkUpdate = useBulkUpdateCustomers();
+  const bulkDelete = useBulkDeleteCustomers();
+  
+  // Refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,7 +120,71 @@ export default function CustomersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkStatusMenu, setShowBulkStatusMenu] = useState(false);
+  const [showBulkStageMenu, setShowBulkStageMenu] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  
+  // Keyboard shortcuts for customers page
+  const focusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  }, []);
+
+  const openAddModal = useCallback(() => {
+    setShowAddModal(true);
+  }, []);
+
+  // Store customers length in a ref for keyboard navigation
+  const customersLengthRef = useRef(0);
+  
+  const navigateUp = useCallback(() => {
+    setSelectedIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const navigateDown = useCallback(() => {
+    setSelectedIndex((prev) => {
+      const maxIndex = Math.max(0, customersLengthRef.current - 1);
+      return Math.min(maxIndex, prev + 1);
+    });
+  }, []);
+
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: "/",
+        description: "Focus search",
+        action: focusSearch,
+        ignoreInputs: true,
+      },
+      {
+        key: "n",
+        description: "Add new customer",
+        action: openAddModal,
+        ignoreInputs: true,
+        scope: "customers",
+      },
+      {
+        key: "j",
+        description: "Navigate down",
+        action: navigateDown,
+        ignoreInputs: true,
+        scope: "customers",
+      },
+      {
+        key: "k",
+        description: "Navigate up",
+        action: navigateUp,
+        ignoreInputs: true,
+        scope: "customers",
+      },
+    ],
+    scope: "customers",
+  });
+
   // URL-based filtering for storm alerts
   const countyFilter = searchParams.get("counties");
   const stormFilter = searchParams.get("filter");
@@ -182,6 +258,9 @@ export default function CustomersPage() {
   };
 
   const handleAddCustomer = async (formData: CustomerFormData) => {
+    // Optimistic: Show success immediately (data is already in UI via optimistic update)
+    showToast("success", "Customer Added", `${formData.firstName} ${formData.lastName} has been added to your customers.`);
+    
     try {
       await createCustomer.mutateAsync({
         firstName: formData.firstName,
@@ -197,9 +276,9 @@ export default function CustomersPage() {
         roofAge: formData.roofAge || undefined,
         insuranceCarrier: formData.insuranceCarrier || undefined,
       });
-      showToast("success", "Customer Added", `${formData.firstName} ${formData.lastName} has been added to your customers.`);
     } catch (err) {
-      showToast("error", "Failed to add customer", err instanceof Error ? err.message : "Unknown error");
+      // Rollback toast: the optimistic update was reverted
+      showToast("error", "Failed to add customer", `Changes were reverted. ${err instanceof Error ? err.message : "Please try again."}`);
     }
   };
 
@@ -222,6 +301,118 @@ export default function CustomersPage() {
     // Navigate or open modal - we can use the existing customer profile modal
     router.push(`/customers?profile=${customer.id}`);
   };
+
+  // Bulk selection handlers
+  const toggleSelectCustomer = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredCustomers.length) {
+      // Deselect all
+      setSelectedIds(new Set());
+    } else {
+      // Select all visible customers
+      setSelectedIds(new Set(filteredCustomers.map((c) => c.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setShowBulkStatusMenu(false);
+    setShowBulkStageMenu(false);
+  };
+
+  const handleBulkStatusChange = async (status: string) => {
+    const ids = Array.from(selectedIds);
+    setShowBulkStatusMenu(false);
+    
+    try {
+      await bulkUpdate.mutateAsync({
+        ids,
+        updates: { status: status as any },
+      });
+      showToast("success", "Status Updated", `${ids.length} customers updated to "${status}"`);
+      clearSelection();
+    } catch (err) {
+      showToast("error", "Update Failed", err instanceof Error ? err.message : "Please try again");
+    }
+  };
+
+  const handleBulkStageChange = async (stage: string) => {
+    const ids = Array.from(selectedIds);
+    setShowBulkStageMenu(false);
+    
+    try {
+      await bulkUpdate.mutateAsync({
+        ids,
+        updates: { stage: stage as any },
+      });
+      showToast("success", "Stage Updated", `${ids.length} customers updated to "${stage}"`);
+      clearSelection();
+    } catch (err) {
+      showToast("error", "Update Failed", err instanceof Error ? err.message : "Please try again");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    setShowBulkDeleteModal(false);
+    
+    try {
+      await bulkDelete.mutateAsync(ids);
+      showToast("success", "Customers Deleted", `${ids.length} customers have been deleted`);
+      clearSelection();
+    } catch (err) {
+      showToast("error", "Delete Failed", err instanceof Error ? err.message : "Please try again");
+    }
+  };
+
+  const handleBulkExport = () => {
+    // Export only selected customers
+    const selectedCustomers = filteredCustomers.filter((c) => selectedIds.has(c.id));
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Address", "City", "State", "ZIP", "Status", "Stage", "Lead Score", "Est. Profit"];
+    const rows = selectedCustomers.map((c) => [
+      c.firstName,
+      c.lastName,
+      c.email || "",
+      c.phone || "",
+      c.address,
+      c.city,
+      c.state,
+      c.zipCode,
+      c.status,
+      c.stage,
+      c.leadScore.toString(),
+      getCustomerProfit(c).toString(),
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map((r) => r.map((cell) => `"${cell}"`).join(","))].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `guardian-customers-selected-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showToast("success", "Export Complete", `${selectedCustomers.length} selected customers exported`);
+    clearSelection();
+  };
+
+  // Check selection state
+  const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < filteredCustomers.length;
+  const hasSelection = selectedIds.size > 0;
 
   // Parse counties from URL for storm filtering
   const targetCounties = countyFilter 
@@ -254,6 +445,15 @@ export default function CustomersPage() {
         return customerCounty && targetCounties.includes(customerCounty);
       })
     : customers;
+
+  // Update ref for keyboard navigation
+  customersLengthRef.current = filteredCustomers.length;
+  
+  // Reset selection when customers change
+  useEffect(() => {
+    setSelectedIndex(-1);
+    setSelectedIds(new Set());
+  }, [searchQuery, statusFilter, stageFilter, page]);
 
   return (
     <motion.div
@@ -325,8 +525,9 @@ export default function CustomersPage() {
             <div className="relative flex-1 min-w-[250px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search by name, email, phone, or address..."
+                placeholder="Search by name, email, phone, or address... (press /)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/25 transition-all"
@@ -478,7 +679,27 @@ export default function CustomersPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              className={`relative rounded-lg transition-all ${
+                selectedIndex === index 
+                  ? "ring-2 ring-accent-primary ring-offset-2 ring-offset-[hsl(var(--surface-primary))]" 
+                  : ""
+              } ${selectedIds.has(customer.id) ? "ring-2 ring-accent-primary/50" : ""}`}
+              onClick={() => setSelectedIndex(index)}
             >
+              {/* Card Selection Checkbox */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelectCustomer(customer.id);
+                }}
+                className="absolute top-4 left-4 z-10 flex items-center justify-center w-6 h-6 rounded bg-surface-primary/90 border border-border hover:border-accent-primary shadow-sm transition-colors"
+              >
+                {selectedIds.has(customer.id) ? (
+                  <CheckSquare className="w-4 h-4 text-accent-primary" />
+                ) : (
+                  <Square className="w-4 h-4 text-text-muted" />
+                )}
+              </button>
               <CustomerIntelCard
                 customer={customer}
                 intelItems={[]}
@@ -494,6 +715,20 @@ export default function CustomersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
+                    <th className="py-4 px-4 w-12">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="flex items-center justify-center w-5 h-5 rounded border border-border hover:border-accent-primary transition-colors"
+                      >
+                        {isAllSelected ? (
+                          <CheckSquare className="w-4 h-4 text-accent-primary" />
+                        ) : isSomeSelected ? (
+                          <Minus className="w-4 h-4 text-accent-primary" />
+                        ) : (
+                          <Square className="w-4 h-4 text-text-muted" />
+                        )}
+                      </button>
+                    </th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-text-muted">Customer</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-text-muted">Location</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-text-muted">Lead Score</th>
@@ -505,8 +740,29 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="border-b border-border/50 hover:bg-surface-secondary/30">
+                  {filteredCustomers.map((customer, index) => (
+                    <tr 
+                      key={customer.id} 
+                      className={`border-b border-border/50 hover:bg-surface-secondary/30 cursor-pointer transition-colors ${
+                        selectedIndex === index ? "bg-accent-primary/10 hover:bg-accent-primary/15" : ""
+                      } ${selectedIds.has(customer.id) ? "bg-accent-primary/5" : ""}`}
+                      onClick={() => setSelectedIndex(index)}
+                    >
+                      <td className="py-4 px-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelectCustomer(customer.id);
+                          }}
+                          className="flex items-center justify-center w-5 h-5 rounded border border-border hover:border-accent-primary transition-colors"
+                        >
+                          {selectedIds.has(customer.id) ? (
+                            <CheckSquare className="w-4 h-4 text-accent-primary" />
+                          ) : (
+                            <Square className="w-4 h-4 text-text-muted" />
+                          )}
+                        </button>
+                      </td>
                       <td className="py-4 px-4">
                         <div>
                           <p className="text-sm font-medium text-text-primary">
@@ -667,6 +923,127 @@ export default function CustomersPage() {
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddCustomer}
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <BulkActionModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Customers"
+        description="Are you sure you want to delete these customers? This action will mark them as 'Closed Lost' and they will be hidden from the main list."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        isLoading={bulkDelete.isPending}
+        count={selectedIds.size}
+      />
+
+      {/* Floating Bulk Action Bar */}
+      <AnimatePresence>
+        {hasSelection && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 bg-surface-primary border border-border rounded-xl shadow-2xl">
+              {/* Selection Count */}
+              <div className="flex items-center gap-2 pr-3 border-r border-border">
+                <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center">
+                  <CheckSquare className="w-4 h-4 text-accent-primary" />
+                </div>
+                <span className="text-sm font-medium text-text-primary">
+                  {selectedIds.size} selected
+                </span>
+              </div>
+
+              {/* Status Dropdown */}
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowBulkStatusMenu(!showBulkStatusMenu);
+                    setShowBulkStageMenu(false);
+                  }}
+                  disabled={bulkUpdate.isPending}
+                >
+                  Status
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+                {showBulkStatusMenu && (
+                  <div className="absolute bottom-full mb-2 left-0 w-40 bg-surface-primary border border-border rounded-lg shadow-xl overflow-hidden">
+                    {statusOptions.filter(o => o.value !== "all").map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleBulkStatusChange(option.value)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Stage Dropdown */}
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowBulkStageMenu(!showBulkStageMenu);
+                    setShowBulkStatusMenu(false);
+                  }}
+                  disabled={bulkUpdate.isPending}
+                >
+                  Stage
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+                {showBulkStageMenu && (
+                  <div className="absolute bottom-full mb-2 left-0 w-40 bg-surface-primary border border-border rounded-lg shadow-xl overflow-hidden">
+                    {stageOptions.filter(o => o.value !== "all").map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleBulkStageChange(option.value)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Export Selected */}
+              <Button variant="outline" size="sm" onClick={handleBulkExport}>
+                <Download className="w-3 h-3" />
+                Export
+              </Button>
+
+              {/* Delete */}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteModal(true)}
+                disabled={bulkDelete.isPending}
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </Button>
+
+              {/* Clear Selection */}
+              <button
+                onClick={clearSelection}
+                className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

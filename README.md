@@ -23,6 +23,7 @@ A real-time customer intelligence platform that aggregates data from multiple so
 - **Pipeline Visualization** - Track deals through every stage
 - **Activity Trends** - Monitor calls, emails, and visits
 - **Team Performance** - Manager dashboards for accountability
+- **Daily Metrics Aggregation** - Automated daily stats with backfill support
 
 ### 🔗 Data Aggregation (Planned)
 - CRM Integration (HubSpot, Salesforce, JobNimbus)
@@ -87,6 +88,36 @@ guardian-intel/
 ├── package.json
 └── tailwind.config.ts
 ```
+
+---
+
+## ⏰ Scheduled Jobs
+
+### Daily Metrics Aggregation
+
+The app includes a daily aggregation job that calculates metrics for analytics dashboards.
+
+#### Vercel (Automatic)
+
+When deployed to Vercel, the cron job runs automatically at 2:00 AM UTC daily (configured in `vercel.json`).
+
+Set the `CRON_SECRET` environment variable in your Vercel project settings to secure the endpoint.
+
+#### Self-Hosted / Manual
+
+For self-hosted deployments, set up a cron job to call the aggregation endpoint:
+
+```bash
+# Daily at 2 AM - run aggregation for previous day
+0 2 * * * curl -X POST "https://your-domain.com/api/analytics/aggregate" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+
+# Backfill historical data (one-time)
+curl -X POST "https://your-domain.com/api/analytics/aggregate?backfill=true&startDate=2026-01-01&endDate=2026-01-13" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+Alternatively, admins/managers can trigger aggregation from the browser when authenticated.
 
 ---
 

@@ -25,6 +25,7 @@ import { TakeActionModal } from "./take-action-modal";
 import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
+import { ActivityTimeline } from "@/components/customer/activity-timeline";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -54,7 +55,7 @@ export function CustomerProfileModal({
   onClose,
   onAskAI,
 }: CustomerProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "history" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "notes">("overview");
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
   const [showActionModal, setShowActionModal] = useState(false);
@@ -150,7 +151,7 @@ export function CustomerProfileModal({
             <div className="flex border-b border-border">
               {[
                 { id: "overview", label: "Overview", icon: User },
-                { id: "history", label: "History", icon: History },
+                { id: "timeline", label: "Timeline", icon: History },
                 { id: "notes", label: "Notes", icon: FileText },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -340,27 +341,12 @@ export function CustomerProfileModal({
                 </div>
               )}
 
-              {activeTab === "history" && (
-                <div className="space-y-3">
-                  <p className="text-text-muted font-mono text-sm">Activity history for this customer:</p>
-                  {/* Mock history items */}
-                  {[
-                    { date: "Jan 6, 2026", action: "Proposal sent", type: "email", user: "Sarah Mitchell" },
-                    { date: "Jan 5, 2026", action: "Follow-up call completed", type: "call", user: "Sarah Mitchell" },
-                    { date: "Jan 4, 2026", action: "Property inspection scheduled", type: "meeting", user: "Sarah Mitchell" },
-                    { date: "Jan 2, 2026", action: "Initial contact - interested in roof assessment", type: "call", user: "Sarah Mitchell" },
-                    { date: "Jan 1, 2026", action: "Lead created from storm alert", type: "system", user: "System" },
-                  ].map((item, i) => (
-                    <div key={i} className="panel p-3 flex items-center gap-4">
-                      <div className="w-2 h-2 rounded-full bg-accent-primary" />
-                      <div className="flex-1">
-                        <p className="font-mono text-sm text-text-primary">{item.action}</p>
-                        <p className="font-mono text-xs text-text-muted">{item.user} • {item.date}</p>
-                      </div>
-                      <span className="data-badge">{item.type}</span>
-                    </div>
-                  ))}
-                </div>
+              {activeTab === "timeline" && (
+                <ActivityTimeline
+                  customerId={customer.id}
+                  maxHeight="calc(90vh - 280px)"
+                  limit={20}
+                />
               )}
 
               {activeTab === "notes" && (

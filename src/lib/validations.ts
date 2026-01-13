@@ -230,6 +230,82 @@ export const customerQuerySchema = paginationSchema.extend({
 export type CustomerQueryInput = z.infer<typeof customerQuerySchema>;
 
 // =============================================================================
+// BULK OPERATIONS SCHEMAS
+// =============================================================================
+
+export const bulkUpdateCustomersSchema = z.object({
+  ids: z.array(cuidSchema).min(1, "At least one customer ID required").max(100, "Maximum 100 customers per batch"),
+  updates: z.object({
+    status: customerStatusSchema.optional(),
+    stage: customerStageSchema.optional(),
+    assignedRepId: cuidSchema.nullable().optional(),
+  }).refine(
+    (data) => data.status !== undefined || data.stage !== undefined || data.assignedRepId !== undefined,
+    { message: "At least one update field required" }
+  ),
+});
+
+export const bulkDeleteCustomersSchema = z.object({
+  ids: z.array(cuidSchema).min(1, "At least one customer ID required").max(100, "Maximum 100 customers per batch"),
+});
+
+export type BulkUpdateCustomersInput = z.infer<typeof bulkUpdateCustomersSchema>;
+export type BulkDeleteCustomersInput = z.infer<typeof bulkDeleteCustomersSchema>;
+
+// =============================================================================
+// PLAYBOOK SCHEMAS
+// =============================================================================
+
+export const playbookCategorySchema = z.enum([
+  "objection-handling",
+  "closing",
+  "discovery",
+  "presentation",
+  "follow-up",
+  "storm",
+  "cold-call",
+  "retention",
+]);
+
+export const playbookTypeSchema = z.enum([
+  "script",
+  "checklist",
+  "guide",
+  "template",
+]);
+
+export const playbookStepSchema = z.object({
+  title: z.string().min(1).max(100),
+  content: z.string().min(1).max(5000),
+  tips: z.array(z.string().max(200)).max(10).optional(),
+});
+
+export const createPlaybookSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200).trim(),
+  description: z.string().max(1000).optional(),
+  category: playbookCategorySchema,
+  type: playbookTypeSchema.default("script"),
+  content: z.string().max(50000).optional(), // Markdown content
+  stage: z.string().max(50).optional(),
+  scenario: z.string().max(200).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  isPublished: z.boolean().optional().default(true),
+});
+
+export const updatePlaybookSchema = createPlaybookSchema.partial();
+
+export const playbookQuerySchema = paginationSchema.extend({
+  search: z.string().max(100).optional(),
+  category: playbookCategorySchema.optional(),
+  type: playbookTypeSchema.optional(),
+  isPublished: z.coerce.boolean().optional(),
+});
+
+export type CreatePlaybookInput = z.infer<typeof createPlaybookSchema>;
+export type UpdatePlaybookInput = z.infer<typeof updatePlaybookSchema>;
+export type PlaybookQueryInput = z.infer<typeof playbookQuerySchema>;
+
+// =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 

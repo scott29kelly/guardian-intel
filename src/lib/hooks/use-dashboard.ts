@@ -1,10 +1,12 @@
 /**
  * Dashboard Data Hook
  * 
- * Fetches aggregated dashboard data from the API
+ * Fetches aggregated dashboard data from the API.
+ * Integrates with SSE for real-time updates - auto-refetches when
+ * new events are received instead of polling every 60s.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface DashboardCustomer {
   id: string;
@@ -90,45 +92,138 @@ export function useDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sseStatus, setSSEStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("disconnected");
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptRef = useRef(0);
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/dashboard");
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch dashboard data");
-        }
-
-        const result = await response.json();
-        
-        if (!result.success) {
-          throw new Error(result.error || "Unknown error");
-        }
-
-        setData({
-          priorityCustomers: result.priorityCustomers,
-          intelItems: result.intelItems,
-          weatherEvents: result.weatherEvents,
-          metrics: result.metrics,
-          alerts: result.alerts,
-        });
-        setError(null);
-      } catch (err) {
-        console.error("[Dashboard] Fetch error:", err);
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      } finally {
-        setIsLoading(false);
+  const fetchDashboard = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setIsLoading(true);
+      const response = await fetch("/api/dashboard");
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data");
       }
-    }
 
-    fetchDashboard();
-    
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchDashboard, 60000);
-    return () => clearInterval(interval);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || "Unknown error");
+      }
+
+      setData({
+        priorityCustomers: result.priorityCustomers,
+        intelItems: result.intelItems,
+        weatherEvents: result.weatherEvents,
+        metrics: result.metrics,
+        alerts: result.alerts,
+      });
+      setLastUpdate(new Date());
+      setError(null);
+    } catch (err) {
+      console.error("[Dashboard] Fetch error:", err);
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  return { data, isLoading, error, refetch: () => {} };
+  // Connect to SSE for real-time updates
+  const connectSSE = useCallback(() => {
+    // Cleanup existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    setSSEStatus("connecting");
+    
+    const eventSource = new EventSource("/api/events");
+    eventSourceRef.current = eventSource;
+    
+    eventSource.onopen = () => {
+      console.log("[Dashboard SSE] Connected");
+      setSSEStatus("connected");
+      reconnectAttemptRef.current = 0;
+    };
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        
+        // Skip heartbeat events
+        if (parsed.type === "heartbeat") return;
+        
+        // Refetch dashboard on relevant events (storm, intel, customer)
+        if (["storm", "intel", "customer"].includes(parsed.type)) {
+          console.log(`[Dashboard SSE] Received ${parsed.type} event, refetching...`);
+          fetchDashboard(true); // Silent refetch
+        }
+      } catch (err) {
+        console.error("[Dashboard SSE] Parse error:", err);
+      }
+    };
+    
+    eventSource.onerror = () => {
+      console.warn("[Dashboard SSE] Connection error");
+      eventSource.close();
+      
+      const attempt = ++reconnectAttemptRef.current;
+      
+      if (attempt > 10) {
+        setSSEStatus("error");
+        console.error("[Dashboard SSE] Max reconnection attempts reached, falling back to polling");
+        // Fall back to polling if SSE fails
+        return;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s, 8s... max 30s
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 1000, 30000);
+      console.log(`[Dashboard SSE] Reconnecting in ${Math.round(delay)}ms (attempt ${attempt})`);
+      
+      setSSEStatus("disconnected");
+      reconnectTimeoutRef.current = setTimeout(connectSSE, delay);
+    };
+  }, [fetchDashboard]);
+
+  useEffect(() => {
+    // Initial fetch
+    fetchDashboard();
+    
+    // Connect to SSE for real-time updates
+    connectSSE();
+    
+    // Fallback: poll every 5 minutes if SSE is connected (safety net)
+    // or every 60 seconds if SSE fails
+    const interval = setInterval(() => {
+      if (sseStatus === "error") {
+        fetchDashboard(true);
+      }
+    }, 60000);
+    
+    return () => {
+      clearInterval(interval);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [fetchDashboard, connectSSE, sseStatus]);
+
+  return { 
+    data, 
+    isLoading, 
+    error, 
+    refetch: () => fetchDashboard(false),
+    sseStatus,
+    lastUpdate,
+    isRealtime: sseStatus === "connected",
+  };
 }

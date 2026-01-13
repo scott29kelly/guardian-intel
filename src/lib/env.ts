@@ -40,6 +40,9 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   RATE_LIMIT_ENABLED: z.enum(["true", "false"]).optional().default("true"),
   
+  // Cron Jobs (Vercel Cron or self-hosted)
+  CRON_SECRET: z.string().optional(), // Shared secret for authenticating cron requests
+  
   // Environment
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
@@ -85,6 +88,7 @@ function getDefaultEnv(): z.infer<typeof envSchema> {
     NEXTAUTH_SECRET: "development-secret-do-not-use-in-production",
     NODE_ENV: "development",
     RATE_LIMIT_ENABLED: "true",
+    CRM_PROVIDER: "placeholder",
   };
 }
 

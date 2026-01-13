@@ -13,6 +13,8 @@
  * - Affected customer identification
  */
 
+import { geocodingService } from "../geocoding";
+
 export interface WeatherAlert {
   id: string;
   type: "hail" | "wind" | "tornado" | "thunderstorm" | "flood" | "hurricane";
@@ -203,7 +205,7 @@ class WeatherService {
   }
 
   /**
-   * Geocode an address to lat/lon
+   * Geocode an address to lat/lon using the geocoding service
    */
   private async geocodeAddress(
     address: string,
@@ -211,18 +213,8 @@ class WeatherService {
     state: string,
     zipCode: string
   ): Promise<{ lat: number; lon: number }> {
-    // In production, use Google Maps, Mapbox, or Census Geocoder
-    // For now, use approximate coordinates based on zip code
-    
-    const zipCoords: Record<string, { lat: number; lon: number }> = {
-      "43215": { lat: 39.9612, lon: -82.9988 },
-      "43017": { lat: 40.0992, lon: -83.1140 },
-      "43081": { lat: 40.1262, lon: -82.9296 },
-      "43065": { lat: 40.1578, lon: -83.0752 },
-      "43068": { lat: 39.9551, lon: -82.8133 },
-    };
-
-    return zipCoords[zipCode] || { lat: 40.1773, lon: -75.0035 }; // Default to Southampton, PA (Guardian HQ)
+    const result = await geocodingService.geocode(address, city, state, zipCode);
+    return { lat: result.latitude, lon: result.longitude };
   }
 
   /**

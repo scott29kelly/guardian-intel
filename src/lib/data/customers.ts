@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type { Customer, Prisma } from "@prisma/client";
-import { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput } from "@/lib/validations";
+import { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
 
 // Types for query results
 export interface CustomerWithRelations extends Customer {
@@ -253,6 +253,40 @@ export async function deleteCustomer(id: string): Promise<Customer> {
       lostReason: "Deleted",
     },
   });
+}
+
+/**
+ * Bulk update customers
+ */
+export async function bulkUpdateCustomers(
+  ids: string[],
+  updates: BulkUpdateCustomersInput["updates"]
+): Promise<{ count: number }> {
+  const result = await prisma.customer.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      ...(updates.status && { status: updates.status }),
+      ...(updates.stage && { stage: updates.stage }),
+      ...(updates.assignedRepId !== undefined && { assignedRepId: updates.assignedRepId }),
+    },
+  });
+
+  return { count: result.count };
+}
+
+/**
+ * Bulk delete customers (soft delete by setting status)
+ */
+export async function bulkDeleteCustomers(ids: string[]): Promise<{ count: number }> {
+  const result = await prisma.customer.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      status: "closed-lost",
+      lostReason: "Bulk deleted",
+    },
+  });
+
+  return { count: result.count };
 }
 
 /**

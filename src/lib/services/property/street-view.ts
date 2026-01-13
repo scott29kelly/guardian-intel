@@ -6,7 +6,17 @@
  * 
  * API Key required: GOOGLE_MAPS_API_KEY in .env.local
  * Enable "Street View Static API" in Google Cloud Console
+ * 
+ * Caching: Street View URLs cached for 1 hour
  */
+
+import { 
+  cacheGet, 
+  cacheSet, 
+  buildCacheKey, 
+  hashString, 
+  CACHE_TTL 
+} from "@/lib/cache";
 
 export interface StreetViewOptions {
   width?: number;
@@ -25,6 +35,14 @@ export interface StreetViewResult {
     lat: number;
     lng: number;
   };
+}
+
+export interface CachedStreetViewData {
+  imageUrl: string;
+  available: boolean;
+  location?: { lat: number; lng: number };
+  panoId?: string;
+  cachedAt: number;
 }
 
 const DEFAULT_OPTIONS: StreetViewOptions = {
@@ -97,6 +115,8 @@ export function getStreetViewImageUrlByCoords(
 /**
  * Check if Street View is available for a location
  * Returns metadata about the nearest Street View panorama
+ * 
+ * Uses caching to avoid repeated API calls (1 hour TTL)
  */
 export async function checkStreetViewAvailability(
   address: string,
@@ -110,23 +130,40 @@ export async function checkStreetViewAvailability(
     // In development without API key, assume available
     return { available: true };
   }
+
+  // Check cache first
+  const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
+  const addressHash = hashString(fullAddress);
+  const cacheKey = buildCacheKey("streetView", "availability", addressHash);
   
-  const fullAddress = encodeURIComponent(`${address}, ${city}, ${state} ${zipCode}`);
-  const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${fullAddress}&key=${apiKey}`;
+  const cached = await cacheGet<{ available: boolean; location?: { lat: number; lng: number }; panoId?: string }>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+  
+  const encodedAddress = encodeURIComponent(fullAddress);
+  const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${encodedAddress}&key=${apiKey}`;
   
   try {
     const response = await fetch(metadataUrl);
     const data = await response.json();
     
+    let result: { available: boolean; location?: { lat: number; lng: number }; panoId?: string };
+    
     if (data.status === "OK") {
-      return {
+      result = {
         available: true,
         location: data.location,
         panoId: data.pano_id,
       };
+    } else {
+      result = { available: false };
     }
     
-    return { available: false };
+    // Cache the result
+    await cacheSet(cacheKey, result, CACHE_TTL.streetView);
+    
+    return result;
   } catch (error) {
     console.error("[StreetView] Error checking availability:", error);
     return { available: false };
@@ -189,4 +226,69 @@ export function getStreetViewEmbedUrl(
   }
   
   return `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${fullAddress}`;
+}
+
+/**
+ * Get cached Street View data for an address
+ * Returns image URL and availability status, caching for 1 hour
+ * 
+ * This is the main function for server-side Street View handling with caching
+ */
+export async function getCachedStreetViewData(
+  address: string,
+  city: string,
+  state: string,
+  zipCode: string,
+  options: StreetViewOptions = {}
+): Promise<CachedStreetViewData> {
+  const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
+  const addressHash = hashString(fullAddress);
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const optionsHash = hashString(`${opts.width}x${opts.height}-${opts.heading}-${opts.pitch}-${opts.fov}`);
+  const cacheKey = buildCacheKey("streetView", "data", addressHash, optionsHash);
+  
+  // Check cache first
+  const cached = await cacheGet<CachedStreetViewData>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+  
+  // Check availability first
+  const availability = await checkStreetViewAvailability(address, city, state, zipCode);
+  
+  // Generate image URL
+  const imageUrl = getStreetViewImageUrl(address, city, state, zipCode, options);
+  
+  const data: CachedStreetViewData = {
+    imageUrl,
+    available: availability.available,
+    location: availability.location,
+    panoId: availability.panoId,
+    cachedAt: Date.now(),
+  };
+  
+  // Cache the result
+  await cacheSet(cacheKey, data, CACHE_TTL.streetView);
+  
+  return data;
+}
+
+/**
+ * Invalidate Street View cache for an address
+ */
+export async function invalidateStreetViewCache(
+  address: string,
+  city: string,
+  state: string,
+  zipCode: string
+): Promise<void> {
+  const { cacheDel } = await import("@/lib/cache");
+  const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
+  const addressHash = hashString(fullAddress);
+  
+  // Delete availability cache
+  const availabilityCacheKey = buildCacheKey("streetView", "availability", addressHash);
+  await cacheDel(availabilityCacheKey);
+  
+  // Note: Data caches with different options won't be cleared, but they'll expire
 }

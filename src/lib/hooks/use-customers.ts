@@ -8,7 +8,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import type { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput } from "@/lib/validations";
+import type { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
 
 // Types
 interface Customer {
@@ -150,6 +150,42 @@ async function deleteCustomer(id: string): Promise<void> {
   }
 }
 
+interface BulkUpdateResponse {
+  success: boolean;
+  message: string;
+  count: number;
+}
+
+async function bulkUpdateCustomers(data: BulkUpdateCustomersInput): Promise<BulkUpdateResponse> {
+  const response = await fetch("/api/customers/bulk", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to bulk update customers");
+  }
+  
+  return response.json();
+}
+
+async function bulkDeleteCustomers(ids: string[]): Promise<BulkUpdateResponse> {
+  const response = await fetch("/api/customers/bulk", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to bulk delete customers");
+  }
+  
+  return response.json();
+}
+
 // Hooks
 
 /**
@@ -203,22 +239,91 @@ export function useCustomer(id: string | undefined, includeDetails = false) {
 }
 
 /**
- * Create a new customer
+ * Create a new customer with optimistic updates
  */
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: createCustomer,
-    onSuccess: () => {
-      // Invalidate all customer lists
+    
+    // Optimistic update: instantly add the customer to the UI
+    onMutate: async (newCustomerData) => {
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: customerKeys.lists() });
+      
+      // Snapshot the previous value for rollback
+      const previousData = queryClient.getQueriesData({ queryKey: customerKeys.lists() });
+      
+      // Create an optimistic customer with temporary ID
+      const optimisticCustomer: Customer = {
+        id: `temp-${Date.now()}`,
+        firstName: newCustomerData.firstName,
+        lastName: newCustomerData.lastName,
+        email: newCustomerData.email || null,
+        phone: newCustomerData.phone || null,
+        address: newCustomerData.address,
+        city: newCustomerData.city,
+        state: newCustomerData.state,
+        zipCode: newCustomerData.zipCode,
+        propertyType: newCustomerData.propertyType || null,
+        yearBuilt: null,
+        squareFootage: null,
+        roofType: newCustomerData.roofType || null,
+        roofAge: newCustomerData.roofAge || null,
+        propertyValue: null,
+        insuranceCarrier: newCustomerData.insuranceCarrier || null,
+        policyType: null,
+        deductible: null,
+        leadScore: 50, // Default score
+        urgencyScore: 0,
+        profitPotential: 0,
+        status: "lead",
+        stage: "new",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        assignedRep: null,
+      };
+      
+      // Optimistically update the cache
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (old: PaginatedCustomersResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: [optimisticCustomer, ...old.data],
+            pagination: {
+              ...old.pagination,
+              total: old.pagination.total + 1,
+            },
+          };
+        }
+      );
+      
+      // Return context for rollback
+      return { previousData, optimisticCustomer };
+    },
+    
+    // On error, rollback to the previous state
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        // Restore all queries to their previous state
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    
+    // Always refetch after error or success
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
     },
   });
 }
 
 /**
- * Update a customer
+ * Update a customer with optimistic updates
  */
 export function useUpdateCustomer() {
   const queryClient = useQueryClient();
@@ -226,13 +331,79 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCustomerInput }) => 
       updateCustomer(id, data),
+    
+    // Optimistic update: instantly reflect changes in the UI
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: customerKeys.detail(id) });
+      await queryClient.cancelQueries({ queryKey: customerKeys.lists() });
+      
+      // Snapshot the previous values
+      const previousCustomer = queryClient.getQueryData(customerKeys.detail(id));
+      const previousLists = queryClient.getQueriesData({ queryKey: customerKeys.lists() });
+      
+      // Optimistically update the detail cache
+      queryClient.setQueryData(
+        customerKeys.detail(id),
+        (old: CustomerResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            customer: {
+              ...old.customer,
+              ...data,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }
+      );
+      
+      // Optimistically update the list caches
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (old: PaginatedCustomersResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((customer) =>
+              customer.id === id
+                ? { ...customer, ...data, updatedAt: new Date().toISOString() }
+                : customer
+            ),
+          };
+        }
+      );
+      
+      // Return context for rollback
+      return { previousCustomer, previousLists, customerId: id };
+    },
+    
+    // On error, rollback to the previous state
+    onError: (_error, _variables, context) => {
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(
+          customerKeys.detail(context.customerId),
+          context.previousCustomer
+        );
+      }
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    
+    // On success, update with the real data from the server
     onSuccess: (response) => {
-      // Update the specific customer in cache
       queryClient.setQueryData(
         customerKeys.detail(response.customer.id),
         response
       );
-      // Invalidate lists to reflect changes
+    },
+    
+    // Always refetch after error or success
+    onSettled: (_data, _error, { id }) => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
     },
   });
@@ -268,4 +439,114 @@ export function usePrefetchCustomer() {
       staleTime: 1000 * 60 * 5,
     });
   };
+}
+
+/**
+ * Bulk update customers with optimistic UI
+ */
+export function useBulkUpdateCustomers() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: bulkUpdateCustomers,
+    
+    // Optimistic update: instantly reflect changes in the UI
+    onMutate: async ({ ids, updates }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: customerKeys.lists() });
+      
+      // Snapshot the previous values
+      const previousLists = queryClient.getQueriesData({ queryKey: customerKeys.lists() });
+      
+      // Optimistically update the list caches
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (old: PaginatedCustomersResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((customer) =>
+              ids.includes(customer.id)
+                ? { 
+                    ...customer, 
+                    ...updates,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : customer
+            ),
+          };
+        }
+      );
+      
+      // Return context for rollback
+      return { previousLists };
+    },
+    
+    // On error, rollback to the previous state
+    onError: (_error, _variables, context) => {
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+    },
+  });
+}
+
+/**
+ * Bulk delete customers
+ */
+export function useBulkDeleteCustomers() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: bulkDeleteCustomers,
+    
+    // Optimistic update: instantly remove from UI
+    onMutate: async (ids) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: customerKeys.lists() });
+      
+      // Snapshot the previous values
+      const previousLists = queryClient.getQueriesData({ queryKey: customerKeys.lists() });
+      
+      // Optimistically update the list caches
+      queryClient.setQueriesData(
+        { queryKey: customerKeys.lists() },
+        (old: PaginatedCustomersResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.filter((customer) => !ids.includes(customer.id)),
+            pagination: {
+              ...old.pagination,
+              total: Math.max(0, old.pagination.total - ids.length),
+            },
+          };
+        }
+      );
+      
+      // Return context for rollback
+      return { previousLists };
+    },
+    
+    // On error, rollback to the previous state
+    onError: (_error, _variables, context) => {
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+    },
+  });
 }

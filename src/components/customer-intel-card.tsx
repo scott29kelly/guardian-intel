@@ -28,6 +28,7 @@ import { TakeActionModal } from "./modals/take-action-modal";
 import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
+import { RecentActivityPreview } from "./customer/activity-timeline";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -396,6 +397,11 @@ export function CustomerIntelCard({
                     </div>
                   </div>
                 )}
+
+                {/* Recent Activity */}
+                <div className="p-4 border-t border-border/50">
+                  <RecentActivityPreview customerId={customer.id} limit={3} />
+                </div>
 
                 {/* Action Bar */}
                 <div className="p-4 border-t border-border/50 flex items-center justify-between bg-surface-secondary/30">

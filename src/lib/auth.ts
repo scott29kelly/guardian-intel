@@ -1,8 +1,16 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { type NextAuthOptions } from "next-auth";
+import { type NextAuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { auditService } from "@/lib/services/audit";
+
+/**
+ * Wrapper around getServerSession for cleaner API route usage
+ */
+export async function auth() {
+  return getServerSession(authOptions);
+}
 
 // =============================================================================
 // DEV BYPASS: Mock user for development (controlled by env var)
@@ -89,6 +97,32 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      // Audit log user login
+      if (user?.id) {
+        try {
+          await auditService.logLogin(user.id, {
+            method: "credentials",
+          });
+        } catch (error) {
+          // Don't block login on audit failure
+          console.error("[Auth] Failed to log sign-in event:", error);
+        }
+      }
+    },
+    async signOut({ token }) {
+      // Audit log user logout
+      if (token?.id) {
+        try {
+          await auditService.logLogout(token.id as string);
+        } catch (error) {
+          // Don't block logout on audit failure
+          console.error("[Auth] Failed to log sign-out event:", error);
+        }
+      }
     },
   },
 };
