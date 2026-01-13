@@ -49,6 +49,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^11.15.0",
     "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.468.0",
     "next": "^15.1.0",
     "next-auth": "^4.24.10",
@@ -60,6 +61,7 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "web-push": "^3.6.7",
     "zod": "^4.3.5",
     "zustand": "^5.0.2"
   },
@@ -72,6 +74,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.20",
     "jsdom": "^27.4.0",

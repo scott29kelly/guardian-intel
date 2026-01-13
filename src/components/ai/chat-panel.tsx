@@ -239,9 +239,11 @@ export function AIChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when panel opens
+  // Reset state and focus input when panel opens
   useEffect(() => {
     if (isOpen) {
+      setViewMode("panel");
+      setShowHistory(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -499,9 +501,9 @@ export function AIChatPanel({
             exit={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "fixed bg-[hsl(var(--surface-primary))] border border-border shadow-2xl z-50 flex",
+              "fixed bg-[hsl(var(--surface-primary))] border border-border shadow-2xl z-50 flex flex-col",
               viewMode === "panel" && "right-0 top-0 bottom-0 w-full max-w-lg border-l rounded-none",
-              viewMode === "expanded" && "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-5xl h-[85vh] rounded-xl",
+              viewMode === "expanded" && "inset-0 m-auto w-[90vw] max-w-4xl h-[80vh] max-h-[800px] rounded-xl",
               viewMode === "fullscreen" && "inset-4 rounded-xl"
             )}
           >

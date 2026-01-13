@@ -400,7 +400,7 @@ export function CustomerIntelCard({
                 {/* Action Bar */}
                 <div className="p-4 border-t border-border/50 flex items-center justify-between bg-surface-secondary/30">
                   <div className="flex items-center gap-4 text-text-muted font-mono text-xs">
-                    <span>Assigned: {customer.assignedRep}</span>
+                    <span>Assigned: {typeof customer.assignedRep === 'object' ? customer.assignedRep?.name : customer.assignedRep}</span>
                     <span className="capitalize">Stage: {customer.stage}</span>
                     {customer.nextAction && (
                       <span className="text-accent-primary flex items-center gap-1">
@@ -463,6 +463,10 @@ export function CustomerIntelCard({
         customer={customer}
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+        onAskAI={() => {
+          setShowProfileModal(false);
+          setShowAIChat(true);
+        }}
       />
       <TakeActionModal 
         customer={customer}

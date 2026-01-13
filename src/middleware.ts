@@ -50,9 +50,11 @@ export const config = {
      * Match all paths except:
      * - /login (auth page)
      * - /api/auth (NextAuth endpoints)
+     * - /api/notifications/vapid-key (public - needed before auth for PWA)
      * - /_next (Next.js internals)
-     * - /favicon.ico, /robots.txt, etc.
+     * - /favicon.ico, /robots.txt, /manifest.json, /sw*.js (PWA assets)
+     * - /icons/* (PWA icons)
      */
-    "/((?!login|api/auth|_next/static|_next/image|favicon.ico|robots.txt).*)",
+    "/((?!login|api/auth|api/notifications/vapid-key|_next/static|_next/image|favicon\\.ico|favicon\\.svg|robots\\.txt|manifest\\.json|sw.*\\.js|icons/).*)",
   ],
 };

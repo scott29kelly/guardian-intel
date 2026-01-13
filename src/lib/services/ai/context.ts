@@ -94,17 +94,18 @@ export class CustomerContextBuilder {
           weatherEvents: this.weatherEvents,
         });
         
+        const customer = this.customer as any;
         return {
-          status: this.customer!.status,
-          stage: this.customer!.stage,
-          leadScore: this.customer!.leadScore,
+          status: customer.status,
+          stage: customer.stage,
+          leadScore: customer.leadScore,
           urgencyScore: scores.urgencyScore,
           profitPotential: scores.profitPotential,
           churnRisk: scores.churnRisk,
-          assignedRep: this.customer!.assignedRep,
-          lastContact: this.customer!.lastContact,
-          nextAction: this.customer!.nextAction,
-          nextActionDate: this.customer!.nextActionDate,
+          assignedRep: typeof customer.assignedRep === 'object' ? customer.assignedRep?.name : customer.assignedRep ?? 'Unassigned',
+          lastContact: new Date(customer.lastContact || customer.updatedAt || Date.now()),
+          nextAction: customer.nextAction || 'No action scheduled',
+          nextActionDate: customer.nextActionDate ? new Date(customer.nextActionDate) : null,
         };
       })(),
       weatherEvents: this.weatherEvents.map(e => ({

@@ -4,208 +4,157 @@
 
 @layer base {
   /* =============================================
-     DARK THEME (Default) - Night Ops Mode
+     DARK THEME (Default) - Professional Dark
      ============================================= */
   :root,
   [data-theme="dark"] {
     /* Backgrounds */
-    --bg-primary: 240 10% 4%;
-    --bg-secondary: 240 10% 6%;
-    --bg-tertiary: 240 6% 10%;
-    --bg-hover: 240 4% 16%;
+    --bg-primary: 220 15% 6%;
+    --bg-secondary: 220 14% 8%;
+    --bg-tertiary: 220 12% 11%;
+    --bg-hover: 220 10% 15%;
     
     /* Surfaces */
-    --surface-primary: 240 10% 6%;
-    --surface-secondary: 240 6% 10%;
-    --surface-hover: 240 4% 14%;
+    --surface-primary: 220 14% 9%;
+    --surface-secondary: 220 12% 12%;
+    --surface-hover: 220 10% 16%;
     
     /* Text */
-    --text-primary: 180 10% 98%;
-    --text-secondary: 220 10% 75%;
-    --text-muted: 220 10% 50%;
+    --text-primary: 210 20% 96%;
+    --text-secondary: 215 15% 65%;
+    --text-muted: 215 10% 45%;
     
     /* Borders */
-    --border: 240 4% 16%;
-    --border-hover: 240 4% 24%;
+    --border: 220 10% 18%;
+    --border-hover: 220 10% 25%;
     
-    /* Accents */
-    --accent-primary: 187 94% 43%;
-    --accent-secondary: 162 94% 40%;
-    --accent-danger: 27 96% 54%;
-    --accent-success: 162 83% 45%;
-    --accent-warning: 45 93% 47%;
+    /* Accents - muted, professional teal */
+    --accent-primary: 187 55% 42%;
+    --accent-secondary: 165 45% 40%;
+    --accent-danger: 20 75% 50%;
+    --accent-success: 160 50% 42%;
+    --accent-warning: 40 70% 50%;
     
-    /* Gradients */
-    --gradient-start: #22d3ee;
-    --gradient-end: #2dd4aa;
-    --gradient-danger-start: #fb923c;
-    --gradient-danger-end: #f97316;
+    /* Gradients - softer */
+    --gradient-start: #3b9aa8;
+    --gradient-end: #3d9078;
+    --gradient-danger-start: #d97a4a;
+    --gradient-danger-end: #c46038;
     
     /* Shadows */
     --shadow-color: 0 0% 0%;
-    --glow-primary: rgba(34, 211, 238, 0.2);
-    --glow-danger: rgba(249, 115, 22, 0.2);
+    --glow-primary: rgba(59, 154, 168, 0.1);
+    --glow-danger: rgba(217, 122, 74, 0.1);
     
     /* Sidebar */
-    --sidebar-bg: 240 10% 4%;
-    --sidebar-border: 240 4% 12%;
+    --sidebar-bg: 220 15% 5%;
+    --sidebar-border: 220 10% 14%;
     
-    /* Special Effects */
-    --noise-opacity: 0.015;
-    --scan-line-opacity: 0.02;
+    /* Special Effects - minimal */
+    --noise-opacity: 0;
+    --scan-line-opacity: 0;
   }
 
   /* =============================================
-     LIGHT THEME - Daylight Mode
+     SLATE THEME - Professional Gray
      ============================================= */
-  [data-theme="light"] {
-    /* Backgrounds */
-    --bg-primary: 210 40% 98%;
-    --bg-secondary: 210 40% 96%;
-    --bg-tertiary: 210 25% 93%;
-    --bg-hover: 210 25% 90%;
-    
-    /* Surfaces */
-    --surface-primary: 0 0% 100%;
-    --surface-secondary: 210 40% 96%;
-    --surface-hover: 210 25% 93%;
-    
-    /* Text */
-    --text-primary: 222 47% 11%;
-    --text-secondary: 220 13% 35%;
-    --text-muted: 220 9% 55%;
-    
-    /* Borders */
-    --border: 214 32% 85%;
-    --border-hover: 214 32% 75%;
-    
-    /* Accents - slightly deeper for light mode */
-    --accent-primary: 199 89% 38%;
-    --accent-secondary: 162 84% 35%;
-    --accent-danger: 24 95% 45%;
-    --accent-success: 162 73% 35%;
-    --accent-warning: 38 92% 45%;
-    
-    /* Gradients */
-    --gradient-start: #0891b2;
-    --gradient-end: #0d9488;
-    --gradient-danger-start: #ea580c;
-    --gradient-danger-end: #c2410c;
-    
-    /* Shadows */
-    --shadow-color: 220 20% 70%;
-    --glow-primary: rgba(8, 145, 178, 0.15);
-    --glow-danger: rgba(234, 88, 12, 0.15);
-    
-    /* Sidebar */
-    --sidebar-bg: 220 25% 97%;
-    --sidebar-border: 214 32% 90%;
-    
-    /* Special Effects */
-    --noise-opacity: 0.008;
-    --scan-line-opacity: 0.01;
-  }
-
-  /* =============================================
-     GRAY THEME - Tactical Gray (Dark)
-     ============================================= */
-  [data-theme="gray"] {
+  [data-theme="slate"] {
     /* Backgrounds - neutral slate tones */
-    --bg-primary: 220 13% 12%;
-    --bg-secondary: 220 13% 15%;
-    --bg-tertiary: 220 10% 20%;
-    --bg-hover: 220 10% 25%;
+    --bg-primary: 215 16% 14%;
+    --bg-secondary: 215 14% 17%;
+    --bg-tertiary: 215 12% 21%;
+    --bg-hover: 215 10% 26%;
     
     /* Surfaces */
-    --surface-primary: 220 13% 15%;
-    --surface-secondary: 220 10% 20%;
-    --surface-hover: 220 10% 25%;
+    --surface-primary: 215 14% 17%;
+    --surface-secondary: 215 12% 21%;
+    --surface-hover: 215 10% 26%;
     
     /* Text */
-    --text-primary: 210 20% 95%;
-    --text-secondary: 215 16% 70%;
-    --text-muted: 215 12% 50%;
+    --text-primary: 210 20% 96%;
+    --text-secondary: 215 14% 65%;
+    --text-muted: 215 10% 48%;
     
     /* Borders */
-    --border: 220 10% 25%;
-    --border-hover: 220 10% 35%;
+    --border: 215 10% 26%;
+    --border-hover: 215 10% 34%;
     
-    /* Accents - muted teal/cyan */
-    --accent-primary: 185 50% 50%;
-    --accent-secondary: 165 50% 45%;
-    --accent-danger: 20 70% 55%;
-    --accent-success: 165 50% 45%;
-    --accent-warning: 40 70% 55%;
+    /* Accents - balanced teal */
+    --accent-primary: 185 45% 48%;
+    --accent-secondary: 165 40% 44%;
+    --accent-danger: 18 65% 52%;
+    --accent-success: 160 45% 44%;
+    --accent-warning: 38 65% 52%;
     
-    /* Gradients */
-    --gradient-start: #5eadb6;
-    --gradient-end: #4d9c84;
-    --gradient-danger-start: #d97856;
-    --gradient-danger-end: #c65d3d;
+    /* Gradients - muted */
+    --gradient-start: #4a9ea6;
+    --gradient-end: #4a9480;
+    --gradient-danger-start: #c97a5a;
+    --gradient-danger-end: #b56545;
     
     /* Shadows */
     --shadow-color: 220 20% 5%;
-    --glow-primary: rgba(94, 173, 182, 0.15);
-    --glow-danger: rgba(217, 120, 86, 0.15);
+    --glow-primary: rgba(74, 158, 166, 0.08);
+    --glow-danger: rgba(201, 122, 90, 0.08);
     
     /* Sidebar */
-    --sidebar-bg: 220 13% 10%;
-    --sidebar-border: 220 10% 20%;
+    --sidebar-bg: 215 16% 12%;
+    --sidebar-border: 215 10% 22%;
     
-    /* Special Effects */
-    --noise-opacity: 0.02;
-    --scan-line-opacity: 0.015;
+    /* Special Effects - none */
+    --noise-opacity: 0;
+    --scan-line-opacity: 0;
   }
 
   /* =============================================
-     LIGHT GRAY THEME - Professional Light (Darker)
+     LIGHT THEME - Clean Professional
      ============================================= */
-  [data-theme="light-gray"] {
-    /* Backgrounds - darker warm gray tones */
-    --bg-primary: 220 12% 85%;
-    --bg-secondary: 220 11% 80%;
-    --bg-tertiary: 220 10% 75%;
-    --bg-hover: 220 10% 70%;
+  [data-theme="light"] {
+    /* Backgrounds */
+    --bg-primary: 210 25% 97%;
+    --bg-secondary: 210 20% 95%;
+    --bg-tertiary: 210 18% 92%;
+    --bg-hover: 210 15% 88%;
     
     /* Surfaces */
-    --surface-primary: 220 15% 92%;
-    --surface-secondary: 220 12% 85%;
-    --surface-hover: 220 11% 78%;
+    --surface-primary: 0 0% 100%;
+    --surface-secondary: 210 20% 96%;
+    --surface-hover: 210 18% 92%;
     
     /* Text */
-    --text-primary: 220 30% 12%;
-    --text-secondary: 220 18% 30%;
-    --text-muted: 220 12% 45%;
+    --text-primary: 220 25% 14%;
+    --text-secondary: 220 12% 40%;
+    --text-muted: 220 8% 55%;
     
     /* Borders */
-    --border: 220 12% 70%;
-    --border-hover: 220 12% 60%;
+    --border: 214 20% 88%;
+    --border-hover: 214 20% 78%;
     
-    /* Accents - richer slate blue-gray tones */
-    --accent-primary: 200 65% 40%;
-    --accent-secondary: 170 55% 35%;
-    --accent-danger: 15 80% 45%;
-    --accent-success: 160 60% 35%;
-    --accent-warning: 35 90% 45%;
+    /* Accents - deeper for light mode */
+    --accent-primary: 190 60% 36%;
+    --accent-secondary: 165 50% 34%;
+    --accent-danger: 18 70% 48%;
+    --accent-success: 160 55% 36%;
+    --accent-warning: 35 75% 48%;
     
     /* Gradients */
-    --gradient-start: #2d7a94;
-    --gradient-end: #2d7a63;
-    --gradient-danger-start: #c95a30;
-    --gradient-danger-end: #b24520;
+    --gradient-start: #1a8a9a;
+    --gradient-end: #2a8570;
+    --gradient-danger-start: #c96840;
+    --gradient-danger-end: #a85530;
     
     /* Shadows */
-    --shadow-color: 220 20% 50%;
-    --glow-primary: rgba(45, 122, 148, 0.18);
-    --glow-danger: rgba(201, 90, 48, 0.18);
+    --shadow-color: 220 15% 75%;
+    --glow-primary: rgba(26, 138, 154, 0.08);
+    --glow-danger: rgba(201, 104, 64, 0.08);
     
     /* Sidebar */
-    --sidebar-bg: 220 12% 82%;
-    --sidebar-border: 220 11% 72%;
+    --sidebar-bg: 210 20% 96%;
+    --sidebar-border: 214 18% 90%;
     
-    /* Special Effects */
-    --noise-opacity: 0.01;
-    --scan-line-opacity: 0.012;
+    /* Special Effects - none */
+    --noise-opacity: 0;
+    --scan-line-opacity: 0;
   }
 }
 
@@ -249,22 +198,9 @@
 @layer components {
   /* Glass panel for cards */
   .glass-panel {
-    position: relative;
-    background-color: hsl(var(--surface-primary) / 0.9);
+    background-color: hsl(var(--surface-primary));
     border: 1px solid hsl(var(--border));
-    backdrop-filter: blur(16px);
-  }
-
-  .glass-panel::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--text-primary) / 0.03) 0%,
-      transparent 50%
-    );
+    border-radius: 0.5rem;
   }
 
   /* Input autofill override */
@@ -277,26 +213,12 @@
     transition: background-color 5000s ease-in-out 0s;
   }
 
-  /* Tactical panel styling */
+  /* Panel styling - clean and minimal */
   .panel {
-    position: relative;
-    background-color: hsl(var(--surface-primary) / 0.8);
+    background-color: hsl(var(--surface-primary));
     border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     overflow: hidden;
-    backdrop-filter: blur(12px);
-  }
-
-  .panel::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--text-primary) / 0.02) 0%,
-      transparent 50%
-    );
   }
 
   .panel-header {
@@ -305,7 +227,6 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: linear-gradient(90deg, hsl(var(--accent-primary) / 0.05) 0%, transparent 100%);
   }
 
   /* Data badge */
@@ -313,14 +234,12 @@
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    padding: 0.125rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 500;
     background-color: hsl(var(--surface-secondary));
     border: 1px solid hsl(var(--border));
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
   }
 }
 
@@ -366,33 +285,25 @@
     border-color: hsl(var(--border));
   }
 
-  /* Glow effects */
+  /* Glow effects - subtle */
   .glow-storm {
-    box-shadow: 0 0 20px var(--glow-primary), inset 0 0 20px hsl(var(--accent-secondary) / 0.05);
+    box-shadow: 0 0 12px var(--glow-primary);
   }
 
   .glow-damage {
-    box-shadow: 0 0 20px var(--glow-danger), inset 0 0 20px hsl(var(--accent-danger) / 0.05);
+    box-shadow: 0 0 12px var(--glow-danger);
   }
 
   .glow-intel {
-    box-shadow: 0 0 20px var(--glow-primary), inset 0 0 20px hsl(var(--accent-primary) / 0.05);
-  }
-
-  /* Corner cut decoration */
-  .corner-cut {
-    clip-path: polygon(
-      0 8px, 8px 0, 100% 0, 100% calc(100% - 8px),
-      calc(100% - 8px) 100%, 0 100%
-    );
+    box-shadow: 0 0 12px var(--glow-primary);
   }
 
   /* Metric display */
   .metric-value {
     font-family: var(--font-mono);
-    font-size: 2.25rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -401,34 +312,25 @@
 
   .metric-value-danger {
     font-family: var(--font-mono);
-    font-size: 2.25rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     background: linear-gradient(135deg, var(--gradient-danger-start) 0%, var(--gradient-danger-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Terminal text effect */
+  /* Terminal text effect - simplified */
   .terminal-text {
     font-family: var(--font-mono);
     color: hsl(var(--accent-primary));
-    text-shadow: 0 0 10px var(--glow-primary);
   }
 }
 
-/* Noise texture overlay - applied globally */
+/* Noise texture overlay - disabled for cleaner look */
 .noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: var(--noise-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  display: none;
 }
 
 /* Select and Option Styling */
@@ -449,16 +351,15 @@ select option {
 /* Dark themes need explicit option styling */
 :root option,
 [data-theme="dark"] option,
-[data-theme="gray"] option {
-  background-color: #0f1012;
+[data-theme="slate"] option {
+  background-color: #151820;
   color: #f0f0f0;
 }
 
 /* Light themes */
-[data-theme="light"] option,
-[data-theme="light-gray"] option {
+[data-theme="light"] option {
   background-color: #ffffff;
-  color: #1a1a2e;
+  color: #1e2938;
 }
 
 /* Theme transition */

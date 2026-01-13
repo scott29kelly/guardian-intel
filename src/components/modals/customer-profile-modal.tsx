@@ -18,7 +18,10 @@ import {
   Trash2,
   ExternalLink,
   Camera,
+  Zap,
+  Bot,
 } from "lucide-react";
+import { TakeActionModal } from "./take-action-modal";
 import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
@@ -27,6 +30,7 @@ interface CustomerProfileModalProps {
   customer: Customer;
   isOpen: boolean;
   onClose: () => void;
+  onAskAI?: () => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -48,10 +52,12 @@ export function CustomerProfileModal({
   customer,
   isOpen,
   onClose,
+  onAskAI,
 }: CustomerProfileModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "history" | "notes">("overview");
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
+  const [showActionModal, setShowActionModal] = useState(false);
   const [notes, setNotes] = useState<Note[]>([
     { id: "1", date: "Jan 5, 2026", note: "Customer very interested in insurance claim process. Has visible hail damage on north-facing roof slope.", user: "Sarah Mitchell" },
     { id: "2", date: "Jan 2, 2026", note: "Roof is 24 years old, 3-tab shingles. Multiple storm events in area. High priority for inspection.", user: "System" },
@@ -88,6 +94,7 @@ export function CustomerProfileModal({
   if (!isOpen) return null;
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -314,7 +321,7 @@ export function CustomerProfileModal({
                     <div className="grid grid-cols-4 gap-4 font-mono text-sm">
                       <div>
                         <span className="text-text-muted block text-xs">Assigned To</span>
-                        <span className="text-text-primary">{customer.assignedRep}</span>
+                        <span className="text-text-primary">{typeof customer.assignedRep === 'object' ? customer.assignedRep?.name : customer.assignedRep ?? 'Unassigned'}</span>
                       </div>
                       <div>
                         <span className="text-text-muted block text-xs">Stage</span>
@@ -322,11 +329,11 @@ export function CustomerProfileModal({
                       </div>
                       <div>
                         <span className="text-text-muted block text-xs">Last Contact</span>
-                        <span className="text-text-primary">{customer.lastContact.toLocaleDateString()}</span>
+                        <span className="text-text-primary">{new Date((customer as any).lastContact || (customer as any).updatedAt || Date.now()).toLocaleDateString()}</span>
                       </div>
                       <div>
                         <span className="text-text-muted block text-xs">Next Action</span>
-                        <span className="text-accent-primary">{customer.nextAction}</span>
+                        <span className="text-accent-primary">{(customer as any).nextAction || 'No action scheduled'}</span>
                       </div>
                     </div>
                   </div>
@@ -445,21 +452,36 @@ export function CustomerProfileModal({
                 >
                   Close
                 </button>
-                <a 
-                  href={`https://maps.google.com/?q=${encodeURIComponent(`${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={onAskAI}
+                  className="px-4 py-2 bg-intel-500/10 border border-intel-500/30 rounded font-mono text-xs text-intel-400 hover:bg-intel-500/20 transition-all flex items-center gap-2"
+                >
+                  <Bot className="w-3.5 h-3.5" />
+                  Ask AI
+                </button>
+                <button
+                  onClick={() => setShowActionModal(true)}
                   className="px-4 py-2 rounded font-mono text-xs text-white flex items-center gap-2 transition-all hover:opacity-90"
                   style={{ background: `linear-gradient(90deg, var(--gradient-start), var(--gradient-end))` }}
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  View on Map
-                </a>
+                  <Zap className="w-3.5 h-3.5" />
+                  Take Action
+                </button>
               </div>
             </div>
           </motion.div>
         </>
       )}
+
     </AnimatePresence>
+
+      {/* Take Action Modal */}
+      <TakeActionModal
+        customer={customer}
+        isOpen={showActionModal}
+        onClose={() => setShowActionModal(false)}
+      />
+
+    </>
   );
 }

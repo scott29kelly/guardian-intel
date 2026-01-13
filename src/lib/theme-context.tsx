@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "gray" | "light-gray";
+type Theme = "dark" | "slate" | "light";
 
 interface ThemeContextType {
   theme: Theme;
@@ -17,9 +17,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("guardian-theme") as Theme;
-    if (stored && ["dark", "light", "gray", "light-gray"].includes(stored)) {
-      setTheme(stored);
+    const storedTheme = localStorage.getItem("guardian-theme") as Theme;
+    
+    if (storedTheme && ["dark", "slate", "light"].includes(storedTheme)) {
+      setTheme(storedTheme);
+    } else if (storedTheme === "gray" || storedTheme === "light-gray") {
+      setTheme("slate");
     }
   }, []);
 

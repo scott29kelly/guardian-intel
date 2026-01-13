@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -27,21 +27,23 @@ const sans = Outfit({
   weight: ["300", "400", "500", "600"],
 });
 
+// Viewport configuration (Next.js 15 - separate from metadata)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#0ea5e9",
+};
+
 export const metadata: Metadata = {
   title: "GUARDIAN INTEL | Storm Damage Command",
   description: "Real-time storm intelligence and sales command center for Guardian Roofing",
   manifest: "/manifest.json",
-  themeColor: "#0ea5e9",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Guardian Intel",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
   },
   icons: {
     icon: [

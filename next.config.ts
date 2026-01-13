@@ -5,6 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   skipWaiting: true,
+  // Disable PWA in development - test push notifications via API directly
   disable: process.env.NODE_ENV === "development",
   runtimeCaching: [
     {

@@ -109,7 +109,6 @@ export default function SettingsPage() {
   const [webhookUrl, setWebhookUrl] = useState("https://api.guardian-intel.com/webhooks/abc123xyz");
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [showConnectModal, setShowConnectModal] = useState<string | null>(null);
-  const [accentColor, setAccentColor] = useState("#0ca5e9");
   
   // Profile form state
   const [profile, setProfile] = useState({
@@ -232,9 +231,10 @@ export default function SettingsPage() {
     showToast("success", "Synced", `${integrationName} data has been refreshed`);
   };
 
-  const handleThemeChange = (newTheme: "light" | "dark" | "gray" | "light-gray") => {
+  const handleThemeChange = (newTheme: "dark" | "slate" | "light") => {
     setTheme(newTheme);
-    showToast("success", "Theme Changed", `Switched to ${newTheme} theme`);
+    const themeNames = { dark: "Dark", slate: "Slate", light: "Light" };
+    showToast("success", "Theme Changed", `Switched to ${themeNames[newTheme]} theme`);
   };
 
   return (
@@ -756,12 +756,11 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div>
                   <h4 className="text-sm font-medium text-text-primary mb-3">Theme</h4>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-4">
                     {[
-                      { id: "dark" as const, label: "Dark", bg: "bg-[#0a0a0f]", preview: "bg-[#1a1a2e]" },
-                      { id: "light" as const, label: "Light", bg: "bg-white", preview: "bg-gray-100" },
-                      { id: "gray" as const, label: "Gray", bg: "bg-[#1f2937]", preview: "bg-[#374151]" },
-                      { id: "light-gray" as const, label: "Light Gray", bg: "bg-[#d1d5db]", preview: "bg-[#9ca3af]" },
+                      { id: "dark" as const, label: "Dark", bg: "bg-[#0f1114]", preview: "bg-[#1a1d22]" },
+                      { id: "slate" as const, label: "Slate", bg: "bg-[#1e2228]", preview: "bg-[#2a2f36]" },
+                      { id: "light" as const, label: "Light", bg: "bg-[#f5f7f9]", preview: "bg-white" },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -772,50 +771,17 @@ export default function SettingsPage() {
                             : "border-border hover:border-text-muted"
                         }`}
                       >
-                        <div className={`w-full h-10 rounded ${t.bg} border border-border flex items-center justify-center`}>
-                          <div className={`w-8 h-6 rounded ${t.preview}`} />
+                        <div className={`w-full h-12 rounded ${t.bg} border border-border flex items-center justify-center`}>
+                          <div className={`w-10 h-7 rounded ${t.preview}`} />
                         </div>
-                        <span className={`text-xs ${theme === t.id ? "text-accent-primary" : "text-text-muted"}`}>
+                        <span className={`text-sm ${theme === t.id ? "text-accent-primary font-medium" : "text-text-muted"}`}>
                           {t.label}
                         </span>
-                        {theme === t.id && (
-                          <Check className="w-4 h-4 text-accent-primary" />
-                        )}
                       </button>
                     ))}
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium text-text-primary mb-3">Accent Color</h4>
-                  <div className="flex gap-3">
-                    {[
-                      { color: "#0ca5e9", name: "Cyan" },
-                      { color: "#f97316", name: "Orange" },
-                      { color: "#10b981", name: "Emerald" },
-                      { color: "#8b5cf6", name: "Purple" },
-                      { color: "#f43f5e", name: "Rose" },
-                    ].map((c) => (
-                      <button
-                        key={c.color}
-                        onClick={() => {
-                          setAccentColor(c.color);
-                          showToast("info", "Coming Soon", "Custom accent colors will be available in a future update");
-                        }}
-                        className={`w-10 h-10 rounded-full transition-all hover:scale-110 ${
-                          accentColor === c.color 
-                            ? "ring-2 ring-white ring-offset-2 ring-offset-surface-primary" 
-                            : ""
-                        }`}
-                        style={{ backgroundColor: c.color }}
-                        title={c.name}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-text-muted mt-2">
-                    Custom accent colors coming soon
-                  </p>
-                </div>
               </CardContent>
             </Card>
           )}

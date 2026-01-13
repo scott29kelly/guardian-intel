@@ -82,13 +82,14 @@ model User {
   teamMembers   User[]    @relation("TeamHierarchy")
   
   // Relationships
-  accounts      Account[]
-  sessions      Session[]
-  customers     Customer[]
-  interactions  Interaction[]
-  notes         Note[]
-  activities    Activity[]
-  conversations Conversation[]
+  accounts          Account[]
+  sessions          Session[]
+  customers         Customer[]
+  interactions      Interaction[]
+  notes             Note[]
+  activities        Activity[]
+  conversations     Conversation[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Customer {
@@ -603,4 +604,26 @@ model Message {
   toolCalls       String?      // JSON array of tool calls
   
   @@index([conversationId])
+}
+
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Web Push subscription data
+  endpoint  String   @unique
+  p256dh    String   // Public key for encryption
+  auth      String   // Auth secret
+  
+  // Device info (optional)
+  userAgent String?
+  
+  @@index([userId])
 }
