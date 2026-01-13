@@ -13,11 +13,54 @@
  * - Storm markers for recent reports
  * - Customer location pins
  * - Click to get coordinates
+ * 
+ * PERFORMANCE OPTIMIZED:
+ * - Leaflet imports moved to module scope (not render-time)
+ * - Icon instances memoized to prevent recreation
+ * - CSS import handled once at module level
  */
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Cloud, Play, Pause, SkipForward, SkipBack, Layers, RefreshCw } from "lucide-react";
+
+// =============================================================================
+// PERFORMANCE OPTIMIZATION: Import Leaflet at module scope, not render-time
+// This prevents require() calls on every render
+// =============================================================================
+let L: typeof import("leaflet") | null = null;
+let leafletInitialized = false;
+
+// Lazy initialize Leaflet (client-side only)
+function getLeaflet() {
+  if (typeof window === "undefined") return null;
+  
+  if (!leafletInitialized) {
+    // Import CSS once
+    require("leaflet/dist/leaflet.css");
+    L = require("leaflet");
+    
+    // Fix default marker icons once
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+      iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+      shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    });
+    
+    leafletInitialized = true;
+  }
+  
+  return L;
+}
+
+// Pre-defined icon color map (avoid recreating on every render)
+const ICON_COLORS = {
+  hail: { critical: "#ef4444", high: "#f97316", default: "#eab308" },
+  wind: "#3b82f6",
+  tornado: "#dc2626",
+  customer: "#22d3ee",
+} as const;
 
 // Types for RainViewer API
 interface RainViewerFrame {
@@ -204,7 +247,72 @@ export function WeatherRadarMap({
     return currentFrame >= radarData.radar.past.length;
   };
 
-  if (!isClient) {
+  // Initialize Leaflet on client-side
+  const leaflet = isClient ? getLeaflet() : null;
+
+  // =============================================================================
+  // PERFORMANCE OPTIMIZATION: Memoize icon creation
+  // Icons are cached by type+severity combination to prevent recreation
+  // =============================================================================
+  const iconCache = useMemo(() => {
+    if (!leaflet) return new Map();
+    
+    const cache = new Map<string, L.DivIcon>();
+    
+    const createIcon = (type: StormMarker["type"], severity?: string): L.DivIcon => {
+      const cacheKey = `${type}-${severity || "default"}`;
+      
+      if (cache.has(cacheKey)) {
+        return cache.get(cacheKey)!;
+      }
+      
+      let color: string;
+      if (type === "hail") {
+        color = severity === "critical" 
+          ? ICON_COLORS.hail.critical 
+          : severity === "high" 
+            ? ICON_COLORS.hail.high 
+            : ICON_COLORS.hail.default;
+      } else {
+        color = ICON_COLORS[type];
+      }
+
+      const icon = leaflet.divIcon({
+        className: "custom-marker",
+        html: `
+          <div style="
+            width: 24px;
+            height: 24px;
+            background: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <div style="
+              width: 8px;
+              height: 8px;
+              background: white;
+              border-radius: 50%;
+            "></div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      
+      cache.set(cacheKey, icon);
+      return icon;
+    };
+    
+    return { createIcon, cache };
+  }, [leaflet]);
+
+  const createIcon = iconCache.createIcon;
+
+  if (!isClient || !leaflet) {
     return (
       <div 
         className={`bg-void-900 rounded-lg flex items-center justify-center ${className}`}
@@ -217,54 +325,6 @@ export function WeatherRadarMap({
       </div>
     );
   }
-
-  // Import Leaflet CSS
-  require("leaflet/dist/leaflet.css");
-
-  // Fix Leaflet default marker icons
-  const L = require("leaflet");
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  });
-
-  // Custom icons for different marker types
-  const createIcon = (type: StormMarker["type"], severity?: string) => {
-    const colors = {
-      hail: severity === "critical" ? "#ef4444" : severity === "high" ? "#f97316" : "#eab308",
-      wind: "#3b82f6",
-      tornado: "#dc2626",
-      customer: "#22d3ee",
-    };
-
-    return L.divIcon({
-      className: "custom-marker",
-      html: `
-        <div style="
-          width: 24px;
-          height: 24px;
-          background: ${colors[type]};
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <div style="
-            width: 8px;
-            height: 8px;
-            background: white;
-            border-radius: 50%;
-          "></div>
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
-    });
-  };
 
   const radarTileUrl = getRadarTileUrl();
 

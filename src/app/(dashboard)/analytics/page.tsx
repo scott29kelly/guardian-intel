@@ -32,15 +32,9 @@ import { Button } from "@/components/ui/button";
 import { FilterModal } from "@/components/modals/filter-modal";
 import { useToast } from "@/components/ui/toast";
 import { useAnalytics, useLeaderboard } from "@/lib/hooks/use-analytics";
+import { formatCurrency } from "@/lib/utils";
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
+// PERFORMANCE: formatCurrency now imported from utils with cached Intl.NumberFormat
 
 const getTrendIcon = (trend: string) => {
   switch (trend) {

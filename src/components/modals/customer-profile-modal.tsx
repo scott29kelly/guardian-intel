@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
 import { calculateCustomerScores } from "@/lib/services/scoring";
+import { formatCurrency } from "@/lib/utils";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
 
 interface CustomerProfileModalProps {
@@ -29,13 +30,7 @@ interface CustomerProfileModalProps {
   onClose: () => void;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
+// PERFORMANCE: formatCurrency now imported from utils with cached Intl.NumberFormat
 
 interface Note {
   id: string;

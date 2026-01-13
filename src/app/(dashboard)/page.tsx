@@ -28,6 +28,7 @@ import {
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
+import { formatCurrencyCompact as formatCurrency } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
 // =============================================================================
@@ -78,12 +79,6 @@ const defaultMetrics = {
 const defaultAlerts = [
   { id: "1", type: "storm", message: "Loading alerts...", time: "", severity: "warning" as const },
 ];
-
-const formatCurrency = (value: number) => {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value}`;
-};
 
 export default function DashboardPage() {
   const router = useRouter();

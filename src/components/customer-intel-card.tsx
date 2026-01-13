@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
+import { formatCurrency } from "@/lib/utils";
 import { CustomerProfileModal } from "./modals/customer-profile-modal";
 import { TakeActionModal } from "./modals/take-action-modal";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -35,13 +36,7 @@ interface CustomerIntelCardProps {
   weatherEvents: WeatherEvent[];
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
+// PERFORMANCE: formatCurrency now imported from utils with cached Intl.NumberFormat
 
 const getScoreColor = (score: number) => {
   if (score >= 80) return "text-accent-success bg-[hsl(var(--accent-success)/0.1)] border-[hsl(var(--accent-success)/0.3)]";
@@ -475,43 +470,59 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         </AnimatePresence>
       </motion.div>
 
-      {/* Modals */}
-      <CustomerProfileModal 
-        customer={customer}
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
-      <TakeActionModal 
-        customer={customer}
-        isOpen={showActionModal}
-        onClose={() => setShowActionModal(false)}
-      />
+      {/* =============================================================================
+          PERFORMANCE OPTIMIZATION: Lazy render modals
+          Only mount modal components when they're actually open.
+          This saves ~5 complex component renders per CustomerIntelCard.
+          ============================================================================= */}
       
-      {/* AI Components */}
-      <AIChatPanel
-        isOpen={showAIChat}
-        onClose={() => setShowAIChat(false)}
-        customerId={customer.id}
-        customerName={`${customer.firstName} ${customer.lastName}`}
-      />
-      <QuickLogModal
-        isOpen={showQuickLog}
-        onClose={() => setShowQuickLog(false)}
-        customerId={customer.id}
-        customerName={`${customer.firstName} ${customer.lastName}`}
-        activities={activities}
-        onLogSaved={handleActivitySaved}
-      />
+      {/* Modals - Conditionally rendered only when open */}
+      {showProfileModal && (
+        <CustomerProfileModal 
+          customer={customer}
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
+      {showActionModal && (
+        <TakeActionModal 
+          customer={customer}
+          isOpen={showActionModal}
+          onClose={() => setShowActionModal(false)}
+        />
+      )}
       
-      {/* Street View Modal */}
-      <StreetViewModal
-        isOpen={showStreetViewModal}
-        onClose={() => setShowStreetViewModal(false)}
-        address={customer.address}
-        city={customer.city}
-        state={customer.state}
-        zipCode={customer.zipCode}
-      />
+      {/* AI Components - Conditionally rendered only when open */}
+      {showAIChat && (
+        <AIChatPanel
+          isOpen={showAIChat}
+          onClose={() => setShowAIChat(false)}
+          customerId={customer.id}
+          customerName={`${customer.firstName} ${customer.lastName}`}
+        />
+      )}
+      {showQuickLog && (
+        <QuickLogModal
+          isOpen={showQuickLog}
+          onClose={() => setShowQuickLog(false)}
+          customerId={customer.id}
+          customerName={`${customer.firstName} ${customer.lastName}`}
+          activities={activities}
+          onLogSaved={handleActivitySaved}
+        />
+      )}
+      
+      {/* Street View Modal - Conditionally rendered only when open */}
+      {showStreetViewModal && (
+        <StreetViewModal
+          isOpen={showStreetViewModal}
+          onClose={() => setShowStreetViewModal(false)}
+          address={customer.address}
+          city={customer.city}
+          state={customer.state}
+          zipCode={customer.zipCode}
+        />
+      )}
     </>
   );
 });
