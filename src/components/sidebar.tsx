@@ -13,6 +13,7 @@ import {
   Shield,
   ChevronLeft,
   Bot,
+  FileCheck,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -42,6 +43,11 @@ const navigation = [
     href: "/storms", 
     icon: CloudLightning,
     badge: "2"
+  },
+  { 
+    name: "Claims", 
+    href: "/claims", 
+    icon: FileCheck,
   },
   { 
     name: "Analytics", 

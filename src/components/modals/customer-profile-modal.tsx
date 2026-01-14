@@ -20,12 +20,14 @@ import {
   Camera,
   Zap,
   Bot,
+  FileCheck,
 } from "lucide-react";
 import { TakeActionModal } from "./take-action-modal";
 import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
 import { ActivityTimeline } from "@/components/customer/activity-timeline";
+import { CustomerClaimsTab } from "@/components/claims/customer-claims-tab";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -55,7 +57,7 @@ export function CustomerProfileModal({
   onClose,
   onAskAI,
 }: CustomerProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "claims" | "notes">("overview");
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
   const [showActionModal, setShowActionModal] = useState(false);
@@ -152,6 +154,7 @@ export function CustomerProfileModal({
               {[
                 { id: "overview", label: "Overview", icon: User },
                 { id: "timeline", label: "Timeline", icon: History },
+                { id: "claims", label: "Claims", icon: FileCheck },
                 { id: "notes", label: "Notes", icon: FileText },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -346,6 +349,13 @@ export function CustomerProfileModal({
                   customerId={customer.id}
                   maxHeight="calc(90vh - 280px)"
                   limit={20}
+                />
+              )}
+
+              {activeTab === "claims" && (
+                <CustomerClaimsTab
+                  customerId={customer.id}
+                  customerName={`${customer.firstName} ${customer.lastName}`}
                 />
               )}
 
