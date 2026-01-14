@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { updatePlaybookSchema, formatZodErrors, cuidSchema } from "@/lib/validations";
@@ -84,11 +85,29 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 /**
  * PUT /api/playbooks/[id]
- * 
- * Update a playbook
+ *
+ * Update a playbook (managers and admins only)
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // Only managers and admins can update playbooks
+    const userRole = (session.user as { role?: string }).role;
+    if (userRole !== "manager" && userRole !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Only managers and admins can update playbooks" },
+        { status: 403 }
+      );
+    }
+
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
@@ -158,11 +177,29 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
 /**
  * DELETE /api/playbooks/[id]
- * 
- * Delete a playbook
+ *
+ * Delete a playbook (admins only)
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // Only admins can delete playbooks
+    const userRole = (session.user as { role?: string }).role;
+    if (userRole !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Only admins can delete playbooks" },
+        { status: 403 }
+      );
+    }
+
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;

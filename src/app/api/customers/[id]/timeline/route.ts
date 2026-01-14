@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { cuidSchema } from "@/lib/validations";
 import prisma from "@/lib/prisma";
@@ -62,6 +63,15 @@ interface TimelineResponse {
  */
 export async function GET(request: Request, { params }: RouteParams): Promise<NextResponse<TimelineResponse | { success: false; error: string }>> {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -81,15 +91,23 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Ne
     const cursor = searchParams.get("cursor");
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
     const typesParam = searchParams.get("types");
-    const allowedTypes = typesParam 
-      ? typesParam.split(",").filter(t => 
+    const allowedTypes = typesParam
+      ? typesParam.split(",").filter(t =>
           ["interaction", "weather_event", "intel", "note", "stage_change", "claim"].includes(t)
         ) as TimelineItemType[]
       : null;
 
-    // Check customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id },
+    // Check customer exists and verify access
+    // Reps can only access their assigned customers; managers/admins can access all
+    const userRole = (session.user as { role?: string }).role;
+    const whereClause: { id: string; assignedRepId?: string } = { id };
+
+    if (userRole === "rep") {
+      whereClause.assignedRepId = session.user.id;
+    }
+
+    const customer = await prisma.customer.findFirst({
+      where: whereClause,
       select: { id: true },
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -18,28 +18,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // ===========================================================================
-  // DEV BYPASS: Auto-login when NEXT_PUBLIC_DEV_AUTH_BYPASS=true
-  // ===========================================================================
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
-      setIsLoading(true);
-      signIn("credentials", {
-        email: "dev@bypass",
-        password: "dev",
-        redirect: false,
-      }).then((result) => {
-        if (!result?.error) {
-          router.push(callbackUrl);
-          router.refresh();
-        } else {
-          setIsLoading(false);
-        }
-      });
-    }
-  }, [callbackUrl, router]);
-  // ===========================================================================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,29 +44,28 @@ export default function LoginPage() {
     }
   };
 
-  // Demo login - credentials are seeded via prisma/seed.ts
-  // This avoids exposing credentials in client-side code
+  // Demo login - uses secure time-limited tokens
   const handleDemoLogin = async (role: "rep" | "manager") => {
     setIsLoading(true);
     setError("");
 
     try {
-      // Fetch demo credentials from server-side API
+      // Fetch demo token from server-side API
       const response = await fetch(`/api/auth/demo-credentials?role=${role}`);
-      
+
       if (!response.ok) {
-        setError("Demo accounts not configured. Run: npx prisma db seed");
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Demo accounts not configured. Run: npx prisma db seed");
         setIsLoading(false);
         return;
       }
 
-      const { email } = await response.json();
-      
-      // For demo, use a known demo password pattern
-      // In production, this endpoint would be disabled
+      const { email, demoToken } = await response.json();
+
+      // Use secure demo token instead of password
       const result = await signIn("credentials", {
         email,
-        password: "GuardianDemo2026!",
+        demoToken,
         redirect: false,
       });
 

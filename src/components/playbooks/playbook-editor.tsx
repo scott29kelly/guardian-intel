@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import Markdown from "react-markdown";
 import {
   Bold,
   Italic,
@@ -79,43 +80,44 @@ export function PlaybookEditor({
     { icon: Link, action: () => insertMarkdown("[", "](url)", "link text"), title: "Link" },
   ];
 
-  // Simple Markdown to HTML renderer
-  const renderMarkdown = (text: string): string => {
-    let html = text
-      // Escape HTML
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-text-primary">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-text-primary">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-6 mb-4 text-text-primary">$1</h1>')
-      // Bold & Italic
-      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-text-primary">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em class="text-text-secondary">$1</em>')
-      // Code
-      .replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 bg-surface-secondary rounded text-accent-primary text-sm">$1</code>')
-      // Blockquotes
-      .replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-4 border-accent-primary pl-4 py-2 my-3 bg-accent-primary/5 text-text-secondary italic">$1</blockquote>')
-      // Links
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-accent-primary hover:underline" target="_blank" rel="noopener">$1</a>')
-      // Lists - unordered
-      .replace(/^- (.+)$/gm, '<li class="ml-4 text-text-secondary">$1</li>')
-      // Lists - ordered
-      .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 text-text-secondary list-decimal">$1</li>')
-      // Paragraphs (double newlines)
-      .replace(/\n\n/g, '</p><p class="my-3 text-text-secondary leading-relaxed">')
-      // Single newlines in content
-      .replace(/\n/g, '<br />');
-    
-    // Wrap in paragraph
-    html = `<p class="my-3 text-text-secondary leading-relaxed">${html}</p>`;
-    
-    // Wrap consecutive li elements in ul
-    html = html.replace(/(<li[^>]*>.*?<\/li>)+/g, '<ul class="my-3 space-y-1 list-disc">$&</ul>');
-    
-    return html;
+  // Markdown component styles
+  const markdownComponents = {
+    h1: ({ children }: { children?: React.ReactNode }) => (
+      <h1 className="text-2xl font-bold mt-6 mb-4 text-text-primary">{children}</h1>
+    ),
+    h2: ({ children }: { children?: React.ReactNode }) => (
+      <h2 className="text-xl font-bold mt-6 mb-3 text-text-primary">{children}</h2>
+    ),
+    h3: ({ children }: { children?: React.ReactNode }) => (
+      <h3 className="text-lg font-semibold mt-4 mb-2 text-text-primary">{children}</h3>
+    ),
+    p: ({ children }: { children?: React.ReactNode }) => (
+      <p className="my-3 text-text-secondary leading-relaxed">{children}</p>
+    ),
+    strong: ({ children }: { children?: React.ReactNode }) => (
+      <strong className="text-text-primary">{children}</strong>
+    ),
+    em: ({ children }: { children?: React.ReactNode }) => (
+      <em className="text-text-secondary">{children}</em>
+    ),
+    code: ({ children }: { children?: React.ReactNode }) => (
+      <code className="px-1.5 py-0.5 bg-surface-secondary rounded text-accent-primary text-sm">{children}</code>
+    ),
+    blockquote: ({ children }: { children?: React.ReactNode }) => (
+      <blockquote className="border-l-4 border-accent-primary pl-4 py-2 my-3 bg-accent-primary/5 text-text-secondary italic">{children}</blockquote>
+    ),
+    a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+      <a href={href} className="text-accent-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
+    ),
+    ul: ({ children }: { children?: React.ReactNode }) => (
+      <ul className="my-3 space-y-1 list-disc ml-4">{children}</ul>
+    ),
+    ol: ({ children }: { children?: React.ReactNode }) => (
+      <ol className="my-3 space-y-1 list-decimal ml-4">{children}</ol>
+    ),
+    li: ({ children }: { children?: React.ReactNode }) => (
+      <li className="text-text-secondary">{children}</li>
+    ),
   };
 
   if (readOnly) {
@@ -141,10 +143,9 @@ export function PlaybookEditor({
             )}
           </Button>
         </div>
-        <div 
-          className="prose prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-        />
+        <div className="prose prose-invert max-w-none">
+          <Markdown components={markdownComponents}>{content}</Markdown>
+        </div>
       </div>
     );
   }
@@ -213,10 +214,9 @@ export function PlaybookEditor({
           style={{ minHeight }}
         >
           {content ? (
-            <div 
-              className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-            />
+            <div className="prose prose-invert max-w-none">
+              <Markdown components={markdownComponents}>{content}</Markdown>
+            </div>
           ) : (
             <p className="text-text-muted italic">Nothing to preview yet...</p>
           )}

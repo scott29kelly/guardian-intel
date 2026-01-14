@@ -209,14 +209,42 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 // PAGINATION SCHEMAS
 // =============================================================================
 
-export const paginationSchema = z.object({
+// Allowed sort fields for customers
+export const customerSortFieldSchema = z.enum([
+  "createdAt",
+  "updatedAt",
+  "firstName",
+  "lastName",
+  "leadScore",
+  "lastContactDate",
+  "status",
+  "stage",
+]);
+
+// Allowed sort fields for playbooks
+export const playbookSortFieldSchema = z.enum([
+  "createdAt",
+  "updatedAt",
+  "title",
+  "usageCount",
+  "rating",
+  "category",
+]);
+
+// Generic pagination (without sortBy - use specific schemas below)
+export const basePaginationSchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
-  sortBy: z.string().max(50).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
-export const customerQuerySchema = paginationSchema.extend({
+// Keep legacy paginationSchema for backwards compatibility but restrict sortBy
+export const paginationSchema = basePaginationSchema.extend({
+  sortBy: z.string().max(50).optional(),
+});
+
+export const customerQuerySchema = basePaginationSchema.extend({
+  sortBy: customerSortFieldSchema.optional(),
   search: z.string().max(100).optional(),
   status: customerStatusSchema.optional(),
   stage: customerStageSchema.optional(),
@@ -294,7 +322,8 @@ export const createPlaybookSchema = z.object({
 
 export const updatePlaybookSchema = createPlaybookSchema.partial();
 
-export const playbookQuerySchema = paginationSchema.extend({
+export const playbookQuerySchema = basePaginationSchema.extend({
+  sortBy: playbookSortFieldSchema.optional(),
   search: z.string().max(100).optional(),
   category: playbookCategorySchema.optional(),
   type: playbookTypeSchema.optional(),

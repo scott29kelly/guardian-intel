@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { auditService } from "@/lib/services/audit";
+import { validateDemoToken } from "@/app/api/auth/demo-credentials/route";
 
 /**
  * Wrapper around getServerSession for cleaner API route usage
@@ -11,18 +12,6 @@ import { auditService } from "@/lib/services/audit";
 export async function auth() {
   return getServerSession(authOptions);
 }
-
-// =============================================================================
-// DEV BYPASS: Mock user for development (controlled by env var)
-// Remove NEXT_PUBLIC_DEV_AUTH_BYPASS from env or set to "false" for production
-// =============================================================================
-const DEV_BYPASS_USER = {
-  id: "dev-user-001",
-  email: "dev@guardian.local",
-  name: "Dev User",
-  role: "manager",
-  image: null,
-};
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -40,18 +29,45 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        demoToken: { label: "Demo Token", type: "text" },
       },
       async authorize(credentials) {
-        // =============================================================
-        // DEV BYPASS: Skip authentication in development
-        // =============================================================
-        if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
-          console.log("[Auth] 🔓 DEV BYPASS ACTIVE - Skipping authentication");
-          return DEV_BYPASS_USER;
+        if (!credentials?.email) {
+          throw new Error("Invalid credentials");
         }
-        // =============================================================
 
-        if (!credentials?.email || !credentials?.password) {
+        // Demo token authentication (secure, time-limited tokens)
+        if (credentials.demoToken) {
+          // Only allow in non-production or when explicitly enabled
+          if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_LOGIN) {
+            throw new Error("Demo login disabled in production");
+          }
+
+          const validEmail = validateDemoToken(credentials.demoToken);
+          if (!validEmail || validEmail !== credentials.email) {
+            throw new Error("Invalid or expired demo token");
+          }
+
+          // Find the demo user
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          if (!user) {
+            throw new Error("Demo account not found. Run: npx prisma db seed");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            image: user.avatarUrl,
+          };
+        }
+
+        // Standard password authentication
+        if (!credentials.password) {
           throw new Error("Invalid credentials");
         }
 
