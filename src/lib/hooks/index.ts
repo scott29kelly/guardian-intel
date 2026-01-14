@@ -12,3 +12,4 @@ export * from "./use-keyboard-shortcuts";
 export * from "./use-timeline";
 export * from "./use-playbooks";
 export * from "./use-claims";
+export * from "./use-predictions";

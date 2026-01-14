@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CloudLightning,
   AlertTriangle,
@@ -22,6 +22,8 @@ import {
   Sun,
   CloudSnow,
   Loader2,
+  Clock,
+  Target,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { FilterModal } from "@/components/modals/filter-modal";
 import { StormDetailsModal } from "@/components/modals/storm-details-modal";
+import { PredictiveAlertsPanel } from "@/components/weather/predictive-alerts-panel";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
@@ -301,14 +304,22 @@ const stormFilterConfig = [
   },
 ];
 
+type TabType = "realtime" | "forecast";
+
 export default function StormsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<StormEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  
+  // Tab state - check URL params for initial tab
+  const initialTab = searchParams.get("tab") === "forecast" ? "forecast" : "realtime";
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const forecastFilter = searchParams.get("filter") as "all" | "urgent" | undefined;
 
   const totalOpportunity = recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0);
   const totalAffected = recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0);
@@ -370,11 +381,28 @@ export default function StormsPage() {
 
   const activeFilterCount = Object.values(activeFilters).reduce((acc, arr) => acc + arr.length, 0);
 
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    // Update URL without full navigation
+    const url = new URL(window.location.href);
+    if (tab === "forecast") {
+      url.searchParams.set("tab", "forecast");
+    } else {
+      url.searchParams.delete("tab");
+    }
+    url.searchParams.delete("filter");
+    window.history.replaceState({}, "", url.toString());
+  };
+
+  const handleCustomerClick = (customerId: string) => {
+    router.push(`/customers?id=${customerId}`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-8"
+      className="space-y-6"
     >
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -383,33 +411,91 @@ export default function StormsPage() {
             Storm Intelligence
           </h1>
           <p className="text-text-muted">
-            Real-time weather alerts and storm damage opportunities
+            Real-time weather alerts and predictive storm forecasts
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowFilterModal(true)}
-            className={activeFilterCount > 0 ? "border-accent-primary text-accent-primary" : ""}
-          >
-            <Filter className="w-4 h-4" />
-            Filter
-            {activeFilterCount > 0 && (
-              <Badge className="ml-1.5 bg-accent-primary/20 text-accent-primary">
-                {activeFilterCount}
-              </Badge>
-            )}
-          </Button>
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-          </Button>
+          {activeTab === "realtime" && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowFilterModal(true)}
+                className={activeFilterCount > 0 ? "border-accent-primary text-accent-primary" : ""}
+              >
+                <Filter className="w-4 h-4" />
+                Filter
+                {activeFilterCount > 0 && (
+                  <Badge className="ml-1.5 bg-accent-primary/20 text-accent-primary">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+              </Button>
+            </>
+          )}
           <Button onClick={handleOpenWeatherMap}>
             <ExternalLink className="w-4 h-4" />
             Weather Map
           </Button>
         </div>
       </div>
+
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-surface-secondary rounded-lg w-fit">
+        <button
+          onClick={() => handleTabChange("realtime")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === "realtime"
+              ? "bg-accent-primary text-white shadow-sm"
+              : "text-text-muted hover:text-text-primary hover:bg-surface-primary"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Real-time Alerts
+        </button>
+        <button
+          onClick={() => handleTabChange("forecast")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === "forecast"
+              ? "bg-accent-primary text-white shadow-sm"
+              : "text-text-muted hover:text-text-primary hover:bg-surface-primary"
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          72-Hour Forecast
+          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px]">
+            NEW
+          </Badge>
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === "forecast" ? (
+          <motion.div
+            key="forecast"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <PredictiveAlertsPanel
+              onCustomerClick={handleCustomerClick}
+              initialFilter={forecastFilter}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="realtime"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-8"
+          >
 
       {/* Active Alerts */}
       {activeAlerts.length > 0 && (
@@ -745,6 +831,9 @@ export default function StormsPage() {
         onClose={() => setShowDetailsModal(false)}
         event={selectedEvent}
       />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

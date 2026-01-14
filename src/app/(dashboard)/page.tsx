@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
+import { StormForecastWidget } from "@/components/weather/storm-forecast-widget";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
@@ -447,6 +448,9 @@ export default function DashboardPage() {
 
         {/* Quick Actions Panel */}
         <div className="space-y-4">
+          {/* Storm Forecast Widget */}
+          <StormForecastWidget maxPredictions={3} />
+
           {/* Weather Radar Preview */}
           <div className="panel">
             <div className="panel-header">
