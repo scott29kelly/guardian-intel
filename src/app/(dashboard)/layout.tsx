@@ -3,7 +3,21 @@
 import { Sidebar, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "@/components/sidebar";
 import { ErrorBoundary, SectionErrorBoundary } from "@/components/error-boundary";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context";
+import { GamificationProvider, useGamification } from "@/lib/gamification";
+import { CelebrationModal } from "@/components/gamification";
 import { motion } from "framer-motion";
+
+function CelebrationHandler() {
+  const { celebrationQueue, dismissCelebration } = useGamification();
+  const currentCelebration = celebrationQueue[0] || null;
+  
+  return (
+    <CelebrationModal
+      event={currentCelebration}
+      onClose={dismissCelebration}
+    />
+  );
+}
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebar();
@@ -25,6 +39,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </SectionErrorBoundary>
         </div>
       </motion.main>
+      
+      {/* Celebration Handler */}
+      <CelebrationHandler />
     </div>
   );
 }
@@ -37,7 +54,9 @@ export default function DashboardLayout({
   return (
     <ErrorBoundary>
       <SidebarProvider>
-        <DashboardContent>{children}</DashboardContent>
+        <GamificationProvider>
+          <DashboardContent>{children}</DashboardContent>
+        </GamificationProvider>
       </SidebarProvider>
     </ErrorBoundary>
   );

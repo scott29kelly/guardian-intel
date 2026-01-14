@@ -13,6 +13,7 @@ import {
   Shield,
   ChevronLeft,
   Bot,
+  Trophy,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -20,6 +21,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { ShortcutsModal } from "./modals/shortcuts-modal";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useKeyboardShortcuts, useModifierKey } from "@/lib/hooks/use-keyboard-shortcuts";
+import { SidebarEngagementWidget } from "./gamification/sidebar-widget";
 
 // Exported constants for layout calculations
 export const SIDEBAR_WIDTH = 256; // 16rem = 256px
@@ -202,6 +204,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Engagement Widget */}
+      <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
+        <SidebarEngagementWidget 
+          isCollapsed={isCollapsed} 
+          onOpenAchievements={() => {
+            // Could open an achievements modal here
+          }}
+        />
+      </div>
 
       {/* AI Assistant Button */}
       <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
