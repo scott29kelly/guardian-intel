@@ -300,6 +300,98 @@ model InsuranceClaim {
   // Supplement tracking
   supplementCount   Int     @default(0)
   lastSupplementDate DateTime?
+  
+  // Carrier API Integration
+  carrierClaimId    String?   // External claim ID from carrier system
+  carrierStatus     String?   // Raw status from carrier API
+  carrierStatusCode String?   // Carrier-specific status code
+  carrierLastSync   DateTime? // Last successful sync with carrier
+  carrierMetadata   String?   // JSON - additional carrier-specific data
+  isFiledWithCarrier Boolean  @default(false)
+  filedWithCarrierAt DateTime?
+  
+  // Carrier sync tracking
+  syncErrors        String?   // JSON array of sync error messages
+  lastSyncError     String?
+  syncAttempts      Int       @default(0)
+  
+  @@index([carrierClaimId])
+  @@index([carrier, status])
+}
+
+// ============================================
+// INSURANCE CARRIER CONFIGURATION
+// ============================================
+
+model CarrierConfig {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Carrier identification
+  carrierCode   String   @unique  // state-farm, allstate, usaa, etc.
+  carrierName   String            // Display name
+  
+  // API Configuration (encrypted in production)
+  apiEndpoint   String?
+  apiKey        String?
+  apiSecret     String?
+  clientId      String?
+  clientSecret  String?
+  
+  // OAuth tokens (if applicable)
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  
+  // Webhook configuration
+  webhookSecret String?
+  webhookUrl    String?
+  
+  // Feature flags
+  supportsDirectFiling    Boolean @default(false)
+  supportsStatusUpdates   Boolean @default(false)
+  supportsDocumentUpload  Boolean @default(false)
+  supportsEstimateSync    Boolean @default(false)
+  
+  // Rate limiting
+  rateLimit         Int     @default(100)  // requests per minute
+  rateLimitWindow   Int     @default(60)   // seconds
+  
+  // Status
+  isActive      Boolean  @default(true)
+  isTestMode    Boolean  @default(true)
+  lastHealthCheck DateTime?
+  healthStatus  String?   // healthy, degraded, down
+  
+  // Field mappings (JSON)
+  fieldMappings String?   // Maps our fields to carrier fields
+  statusMappings String?  // Maps carrier statuses to our statuses
+  
+  @@index([isActive])
+}
+
+model CarrierSyncLog {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  carrierCode   String
+  claimId       String?
+  
+  action        String   // file, update, status-check, document-upload, webhook
+  direction     String   // outbound, inbound
+  
+  requestData   String?  // JSON
+  responseData  String?  // JSON
+  
+  status        String   // success, failed, pending, timeout
+  statusCode    Int?     // HTTP status code
+  errorMessage  String?
+  
+  durationMs    Int?     // Request duration in milliseconds
+  
+  @@index([carrierCode, createdAt])
+  @@index([claimId])
 }
 
 model PropertyData {
