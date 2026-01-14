@@ -27,6 +27,7 @@ import {
   Navigation,
   Clock,
   ZoomIn,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface PhotoGalleryProps {
   claimId?: string;
   showFilters?: boolean;
   onAddPhoto?: () => void;
+  onAnalyze?: (photoIds: string[]) => void;
   compact?: boolean;
 }
 
@@ -80,6 +82,7 @@ export function PhotoGallery({
   claimId,
   showFilters = true,
   onAddPhoto,
+  onAnalyze,
   compact = false,
 }: PhotoGalleryProps) {
   const { showToast } = useToast();
@@ -215,6 +218,17 @@ export function PhotoGallery({
             <Button size="sm" onClick={onAddPhoto}>
               <Camera className="w-4 h-4" />
               Add Photo
+            </Button>
+          )}
+          {onAnalyze && photos.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onAnalyze(photos.map(p => p.id))}
+              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+            >
+              <Zap className="w-4 h-4" />
+              AI Analyze
             </Button>
           )}
         </div>
