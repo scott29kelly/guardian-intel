@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import {
   UserStats,
   Achievement,
@@ -11,6 +11,9 @@ import {
   XP_REWARDS,
   calculateLevel,
 } from "./types";
+
+// API integration flag - set to true when backend is ready
+const USE_API = false;
 
 interface GamificationContextType {
   // User stats
@@ -61,9 +64,32 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [dailyGoals, setDailyGoals] = useState<DailyGoal[]>([]);
   const [celebrationQueue, setCelebrationQueue] = useState<CelebrationEvent[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const hasFetched = useRef(false);
 
-  // Initialize daily goals
+  // Fetch from API on mount (if enabled)
   useEffect(() => {
+    if (USE_API && !hasFetched.current) {
+      hasFetched.current = true;
+      fetch("/api/gamification")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data) {
+            setStats(data.data.stats);
+            setDailyGoals(data.data.dailyGoals);
+          }
+          setIsLoaded(true);
+        })
+        .catch(() => {
+          // Fallback to default stats
+          setIsLoaded(true);
+        });
+    }
+  }, []);
+
+  // Initialize daily goals (fallback when not using API)
+  useEffect(() => {
+    if (USE_API) return; // Skip if using API
+    
     const goals = DAILY_GOALS_TEMPLATES.map((template) => ({
       ...template,
       current: template.id === "calls-goal" ? stats.callsToday : 
@@ -129,6 +155,61 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       ? (XP_REWARDS[action] as (n: number) => number)(stats.currentStreak)
       : XP_REWARDS[action];
     
+    // If using API, send the action to the server
+    if (USE_API) {
+      fetch("/api/gamification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data) {
+            // Handle level up
+            if (data.data.leveledUp) {
+              setCelebrationQueue((queue) => [
+                ...queue,
+                {
+                  type: "levelUp",
+                  title: `Level ${data.data.level}!`,
+                  subtitle: "You've reached a new level",
+                  xpEarned: data.data.xpEarned,
+                  icon: "🎖️",
+                },
+              ]);
+            }
+            
+            // Handle new achievements
+            if (data.data.newAchievements?.length > 0) {
+              data.data.newAchievements.forEach((achievement: Achievement) => {
+                setCelebrationQueue((queue) => [
+                  ...queue,
+                  {
+                    type: "achievement",
+                    title: achievement.name,
+                    subtitle: achievement.description,
+                    xpEarned: achievement.xpReward,
+                    icon: achievement.icon,
+                    tier: achievement.tier,
+                  },
+                ]);
+              });
+            }
+            
+            // Update local stats
+            setStats((prev) => ({
+              ...prev,
+              xp: data.data.totalXP,
+              level: data.data.level,
+              currentStreak: data.data.currentStreak,
+            }));
+          }
+        })
+        .catch(console.error);
+      return;
+    }
+    
+    // Fallback to local state management
     setStats((prev) => {
       const isFirstActionToday = prev.lastActiveDate !== today;
       const newStats = { ...prev };

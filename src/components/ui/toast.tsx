@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from "rea
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, AlertCircle, Info, X, Trophy, Zap, Star, Target } from "lucide-react";
 
-type ToastType = "success" | "error" | "info" | "achievement" | "levelUp" | "streak" | "xp";
+type ToastType = "success" | "error" | "info" | "warning" | "achievement" | "levelUp" | "streak" | "xp";
 
 interface Toast {
   id: string;
@@ -51,6 +51,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return <AlertCircle className="w-5 h-5 text-accent-danger" />;
       case "info":
         return <Info className="w-5 h-5 text-accent-primary" />;
+      case "warning":
+        return <AlertCircle className="w-5 h-5 text-accent-warning" />;
       case "achievement":
         return <Trophy className="w-5 h-5 text-yellow-400" />;
       case "levelUp":
@@ -74,6 +76,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return "bg-gradient-to-r from-orange-900/80 to-red-900/80 border-orange-500/50";
       case "xp":
         return "bg-gradient-to-r from-cyan-900/80 to-teal-900/80 border-cyan-500/50";
+      case "warning":
+        return "bg-gradient-to-r from-amber-900/80 to-yellow-900/80 border-amber-500/50";
       default:
         return "bg-[hsl(var(--surface-primary))] border-border";
     }

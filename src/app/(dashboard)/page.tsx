@@ -349,7 +349,7 @@ export default function DashboardPage() {
       )}
 
       {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue */}
         <div
           className="panel p-4 cursor-pointer hover:border-[hsl(var(--border-hover))] transition-colors"
@@ -442,9 +442,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Priority Customers */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-medium text-text-primary">

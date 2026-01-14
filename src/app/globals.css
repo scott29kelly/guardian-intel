@@ -452,3 +452,119 @@ select option {
 }
 
 /* Handle raw text bullets (• at start of paragraph) */
+
+/* =============================================
+   MOBILE RESPONSIVENESS
+   ============================================= */
+
+@layer utilities {
+  /* Safe area padding for iOS devices with notches */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+  
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Disable text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Smooth momentum scrolling on iOS */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbars on mobile but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Fixed padding-top for mobile header */
+  .pt-18 {
+    padding-top: 4.5rem;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 767px) {
+  /* Larger touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+  
+  /* Better readability */
+  body {
+    font-size: 16px; /* Prevent iOS zoom on input focus */
+  }
+  
+  input, select, textarea {
+    font-size: 16px; /* Prevent zoom on focus */
+  }
+  
+  /* Full-width cards on mobile */
+  .panel {
+    border-radius: 0.5rem;
+  }
+  
+  /* Responsive grid adjustments */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Stack flex items on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+    gap: 0.5rem;
+  }
+}
+
+/* Tablet-specific improvements */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Improved focus states for accessibility on touch devices */
+@media (hover: none) {
+  button:focus, a:focus, [role="button"]:focus {
+    outline: none;
+  }
+  
+  button:active, a:active, [role="button"]:active {
+    opacity: 0.7;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

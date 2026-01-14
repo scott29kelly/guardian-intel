@@ -637,3 +637,82 @@ model PushSubscription {
   
   @@index([userId])
 }
+
+// ============================================
+// GAMIFICATION SYSTEM
+// ============================================
+
+model UserGamification {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  userId          String   @unique
+  
+  // XP & Level
+  totalXP         Int      @default(0)
+  level           Int      @default(1)
+  
+  // Lifetime stats
+  totalCalls      Int      @default(0)
+  totalEmails     Int      @default(0)
+  totalVisits     Int      @default(0)
+  totalDeals      Int      @default(0)
+  totalRevenue    Float    @default(0)
+  
+  // Today's stats (reset daily)
+  callsToday      Int      @default(0)
+  emailsToday     Int      @default(0)
+  visitsToday     Int      @default(0)
+  dealsToday      Int      @default(0)
+  revenueToday    Float    @default(0)
+  lastResetDate   DateTime @default(now())
+  
+  // Streaks
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveDate  DateTime?
+  
+  // Achievements (stored as JSON array of achievement IDs)
+  achievements    String[] @default([])
+  
+  // Daily goals progress
+  dailyGoalsProgress String? // JSON object
+  
+  @@index([level])
+  @@index([totalXP])
+}
+
+model XPTransaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  userId    String
+  amount    Int
+  reason    String   // Human-readable reason
+  action    String   // call, email, deal, achievement, streak, firstAction, etc.
+  
+  // Optional metadata
+  metadata  String?  // JSON
+  
+  @@index([userId, createdAt])
+  @@index([action])
+}
+
+model Achievement {
+  id            String   @id @default(cuid())
+  
+  // Achievement definition
+  achievementId String   @unique // e.g., "first-call", "deal-100"
+  name          String
+  description   String
+  category      String   // calls, deals, revenue, streak, speed, storm
+  tier          String   // bronze, silver, gold, platinum, diamond
+  icon          String   // emoji
+  requirement   Int      // threshold to unlock
+  xpReward      Int
+  
+  // Metadata
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+}
