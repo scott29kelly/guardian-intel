@@ -22,6 +22,7 @@ import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import { useGamification } from "@/lib/gamification";
+import { useShouldAnimate } from "@/lib/preferences";
 import { DailyGoalsWidget, DailyProgressBar } from "@/components/gamification/daily-goals";
 import { MiniLeaderboard } from "@/components/gamification/leaderboard";
 import { AnimatedCounter, StreakCounter } from "@/components/gamification/animated-counter";
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const { showToast } = useToast();
   const { data, isLoading, error } = useDashboard();
   const { stats, dailyGoals, recordAction, updateDailyGoal, triggerCelebration } = useGamification();
+  const { shouldShowLeaderboard, shouldShowXP, shouldShowConfetti } = useShouldAnimate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
@@ -98,11 +100,15 @@ export default function DashboardPage() {
     recordAction("stormResponse");
     updateDailyGoal("log-goal", 1);
     
-    // Show XP toast
-    showToast("xp", "+50 XP", "Storm response initiated!", { xp: 50 });
+    // Show XP toast (respects preferences via the toast system)
+    if (shouldShowXP) {
+      showToast("xp", "+50 XP", "Storm response initiated!", { xp: 50 });
+    }
     
-    // Burst effect at button position
-    setConfettiBurst({ x: e.clientX, y: e.clientY });
+    // Burst effect at button position (respects preferences)
+    if (shouldShowConfetti) {
+      setConfettiBurst({ x: e.clientX, y: e.clientY });
+    }
     
     showToast("info", "Storm Canvass Started", "Loading affected properties in your area...");
     setTimeout(() => {
@@ -117,11 +123,15 @@ export default function DashboardPage() {
       recordAction("call");
       updateDailyGoal("calls-goal", 1);
       
-      // Show XP toast
-      showToast("xp", "+10 XP", "Call logged!", { xp: 10 });
+      // Show XP toast (respects preferences)
+      if (shouldShowXP) {
+        showToast("xp", "+10 XP", "Call logged!", { xp: 10 });
+      }
       
-      // Burst effect
-      setConfettiBurst({ x: e.clientX, y: e.clientY });
+      // Burst effect (respects preferences)
+      if (shouldShowConfetti) {
+        setConfettiBurst({ x: e.clientX, y: e.clientY });
+      }
       
       showToast("success", "Connecting...", `Dialing ${nextLead.firstName} ${nextLead.lastName} at ${nextLead.phone}`);
       // In real app, this would integrate with phone system
@@ -541,16 +551,18 @@ export default function DashboardPage() {
           {/* Daily Goals */}
           <DailyGoalsWidget goals={dailyGoals} />
           
-          {/* Mini Leaderboard */}
-          <div className="panel">
-            <div className="panel-header">
-              <Trophy className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-text-secondary">Team Ranking</span>
+          {/* Mini Leaderboard - respects user preference */}
+          {shouldShowLeaderboard && (
+            <div className="panel">
+              <div className="panel-header">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span className="text-sm text-text-secondary">Team Ranking</span>
+              </div>
+              <div className="p-3">
+                <MiniLeaderboard />
+              </div>
             </div>
-            <div className="p-3">
-              <MiniLeaderboard />
-            </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-2">

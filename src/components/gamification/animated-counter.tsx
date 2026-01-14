@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, useSpring, useTransform } from "framer-motion";
+import { useShouldAnimate } from "@/lib/preferences";
 
 interface AnimatedCounterProps {
   value: number;
@@ -22,11 +23,19 @@ export function AnimatedCounter({
   formatFn,
   onComplete,
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(0);
-  const previousValueRef = useRef(0);
-  const spring = useSpring(0, { stiffness: 100, damping: 30 });
+  const [displayValue, setDisplayValue] = useState(value);
+  const previousValueRef = useRef(value);
+  const { shouldAnimateCounters } = useShouldAnimate();
   
   useEffect(() => {
+    // If animations disabled, just show the value immediately
+    if (!shouldAnimateCounters) {
+      setDisplayValue(value);
+      previousValueRef.current = value;
+      onComplete?.();
+      return;
+    }
+    
     const startValue = previousValueRef.current;
     const endValue = value;
     const startTime = Date.now();
@@ -50,7 +59,7 @@ export function AnimatedCounter({
     
     animate();
     previousValueRef.current = value;
-  }, [value, duration, onComplete]);
+  }, [value, duration, onComplete, shouldAnimateCounters]);
 
   const formattedValue = formatFn 
     ? formatFn(displayValue) 
@@ -245,16 +254,18 @@ export function StreakCounter({
   className?: string;
 }) {
   const isHotStreak = streak >= 7;
+  const { shouldShowStreakAnimations, isReducedMotion } = useShouldAnimate();
+  const shouldAnimate = shouldShowStreakAnimations && isHotStreak;
   
   return (
     <motion.div
       className={`flex items-center gap-1.5 ${className}`}
-      animate={isHotStreak ? { scale: [1, 1.02, 1] } : {}}
+      animate={shouldAnimate && !isReducedMotion ? { scale: [1, 1.02, 1] } : {}}
       transition={{ repeat: Infinity, duration: 2 }}
     >
       <motion.span
         className="text-lg"
-        animate={isHotStreak ? { 
+        animate={shouldAnimate && !isReducedMotion ? { 
           rotate: [0, -5, 5, 0],
           scale: [1, 1.1, 1]
         } : {}}

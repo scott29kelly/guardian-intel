@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useShouldAnimate } from "@/lib/preferences";
 
 interface Particle {
   id: number;
@@ -44,6 +45,14 @@ export function Confetti({
   spread = 360,
 }: ConfettiProps) {
   const [particles, setParticles] = useState<Particle[]>([]);
+  const { shouldShowConfetti } = useShouldAnimate();
+  
+  // If confetti is disabled, just call onComplete immediately
+  useEffect(() => {
+    if (isActive && !shouldShowConfetti) {
+      onComplete?.();
+    }
+  }, [isActive, shouldShowConfetti, onComplete]);
 
   const createParticles = useCallback(() => {
     const newParticles: Particle[] = [];
@@ -81,7 +90,7 @@ export function Confetti({
     }
   }, [isActive, duration, onComplete, createParticles]);
 
-  if (!isActive && particles.length === 0) return null;
+  if (!shouldShowConfetti || (!isActive && particles.length === 0)) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
@@ -147,9 +156,15 @@ export function ConfettiBurst({
   colors?: string[];
 }) {
   const [particles, setParticles] = useState<{ id: number; angle: number; color: string }[]>([]);
+  const { shouldShowConfetti } = useShouldAnimate();
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !shouldShowConfetti) {
+      onComplete?.();
+      return;
+    }
+    
+    if (isActive && shouldShowConfetti) {
       const newParticles = Array.from({ length: count }, (_, i) => ({
         id: i,
         angle: (360 / count) * i,
@@ -164,9 +179,9 @@ export function ConfettiBurst({
 
       return () => clearTimeout(timeout);
     }
-  }, [isActive, count, colors, onComplete]);
+  }, [isActive, count, colors, onComplete, shouldShowConfetti]);
 
-  if (!isActive && particles.length === 0) return null;
+  if (!shouldShowConfetti || (!isActive && particles.length === 0)) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[200]">

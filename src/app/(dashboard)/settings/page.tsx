@@ -20,16 +20,20 @@ import {
   EyeOff,
   ExternalLink,
   Loader2,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useTheme } from "@/lib/theme-context";
+import { useAnimationPreferences } from "@/lib/preferences";
 
 const settingsSections = [
   { id: "profile", label: "Profile", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "animations", label: "Animations", icon: Sparkles },
   { id: "integrations", label: "Integrations", icon: Database },
   { id: "api", label: "API Keys", icon: Key },
   { id: "appearance", label: "Appearance", icon: Palette },
@@ -102,6 +106,7 @@ const defaultNotifications = {
 export default function SettingsPage() {
   const { showToast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { preferences, updatePreference, setReducedMotion, resetToDefaults } = useAnimationPreferences();
   const [activeSection, setActiveSection] = useState("profile");
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -491,6 +496,135 @@ export default function SettingsPage() {
                     </label>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {activeSection === "animations" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent-primary" />
+                  Animation & Gamification Settings
+                </CardTitle>
+                <CardDescription>
+                  Control animations, celebrations, and gamification elements. Reducing these can help with focus or accessibility needs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Master Toggle */}
+                <div className="p-4 bg-surface-secondary/50 rounded-lg border border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-text-primary flex items-center gap-2">
+                        Reduced Motion Mode
+                        <Badge variant="secondary" className="text-xs">Accessibility</Badge>
+                      </h4>
+                      <p className="text-sm text-text-muted mt-1">
+                        Disable all animations and motion effects. This respects your system's "prefers-reduced-motion" setting.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.reducedMotion}
+                        onChange={(e) => setReducedMotion(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-surface-secondary peer-focus:ring-2 peer-focus:ring-accent-primary/25 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary border border-border"></div>
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Granular Controls */}
+                <div className={preferences.reducedMotion ? "opacity-50 pointer-events-none" : ""}>
+                  <h4 className="text-sm font-medium text-text-primary mb-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Gamification Elements
+                  </h4>
+                  <div className="space-y-3">
+                    {[
+                      { 
+                        id: "showConfetti" as const, 
+                        label: "Confetti & Celebrations", 
+                        desc: "Show confetti when completing actions or achievements" 
+                      },
+                      { 
+                        id: "showCelebrations" as const, 
+                        label: "Achievement Popups", 
+                        desc: "Show full-screen celebration modals for achievements and level-ups" 
+                      },
+                      { 
+                        id: "showXPNotifications" as const, 
+                        label: "XP Notifications", 
+                        desc: "Show XP gain notifications in toasts and on buttons" 
+                      },
+                      { 
+                        id: "animateCounters" as const, 
+                        label: "Animated Counters", 
+                        desc: "Animate number changes in metrics and stats" 
+                      },
+                      { 
+                        id: "showStreakAnimations" as const, 
+                        label: "Streak Animations", 
+                        desc: "Show pulsing fire animation for hot streaks" 
+                      },
+                      { 
+                        id: "showLeaderboard" as const, 
+                        label: "Team Leaderboard", 
+                        desc: "Show the team competition leaderboard on dashboard" 
+                      },
+                    ].map((pref) => (
+                      <div 
+                        key={pref.id} 
+                        className="flex items-center justify-between p-3 bg-surface-secondary/30 rounded-lg border border-border hover:border-border-hover transition-colors"
+                      >
+                        <div>
+                          <h5 className="text-sm font-medium text-text-primary">{pref.label}</h5>
+                          <p className="text-xs text-text-muted">{pref.desc}</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={preferences[pref.id]}
+                            onChange={(e) => updatePreference(pref.id, e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-surface-secondary peer-focus:ring-2 peer-focus:ring-accent-primary/25 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-success border border-border"></div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Reset Button */}
+                <div className="pt-4 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      resetToDefaults();
+                      showToast("success", "Reset Complete", "Animation preferences restored to defaults");
+                    }}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Reset to Defaults
+                  </Button>
+                </div>
+                
+                {/* Info Box */}
+                <div className="p-4 bg-accent-primary/10 border border-accent-primary/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-accent-primary shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-text-primary mb-1">About Gamification</h4>
+                      <p className="text-sm text-text-muted">
+                        Guardian uses gamification to make your work more engaging. Earn XP for calls, deals, and activities. 
+                        Build streaks, unlock achievements, and compete with your team. If you find these distracting, 
+                        you can disable them here while keeping full app functionality.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
