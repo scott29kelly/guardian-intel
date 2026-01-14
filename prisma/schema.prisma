@@ -90,6 +90,7 @@ model User {
   activities        Activity[]
   conversations     Conversation[]
   pushSubscriptions PushSubscription[]
+  outreachCampaigns OutreachCampaign[]
 }
 
 model Customer {
@@ -791,4 +792,181 @@ model PushSubscription {
   userAgent String?
   
   @@index([userId])
+}
+
+// ============================================
+// OUTREACH CAMPAIGNS (Post-Storm Automation)
+// ============================================
+
+model OutreachCampaign {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Campaign identity
+  name          String
+  description   String?
+  
+  // Trigger configuration
+  triggerType   String   // storm, manual, scheduled
+  stormTypes    String?  // JSON array: ["hail", "wind", "tornado"]
+  minSeverity   String?  // minor, moderate, severe
+  
+  // Target configuration
+  targetZipCodes    String?   // JSON array of ZIP codes (empty = all)
+  targetStates      String?   // JSON array of states
+  targetStatuses    String?   // JSON array of customer statuses
+  targetTags        String?   // JSON array of customer tags
+  excludeRecent     Int       @default(30)  // Don't contact if outreach in X days
+  
+  // Channels
+  enableSms         Boolean   @default(true)
+  enableEmail       Boolean   @default(true)
+  enablePush        Boolean   @default(false)
+  
+  // Templates
+  smsTemplate       String?
+  emailSubject      String?
+  emailTemplate     String?
+  pushTitle         String?
+  pushBody          String?
+  
+  // Timing
+  delayMinutes      Int       @default(0)   // Delay after trigger
+  sendWindow        String?   // JSON: {"start": "09:00", "end": "20:00"}
+  
+  // State
+  isActive          Boolean   @default(true)
+  isArchived        Boolean   @default(false)
+  
+  // Stats (denormalized for performance)
+  totalSent         Int       @default(0)
+  totalDelivered    Int       @default(0)
+  totalOpened       Int       @default(0)
+  totalClicked      Int       @default(0)
+  totalResponded    Int       @default(0)
+  
+  // Creator
+  createdById       String
+  createdBy         User      @relation(fields: [createdById], references: [id])
+  
+  // Executions
+  executions        CampaignExecution[]
+  
+  @@index([isActive])
+  @@index([triggerType])
+}
+
+model CampaignExecution {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  campaignId    String
+  campaign      OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  // Trigger info
+  triggerType   String    // storm, manual, scheduled
+  triggerId     String?   // Storm event ID, schedule ID, etc.
+  triggerData   String?   // JSON with storm details, etc.
+  
+  // Target area
+  targetZipCodes    String?   // JSON array
+  affectedCustomers Int       @default(0)
+  
+  // Execution status
+  status        String    @default("pending")  // pending, processing, completed, failed, cancelled
+  startedAt     DateTime?
+  completedAt   DateTime?
+  
+  // Results
+  smsSent       Int       @default(0)
+  smsDelivered  Int       @default(0)
+  smsFailed     Int       @default(0)
+  emailSent     Int       @default(0)
+  emailDelivered Int      @default(0)
+  emailFailed   Int       @default(0)
+  pushSent      Int       @default(0)
+  
+  // Errors
+  errorMessage  String?
+  
+  // Messages sent in this execution
+  messages      OutreachMessage[]
+  
+  @@index([campaignId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OutreachMessage {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  executionId   String
+  execution     CampaignExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  
+  customerId    String
+  
+  // Message details
+  channel       String    // sms, email, push
+  recipient     String    // Phone number, email address
+  
+  // Content (personalized)
+  subject       String?   // For email
+  body          String
+  
+  // Status tracking
+  status        String    @default("pending")  // pending, sent, delivered, opened, clicked, failed, bounced
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  
+  // External IDs
+  externalId    String?   // Twilio SID, SendGrid ID, etc.
+  
+  // Error info
+  errorCode     String?
+  errorMessage  String?
+  
+  // Response tracking
+  hasReplied    Boolean   @default(false)
+  replyContent  String?
+  replyAt       DateTime?
+  
+  @@index([executionId])
+  @@index([customerId])
+  @@index([status])
+  @@index([channel])
+}
+
+model OutreachTemplate {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  name          String
+  description   String?
+  category      String   // storm, follow-up, seasonal, promotional
+  
+  // Channel
+  channel       String   // sms, email
+  
+  // Content
+  subject       String?  // For email
+  body          String
+  
+  // Personalization variables used
+  variables     String?  // JSON array: ["firstName", "address", "stormType"]
+  
+  // Metadata
+  isDefault     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  
+  createdById   String
+  
+  @@index([category])
+  @@index([channel])
 }

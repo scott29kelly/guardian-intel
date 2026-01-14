@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Bot,
   FileCheck,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -48,6 +49,11 @@ const navigation = [
     name: "Claims", 
     href: "/claims", 
     icon: FileCheck,
+  },
+  { 
+    name: "Outreach", 
+    href: "/outreach", 
+    icon: MessageSquare,
   },
   { 
     name: "Analytics", 
