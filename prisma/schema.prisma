@@ -174,6 +174,7 @@ model Customer {
   notes             Note[]
   claims            InsuranceClaim[]
   tasks             Task[]
+  photos            Photo[]
 
   // Performance indexes
   @@index([assignedRepId])
@@ -439,6 +440,68 @@ model Document {
   mimeType      String?
   
   metadata      String?  // JSON
+}
+
+model Photo {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relationships - flexible: can be linked to customer, claim, or standalone
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  claimId       String?
+  
+  uploadedById  String
+  
+  // Photo details
+  filename      String
+  originalName  String
+  url           String
+  thumbnailUrl  String?
+  size          Int       // bytes
+  mimeType      String
+  width         Int?
+  height        Int?
+  
+  // GPS Location (captured at time of photo)
+  latitude      Float?
+  longitude     Float?
+  altitude      Float?    // meters
+  accuracy      Float?    // GPS accuracy in meters
+  heading       Float?    // compass direction 0-360
+  
+  // Address (reverse geocoded from GPS)
+  capturedAddress   String?
+  capturedCity      String?
+  capturedState     String?
+  capturedZipCode   String?
+  
+  // Categorization
+  category      String    @default("general") // damage, before, after, roof, siding, gutter, interior, signature, adjuster-meeting, other
+  tags          String?   // JSON array of tags
+  description   String?
+  
+  // Damage assessment (for damage photos)
+  damageType    String?   // hail, wind, water, wear, impact
+  damageSeverity String?  // minor, moderate, severe
+  
+  // Device info
+  deviceType    String?   // mobile, tablet, desktop
+  deviceModel   String?
+  
+  // Verification
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  verifiedById  String?
+  
+  // Indexes
+  @@index([customerId])
+  @@index([claimId])
+  @@index([uploadedById])
+  @@index([category])
+  @@index([latitude, longitude])
 }
 
 model Activity {

@@ -28,6 +28,7 @@ import { calculateCustomerScores } from "@/lib/services/scoring";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
 import { ActivityTimeline } from "@/components/customer/activity-timeline";
 import { CustomerClaimsTab } from "@/components/claims/customer-claims-tab";
+import { CustomerPhotosTab } from "@/components/photos/customer-photos-tab";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -57,7 +58,7 @@ export function CustomerProfileModal({
   onClose,
   onAskAI,
 }: CustomerProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "claims" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "claims" | "photos" | "notes">("overview");
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
   const [showActionModal, setShowActionModal] = useState(false);
@@ -155,6 +156,7 @@ export function CustomerProfileModal({
                 { id: "overview", label: "Overview", icon: User },
                 { id: "timeline", label: "Timeline", icon: History },
                 { id: "claims", label: "Claims", icon: FileCheck },
+                { id: "photos", label: "Photos", icon: Camera },
                 { id: "notes", label: "Notes", icon: FileText },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -354,6 +356,13 @@ export function CustomerProfileModal({
 
               {activeTab === "claims" && (
                 <CustomerClaimsTab
+                  customerId={customer.id}
+                  customerName={`${customer.firstName} ${customer.lastName}`}
+                />
+              )}
+
+              {activeTab === "photos" && (
+                <CustomerPhotosTab
                   customerId={customer.id}
                   customerName={`${customer.firstName} ${customer.lastName}`}
                 />

@@ -13,3 +13,5 @@ export * from "./use-timeline";
 export * from "./use-playbooks";
 export * from "./use-claims";
 export * from "./use-predictions";
+export * from "./use-photos";
+export * from "./use-camera";
