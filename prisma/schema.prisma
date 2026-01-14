@@ -91,6 +91,8 @@ model User {
   conversations     Conversation[]
   pushSubscriptions PushSubscription[]
   outreachCampaigns OutreachCampaign[]
+  contractTemplates ContractTemplate[]
+  contracts         Contract[]
 }
 
 model Customer {
@@ -176,6 +178,7 @@ model Customer {
   claims            InsuranceClaim[]
   tasks             Task[]
   photos            Photo[]
+  contracts         Contract[]
 
   // Performance indexes
   @@index([assignedRepId])
@@ -969,4 +972,132 @@ model OutreachTemplate {
   
   @@index([category])
   @@index([channel])
+}
+
+// ============================================
+// DIGITAL CONTRACTS
+// ============================================
+
+model ContractTemplate {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  name          String
+  description   String?
+  category      String   // roofing, siding, gutters, general
+  
+  // Template content (HTML with variables)
+  content       String   @db.Text
+  
+  // Terms and conditions
+  termsContent  String?  @db.Text
+  
+  // Variables used in template
+  variables     String?  // JSON array
+  
+  // Settings
+  requiresWitness      Boolean  @default(false)
+  requiresInitials     Boolean  @default(true)
+  expirationDays       Int      @default(30)
+  
+  // State
+  isActive      Boolean  @default(true)
+  isDefault     Boolean  @default(false)
+  version       Int      @default(1)
+  
+  createdById   String
+  createdBy     User     @relation(fields: [createdById], references: [id])
+  
+  contracts     Contract[]
+  
+  @@index([category])
+  @@index([isActive])
+}
+
+model Contract {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Reference number
+  contractNumber  String   @unique
+  
+  // Relationships
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  
+  templateId    String?
+  template      ContractTemplate? @relation(fields: [templateId], references: [id])
+  
+  claimId       String?  // Optional link to insurance claim
+  
+  // Sales rep
+  createdById   String
+  createdBy     User     @relation(fields: [createdById], references: [id])
+  
+  // Contract details
+  title         String
+  description   String?
+  
+  // Content (rendered from template with data)
+  content       String   @db.Text
+  termsContent  String?  @db.Text
+  
+  // Financial
+  totalAmount       Float
+  depositAmount     Float?
+  depositPercent    Float?
+  balanceDueOn      String?   // completion, approval, 30-days
+  paymentTerms      String?
+  
+  // Scope of work
+  scopeOfWork       String?   @db.Text
+  materials         String?   // JSON array of materials
+  laborDetails      String?   // JSON description
+  
+  // Timeline
+  estimatedStartDate   DateTime?
+  estimatedEndDate     DateTime?
+  warrantyTerms        String?
+  
+  // Status
+  status        String   @default("draft")  // draft, sent, viewed, signed, completed, cancelled, expired
+  
+  // Expiration
+  expiresAt     DateTime?
+  
+  // Sending
+  sentAt        DateTime?
+  sentVia       String?   // email, sms, in-person
+  viewedAt      DateTime?
+  
+  // Signatures
+  customerSignature     String?   // Base64 signature image
+  customerSignedAt      DateTime?
+  customerSignedIp      String?
+  customerInitials      String?   // Base64 initials image
+  
+  repSignature          String?   // Base64 signature image
+  repSignedAt           DateTime?
+  
+  witnessName           String?
+  witnessSignature      String?   // Base64 signature image
+  witnessSignedAt       DateTime?
+  
+  // Location data (for on-site signing)
+  signedLatitude        Float?
+  signedLongitude       Float?
+  signedAddress         String?
+  
+  // Document storage
+  pdfUrl        String?
+  
+  // Audit trail
+  auditLog      String?   // JSON array of events
+  
+  @@index([customerId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
 }
