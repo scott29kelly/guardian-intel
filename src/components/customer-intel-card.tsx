@@ -20,6 +20,7 @@ import {
   DollarSign,
   Bot,
   ClipboardList,
+  FileText,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
@@ -29,6 +30,7 @@ import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
+import { GenerateProposalModal } from "./modals/generate-proposal-modal";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -62,6 +64,7 @@ export function CustomerIntelCard({
   const [showAIChat, setShowAIChat] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
+  const [showProposalModal, setShowProposalModal] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const handleActivitySaved = (activity: ActivityLog) => {
@@ -448,6 +451,16 @@ export function CustomerIntelCard({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        setShowProposalModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-accent-success/10 border border-accent-success/30 rounded font-mono text-xs text-accent-success hover:bg-accent-success/20 transition-all flex items-center gap-1"
+                    >
+                      <FileText className="w-3 h-3" />
+                      PROPOSAL
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowActionModal(true);
                       }}
                       className="px-3 py-1.5 rounded font-mono text-xs text-white hover:opacity-90 transition-all flex items-center gap-1"
@@ -494,6 +507,18 @@ export function CustomerIntelCard({
         customerName={`${customer.firstName} ${customer.lastName}`}
         activities={activities}
         onLogSaved={handleActivitySaved}
+      />
+      
+      {/* Proposal Modal */}
+      <GenerateProposalModal
+        isOpen={showProposalModal}
+        onClose={() => setShowProposalModal(false)}
+        customerId={customer.id}
+        customerName={`${customer.firstName} ${customer.lastName}`}
+        onSuccess={(proposalId) => {
+          console.log("Proposal created:", proposalId);
+          // Optionally navigate to proposal or show toast
+        }}
       />
       
       {/* Street View Modal */}
