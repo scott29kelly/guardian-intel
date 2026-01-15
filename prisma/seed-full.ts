@@ -582,19 +582,33 @@ async function main() {
   }
   console.log(`   ✓ Created ${interactionCount} interactions\n`);
 
-  // Create playbooks
+  // Create playbooks (15+ for demo requirements)
   console.log("📚 Creating playbooks...");
   const playbooks = [
+    // Storm Response Category
     { title: "Storm Response Protocol", description: "Step-by-step guide for responding to storm events", category: "follow-up", type: "checklist" },
+    { title: "Hail Damage Assessment", description: "Complete guide to identifying and documenting hail damage on roofs", category: "discovery", type: "guide" },
+    { title: "Wind Damage Quick Check", description: "Rapid assessment checklist for wind-damaged properties", category: "discovery", type: "checklist" },
+    // Discovery Category
     { title: "New Lead Qualification", description: "Process for qualifying inbound leads", category: "discovery", type: "guide" },
-    { title: "Insurance Claim Support", description: "Helping customers navigate insurance claims", category: "presentation", type: "guide" },
-    { title: "Competitive Win-Back", description: "Strategy for winning back lost opportunities", category: "objection-handling", type: "script" },
-    { title: "Referral Generation", description: "Maximizing referrals from happy customers", category: "closing", type: "template" },
-    { title: "Emergency Response", description: "Handling emergency roof repairs", category: "follow-up", type: "checklist" },
-    { title: "Annual Maintenance Program", description: "Selling maintenance agreements", category: "closing", type: "script" },
-    { title: "Post-Installation Follow-up", description: "Ensuring customer satisfaction after job completion", category: "follow-up", type: "checklist" },
-    { title: "Commercial Lead Process", description: "Handling commercial roofing opportunities", category: "discovery", type: "guide" },
     { title: "Door Knock Script", description: "Effective door-to-door canvassing approach", category: "discovery", type: "script" },
+    { title: "Commercial Lead Process", description: "Handling commercial roofing opportunities", category: "discovery", type: "guide" },
+    // Objection Handling Category  
+    { title: "Competitive Win-Back", description: "Strategy for winning back lost opportunities", category: "objection-handling", type: "script" },
+    { title: "Price Objection Handler", description: "Scripts and strategies for addressing pricing concerns", category: "objection-handling", type: "script" },
+    { title: "Timeline Objection Response", description: "How to handle customers who want to wait", category: "objection-handling", type: "script" },
+    // Closing Category
+    { title: "Referral Generation", description: "Maximizing referrals from happy customers", category: "closing", type: "template" },
+    { title: "Annual Maintenance Program", description: "Selling maintenance agreements", category: "closing", type: "script" },
+    { title: "Insurance Claim Closing", description: "Closing techniques specific to insurance-funded jobs", category: "closing", type: "script" },
+    // Follow-up Category
+    { title: "Emergency Response", description: "Handling emergency roof repairs", category: "follow-up", type: "checklist" },
+    { title: "Post-Installation Follow-up", description: "Ensuring customer satisfaction after job completion", category: "follow-up", type: "checklist" },
+    { title: "30-Day Check-In Script", description: "Follow-up call script for post-installation satisfaction", category: "follow-up", type: "script" },
+    // Presentation Category
+    { title: "Insurance Claim Support", description: "Helping customers navigate insurance claims", category: "presentation", type: "guide" },
+    { title: "Roof Options Presentation", description: "How to present different roofing material options", category: "presentation", type: "template" },
+    { title: "Warranty Explanation Guide", description: "Explaining manufacturer and workmanship warranties", category: "presentation", type: "guide" },
   ];
 
   for (const pb of playbooks) {
