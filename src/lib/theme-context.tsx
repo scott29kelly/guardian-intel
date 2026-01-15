@@ -17,11 +17,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const storedTheme = localStorage.getItem("guardian-theme") as Theme;
+    const storedTheme = localStorage.getItem("guardian-theme");
     
     if (storedTheme && ["dark", "slate", "light"].includes(storedTheme)) {
-      setTheme(storedTheme);
+      setTheme(storedTheme as Theme);
     } else if (storedTheme === "gray" || storedTheme === "light-gray") {
+      // Migrate old theme names
       setTheme("slate");
     }
   }, []);

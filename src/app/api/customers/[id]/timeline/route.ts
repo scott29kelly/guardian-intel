@@ -60,7 +60,7 @@ interface TimelineResponse {
  * - limit: number - Items per page (default 20, max 50)
  * - types: string - Comma-separated list of types to include
  */
-export async function GET(request: Request, { params }: RouteParams): Promise<NextResponse<TimelineResponse | { success: false; error: string }>> {
+export async function GET(request: Request, { params }: RouteParams) {
   try {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;

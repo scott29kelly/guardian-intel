@@ -180,6 +180,7 @@ model Customer {
   @@index([leadScore])
   @@index([status, stage])
   @@index([zipCode])
+  @@unique([crmId])
 }
 
 // ============================================
@@ -380,6 +381,9 @@ model Interaction {
   
   // CRM sync
   crmId         String?
+
+  // Compound unique for upsert operations
+  @@unique([customerId, type, createdAt])
 }
 
 model Task {

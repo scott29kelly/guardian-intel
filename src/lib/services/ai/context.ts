@@ -224,15 +224,21 @@ export async function getCustomerContexts(customerIds: string[]): Promise<Custom
  * Get a simplified context summary for quick reference
  */
 export function getContextSummary(context: CustomerContext): string {
+  const lastContactStr = context.pipeline.lastContact 
+    ? (typeof context.pipeline.lastContact === 'string' 
+        ? context.pipeline.lastContact 
+        : context.pipeline.lastContact.toLocaleDateString())
+    : 'Never';
+  
   return `
 Customer: ${context.customer.name}
 Location: ${context.customer.city}, ${context.customer.state}
 Pipeline: ${context.pipeline.status} / ${context.pipeline.stage}
 Lead Score: ${context.pipeline.leadScore}/100
-Roof: ${context.property.roofType}, ${context.property.roofAge} years old
-Insurance: ${context.insurance.carrier} (${context.insurance.policyType})
-Last Contact: ${context.pipeline.lastContact.toLocaleDateString()}
-Next Action: ${context.pipeline.nextAction}
+Roof: ${context.property.roofType ?? 'Unknown'}, ${context.property.roofAge ?? 'N/A'} years old
+Insurance: ${context.insurance.carrier ?? 'Unknown'} (${context.insurance.policyType ?? 'N/A'})
+Last Contact: ${lastContactStr}
+Next Action: ${context.pipeline.nextAction ?? 'None scheduled'}
 `.trim();
 }
 
@@ -250,10 +256,10 @@ export function buildCustomerSystemPrompt(context: CustomerContext): string {
   const keyFacts: string[] = [];
   
   // Roof age insight
-  if (context.property.roofAge >= 15) {
-    keyFacts.push(`has an aging ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
-  } else if (context.property.roofAge >= 10) {
-    keyFacts.push(`has a ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
+  if (context.property.roofAge != null && context.property.roofAge >= 15) {
+    keyFacts.push(`has an aging ${context.property.roofAge}-year-old ${context.property.roofType ?? 'unknown'} roof`);
+  } else if (context.property.roofAge != null && context.property.roofAge >= 10) {
+    keyFacts.push(`has a ${context.property.roofAge}-year-old ${context.property.roofType ?? 'unknown'} roof`);
   }
   
   // Weather events
@@ -292,14 +298,14 @@ CURRENT CUSTOMER:
 ${summary}
 
 PROPERTY DETAILS:
-- Type: ${context.property.type}
-- Year Built: ${context.property.yearBuilt}
-- Size: ${context.property.squareFootage.toLocaleString()} sq ft
-- Property Value: $${context.property.propertyValue.toLocaleString()}
-- Deductible: $${context.insurance.deductible.toLocaleString()}
-- Profit Potential: $${context.pipeline.profitPotential.toLocaleString()}
-- Urgency Score: ${context.pipeline.urgencyScore}/100
-- Churn Risk: ${context.pipeline.churnRisk}%
+- Type: ${context.property.type ?? 'Unknown'}
+- Year Built: ${context.property.yearBuilt ?? 'Unknown'}
+- Size: ${context.property.squareFootage?.toLocaleString() ?? 'Unknown'} sq ft
+- Property Value: $${context.property.propertyValue?.toLocaleString() ?? 'Unknown'}
+- Deductible: $${context.insurance.deductible?.toLocaleString() ?? 'Unknown'}
+- Profit Potential: $${context.pipeline.profitPotential?.toLocaleString() ?? '0'}
+- Urgency Score: ${context.pipeline.urgencyScore ?? 0}/100
+- Churn Risk: ${context.pipeline.churnRisk ?? 0}%
 
 RECENT WEATHER EVENTS:
 ${context.weatherEvents && context.weatherEvents.length > 0 
