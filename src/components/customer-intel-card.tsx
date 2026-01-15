@@ -31,6 +31,7 @@ import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
 import { GenerateProposalModal } from "./modals/generate-proposal-modal";
+import { CompetitorActivityModal } from "./modals/competitor-activity-modal";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -65,6 +66,7 @@ export function CustomerIntelCard({
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
   const [showProposalModal, setShowProposalModal] = useState(false);
+  const [showCompetitorModal, setShowCompetitorModal] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const handleActivitySaved = (activity: ActivityLog) => {
@@ -432,6 +434,16 @@ export function CustomerIntelCard({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        setShowCompetitorModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded font-mono text-xs text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1"
+                    >
+                      <Target className="w-3 h-3" />
+                      COMPETITOR
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowAIChat(true);
                       }}
                       className="px-3 py-1.5 bg-intel-500/10 border border-intel-500/30 rounded font-mono text-xs text-intel-400 hover:bg-intel-500/20 transition-all flex items-center gap-1"
@@ -517,7 +529,19 @@ export function CustomerIntelCard({
         customerName={`${customer.firstName} ${customer.lastName}`}
         onSuccess={(proposalId) => {
           console.log("Proposal created:", proposalId);
-          // Optionally navigate to proposal or show toast
+        }}
+      />
+      
+      {/* Competitor Activity Modal */}
+      <CompetitorActivityModal
+        isOpen={showCompetitorModal}
+        onClose={() => setShowCompetitorModal(false)}
+        customerId={customer.id}
+        customerName={`${customer.firstName} ${customer.lastName}`}
+        customerAddress={{
+          city: customer.city,
+          state: customer.state,
+          zip: customer.zipCode,
         }}
       />
       

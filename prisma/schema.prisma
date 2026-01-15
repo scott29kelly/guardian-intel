@@ -641,6 +641,142 @@ model ProposalTemplate {
 }
 
 // ============================================
+// COMPETITOR INTELLIGENCE
+// ============================================
+
+model Competitor {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Basic Info
+  name          String   @unique
+  displayName   String?  // Friendly name if different
+  website       String?
+  phone         String?
+  
+  // Company Details
+  headquarters  String?  // City, State
+  serviceAreas  String?  // JSON array of states/regions
+  yearFounded   Int?
+  employeeCount Int?
+  
+  // Business Characteristics
+  pricingTier   String   @default("mid") // budget, mid, premium, luxury
+  specialties   String?  // JSON array: ["roofing", "siding", "gutters"]
+  certifications String? // JSON array: ["GAF Master Elite", "CertainTeed SELECT"]
+  
+  // Competitive Intel
+  strengths     String?  // Markdown notes
+  weaknesses    String?  // Markdown notes
+  salesTactics  String?  // How they sell
+  pricingNotes  String?  // Pricing patterns observed
+  
+  // Market Position
+  marketShare   Float?   // Estimated % in our territory
+  reputation    Int?     // 1-5 rating based on reviews
+  avgReviewScore Float?  // Google/BBB average
+  reviewCount   Int?
+  
+  // Tracking
+  isActive      Boolean  @default(true)
+  lastUpdated   DateTime @default(now())
+  
+  // Relations
+  activities    CompetitorActivity[]
+  mentions      CompetitorMention[]
+  
+  @@index([name])
+  @@index([pricingTier])
+}
+
+model CompetitorActivity {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  // Competitor link
+  competitorId  String
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  // Customer link (optional - for specific encounters)
+  customerId    String?
+  
+  // Reporter
+  reportedById  String
+  
+  // Activity Type
+  activityType  String   // sighting, quote, won_deal, lost_deal, canvassing, marketing, price_intel
+  
+  // Location
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  latitude      Float?
+  longitude     Float?
+  
+  // Details
+  description   String?
+  
+  // Pricing Intel (if available)
+  quotedPrice   Float?   // If we know what they quoted
+  priceComparison String? // lower, similar, higher
+  
+  // Outcome (for won/lost deals)
+  outcome       String?  // won, lost, pending
+  outcomeReason String?  // Why customer chose them/us
+  dealValue     Float?   // Value of the deal
+  
+  // Evidence
+  hasPhoto      Boolean  @default(false)
+  photoUrl      String?
+  hasDocument   Boolean  @default(false)
+  documentUrl   String?
+  
+  // Verification
+  isVerified    Boolean  @default(false)
+  verifiedById  String?
+  verifiedAt    DateTime?
+  
+  @@index([competitorId])
+  @@index([customerId])
+  @@index([activityType])
+  @@index([createdAt])
+  @@index([state])
+}
+
+model CompetitorMention {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  // Competitor link
+  competitorId  String
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  // Source
+  source        String   // customer_call, customer_email, review_site, news, social_media, canvassing
+  sourceUrl     String?
+  
+  // Customer link (if mentioned during interaction)
+  customerId    String?
+  interactionId String?
+  
+  // Content
+  content       String   // What was said/written
+  sentiment     String?  // positive, neutral, negative
+  
+  // Context
+  mentionType   String   // pricing, quality, service, timing, reputation
+  
+  // Reporter
+  reportedById  String?
+  
+  @@index([competitorId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ============================================
 // ANALYTICS & AGGREGATES
 // ============================================
 

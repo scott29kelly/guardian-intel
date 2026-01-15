@@ -13,6 +13,7 @@ import {
   Shield,
   ChevronLeft,
   Bot,
+  Target,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -47,6 +48,11 @@ const navigation = [
     name: "Analytics", 
     href: "/analytics", 
     icon: BarChart3,
+  },
+  { 
+    name: "Competitors", 
+    href: "/competitors", 
+    icon: Target,
   },
   { 
     name: "Playbooks", 

@@ -13,3 +13,4 @@ export * from "./use-timeline";
 export * from "./use-playbooks";
 export * from "./use-ai-analysis";
 export * from "./use-proposals";
+export * from "./use-competitors";
