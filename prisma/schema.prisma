@@ -180,6 +180,7 @@ model Customer {
   @@index([leadScore])
   @@index([status, stage])
   @@index([zipCode])
+  @@unique([crmId])
 }
 
 // ============================================
@@ -379,7 +380,9 @@ model Interaction {
   nextActionDate DateTime?
   
   // CRM sync
-  crmId         String?
+  crmId         String?  @unique
+  
+  @@index([customerId])
 }
 
 model Task {

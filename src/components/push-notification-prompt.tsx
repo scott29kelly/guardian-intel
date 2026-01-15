@@ -117,7 +117,7 @@ export function PushNotificationPrompt() {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey),
+        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey) as BufferSource,
       });
 
       // Send subscription to server

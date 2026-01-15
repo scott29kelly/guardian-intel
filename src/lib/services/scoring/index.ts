@@ -135,7 +135,7 @@ function calculateUrgencyFactors(input: ScoringInput): UrgencyFactors {
 
   // Roof Age Score (0-100): Higher as roof approaches/exceeds 20 year lifespan
   const roofLifespan = 20;
-  const roofAgeRatio = customer.roofAge / roofLifespan;
+  const roofAgeRatio = (customer.roofAge ?? 0) / roofLifespan;
   const roofAgeScore = roofAgeRatio >= 1 
     ? 100 
     : Math.min(100, roofAgeRatio * 100 + (roofAgeRatio > 0.8 ? 20 : 0));
@@ -199,7 +199,7 @@ function calculateUrgencyFactors(input: ScoringInput): UrgencyFactors {
   }
 
   // Contact Recency Score (0-100): Decays if not contacted recently
-  const daysSinceContact = daysBetween(customer.lastContact, now);
+  const daysSinceContact = daysBetween(customer.lastContact ?? new Date(), now);
   let contactRecencyScore = 100;
   if (daysSinceContact > 30) {
     contactRecencyScore = 30;
@@ -229,15 +229,15 @@ function calculateChurnFactors(input: ScoringInput): ChurnFactors {
   const now = new Date();
 
   // Contact Silence Score (0-100): Risk increases with silence
-  const daysSinceContact = daysBetween(customer.lastContact, now);
+  const churnDaysSinceContact = daysBetween(customer.lastContact ?? new Date(), now);
   let contactSilenceScore = 0;
-  if (daysSinceContact > 60) {
+  if (churnDaysSinceContact > 60) {
     contactSilenceScore = 100;
-  } else if (daysSinceContact > 30) {
+  } else if (churnDaysSinceContact > 30) {
     contactSilenceScore = 70;
-  } else if (daysSinceContact > 14) {
+  } else if (churnDaysSinceContact > 14) {
     contactSilenceScore = 40;
-  } else if (daysSinceContact > 7) {
+  } else if (churnDaysSinceContact > 7) {
     contactSilenceScore = 20;
   }
 
@@ -245,7 +245,7 @@ function calculateChurnFactors(input: ScoringInput): ChurnFactors {
   // Using nextActionDate as proxy for quote date if in proposal stage
   let quoteAgeScore = 0;
   if (customer.stage === "proposal" || customer.stage === "negotiation") {
-    const daysSinceAction = daysBetween(customer.nextActionDate, now);
+    const daysSinceAction = daysBetween(customer.nextActionDate ?? new Date(), now);
     if (daysSinceAction > 30) {
       quoteAgeScore = 100;
     } else if (daysSinceAction > 14) {
@@ -296,18 +296,18 @@ function calculateProfitFactors(input: ScoringInput): ProfitFactors {
                             REGIONAL_PROFIT_PER_SQFT.DEFAULT;
 
   // Roof type multiplier
-  const roofTypeMultiplier = ROOF_TYPE_MULTIPLIERS[customer.roofType] || 
+  const roofTypeMultiplier = ROOF_TYPE_MULTIPLIERS[customer.roofType ?? 'DEFAULT'] || 
                              ROOF_TYPE_MULTIPLIERS.DEFAULT;
 
   // Property value factor: Higher value homes = higher margin potential
   // Scale from 0.9 (low value) to 1.3 (high value)
   const avgPropertyValue = 350000;
-  const propertyValueRatio = customer.propertyValue / avgPropertyValue;
+  const propertyValueRatio = (customer.propertyValue ?? avgPropertyValue) / avgPropertyValue;
   const propertyValueFactor = clamp(0.9 + (propertyValueRatio - 1) * 0.2, 0.9, 1.3);
 
   // Calculate estimated profit
   // Assume roof is roughly 1.5x the square footage for a typical home
-  const estimatedRoofSqft = customer.squareFootage * 1.5;
+  const estimatedRoofSqft = (customer.squareFootage ?? 0) * 1.5;
   const estimatedProfit = estimatedRoofSqft * baseProfitPerSqft * 
                           roofTypeMultiplier * propertyValueFactor;
 

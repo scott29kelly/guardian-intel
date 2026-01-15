@@ -280,17 +280,17 @@ Phone: ${context.customer.phone}
 Email: ${context.customer.email}
 
 PROPERTY DETAILS:
-- Type: ${context.property.type}
-- Year Built: ${context.property.yearBuilt}
-- Size: ${context.property.squareFootage.toLocaleString()} sqft
-- Roof Type: ${context.property.roofType}
-- Roof Age: ${context.property.roofAge} years
-- Property Value: $${context.property.propertyValue.toLocaleString()}
+- Type: ${context.property.type ?? 'Unknown'}
+- Year Built: ${context.property.yearBuilt ?? 'Unknown'}
+- Size: ${(context.property.squareFootage ?? 0).toLocaleString()} sqft
+- Roof Type: ${context.property.roofType ?? 'Unknown'}
+- Roof Age: ${context.property.roofAge ?? 'Unknown'} years
+- Property Value: $${(context.property.propertyValue ?? 0).toLocaleString()}
 
 INSURANCE:
-- Carrier: ${context.insurance.carrier}
-- Policy: ${context.insurance.policyType}
-- Deductible: $${context.insurance.deductible.toLocaleString()}
+- Carrier: ${context.insurance.carrier ?? 'Unknown'}
+- Policy: ${context.insurance.policyType ?? 'Unknown'}
+- Deductible: $${(context.insurance.deductible ?? 0).toLocaleString()}
 
 PIPELINE STATUS:
 - Status: ${context.pipeline.status}

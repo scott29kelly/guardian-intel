@@ -272,10 +272,10 @@ export default function CustomersPage() {
         phone: formData.phone || undefined,
         address: formData.address,
         city: formData.city,
-        state: formData.state,
+        state: formData.state as "PA" | "NJ" | "DE" | "MD" | "VA" | "NY",
         zipCode: formData.zipCode,
-        propertyType: formData.propertyType || undefined,
-        roofType: formData.roofType || undefined,
+        propertyType: (formData.propertyType || undefined) as "Single Family" | "Multi Family" | "Townhouse" | "Condo" | "Commercial" | undefined,
+        roofType: (formData.roofType || undefined) as "3-Tab Shingle" | "Architectural Shingle" | "Asphalt Shingle" | "Metal Standing Seam" | "Slate" | "Tile" | "Cedar Shake" | "Metal" | "Flat/TPO" | "Other" | undefined,
         roofAge: formData.roofAge || undefined,
         insuranceCarrier: formData.insuranceCarrier || undefined,
       });
@@ -808,7 +808,11 @@ export default function CustomersPage() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <span className="text-sm text-text-secondary">{customer.assignedRep}</span>
+                        <span className="text-sm text-text-secondary">
+                          {customer.assignedRep 
+                            ? (typeof customer.assignedRep === 'object' ? customer.assignedRep.name : customer.assignedRep)
+                            : 'Unassigned'}
+                        </span>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <div className="relative">

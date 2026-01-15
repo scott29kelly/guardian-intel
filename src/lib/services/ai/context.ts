@@ -113,8 +113,8 @@ export class CustomerContextBuilder {
         type: e.eventType,
         date: e.eventDate,
         severity: e.severity,
-        hailSize: e.hailSize,
-        windSpeed: e.windSpeed,
+        hailSize: e.hailSize ?? undefined,
+        windSpeed: e.windSpeed ?? undefined,
         damageReported: e.damageReported || false,
       })),
       interactions: this.interactions.map(i => ({
@@ -250,10 +250,10 @@ export function buildCustomerSystemPrompt(context: CustomerContext): string {
   const keyFacts: string[] = [];
   
   // Roof age insight
-  if (context.property.roofAge >= 15) {
-    keyFacts.push(`has an aging ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
-  } else if (context.property.roofAge >= 10) {
-    keyFacts.push(`has a ${context.property.roofAge}-year-old ${context.property.roofType} roof`);
+  if ((context.property.roofAge ?? 0) >= 15) {
+    keyFacts.push(`has an aging ${context.property.roofAge}-year-old ${context.property.roofType ?? 'Unknown'} roof`);
+  } else if ((context.property.roofAge ?? 0) >= 10) {
+    keyFacts.push(`has a ${context.property.roofAge}-year-old ${context.property.roofType ?? 'Unknown'} roof`);
   }
   
   // Weather events
@@ -292,11 +292,11 @@ CURRENT CUSTOMER:
 ${summary}
 
 PROPERTY DETAILS:
-- Type: ${context.property.type}
-- Year Built: ${context.property.yearBuilt}
-- Size: ${context.property.squareFootage.toLocaleString()} sq ft
-- Property Value: $${context.property.propertyValue.toLocaleString()}
-- Deductible: $${context.insurance.deductible.toLocaleString()}
+- Type: ${context.property.type ?? 'Unknown'}
+- Year Built: ${context.property.yearBuilt ?? 'Unknown'}
+- Size: ${(context.property.squareFootage ?? 0).toLocaleString()} sq ft
+- Property Value: $${(context.property.propertyValue ?? 0).toLocaleString()}
+- Deductible: $${(context.insurance.deductible ?? 0).toLocaleString()}
 - Profit Potential: $${context.pipeline.profitPotential.toLocaleString()}
 - Urgency Score: ${context.pipeline.urgencyScore}/100
 - Churn Risk: ${context.pipeline.churnRisk}%

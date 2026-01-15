@@ -239,21 +239,21 @@ export function CustomerProfileModal({
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted">Size</span>
-                          <span className="text-text-secondary">{customer.squareFootage.toLocaleString()} sqft</span>
+                          <span className="text-text-secondary">{(customer.squareFootage ?? 0).toLocaleString()} sqft</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted">Roof</span>
-                          <span className="text-text-secondary">{customer.roofType}</span>
+                          <span className="text-text-secondary">{customer.roofType ?? 'Unknown'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted">Roof Age</span>
-                          <span className={customer.roofAge > 15 ? "text-accent-danger" : "text-text-secondary"}>
-                            {customer.roofAge} years
+                          <span className={(customer.roofAge ?? 0) > 15 ? "text-accent-danger" : "text-text-secondary"}>
+                            {customer.roofAge ?? 'N/A'} years
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted">Value</span>
-                          <span className="text-accent-success">{formatCurrency(customer.propertyValue)}</span>
+                          <span className="text-accent-success">{formatCurrency(customer.propertyValue ?? 0)}</span>
                         </div>
                       </div>
                     </div>
@@ -278,7 +278,7 @@ export function CustomerProfileModal({
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-muted">Deductible</span>
-                          <span className="text-accent-success">{formatCurrency(customer.deductible)}</span>
+                          <span className="text-accent-success">{formatCurrency(customer.deductible ?? 0)}</span>
                         </div>
                       </div>
                     </div>
@@ -303,7 +303,7 @@ export function CustomerProfileModal({
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex justify-between items-center cursor-help" title={`Based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}`}>
+                        <div className="flex justify-between items-center cursor-help" title={`Based on ${(customer.squareFootage ?? 0).toLocaleString()} sqft, ${customer.roofType ?? 'Unknown'}`}>
                           <span className="font-mono text-xs text-text-muted">Est. Profit</span>
                           <span className="font-mono text-lg font-bold text-accent-success">
                             {formatCurrency(scores.profitPotential)}

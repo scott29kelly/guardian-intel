@@ -74,25 +74,25 @@ export interface CustomerContext {
   customer: {
     id: string;
     name: string;
-    email: string;
-    phone: string;
+    email: string | null;
+    phone: string | null;
     address: string;
     city: string;
     state: string;
     zipCode: string;
   };
   property: {
-    type: string;
-    yearBuilt: number;
-    squareFootage: number;
-    roofType: string;
-    roofAge: number;
-    propertyValue: number;
+    type: string | null;
+    yearBuilt: number | null;
+    squareFootage: number | null;
+    roofType: string | null;
+    roofAge: number | null;
+    propertyValue: number | null;
   };
   insurance: {
-    carrier: string;
-    policyType: string;
-    deductible: number;
+    carrier: string | null;
+    policyType: string | null;
+    deductible: number | null;
   };
   pipeline: {
     status: string;
@@ -104,7 +104,7 @@ export interface CustomerContext {
     assignedRep: string;
     lastContact: Date;
     nextAction: string;
-    nextActionDate: Date;
+    nextActionDate: Date | null;
   };
   weatherEvents: {
     id: string;

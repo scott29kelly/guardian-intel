@@ -63,7 +63,7 @@ interface TimelineResponse {
 export async function GET(request: Request, { params }: RouteParams): Promise<NextResponse<TimelineResponse | { success: false; error: string }>> {
   try {
     const rateLimitResponse = await rateLimit(request, "api");
-    if (rateLimitResponse) return rateLimitResponse;
+    if (rateLimitResponse) return rateLimitResponse as NextResponse<{ success: false; error: string }>;
 
     const { id } = await params;
 

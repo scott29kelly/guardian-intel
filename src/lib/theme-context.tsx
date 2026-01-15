@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     if (storedTheme && ["dark", "slate", "light"].includes(storedTheme)) {
       setTheme(storedTheme);
-    } else if (storedTheme === "gray" || storedTheme === "light-gray") {
+    } else if ((storedTheme as string) === "gray" || (storedTheme as string) === "light-gray") {
       setTheme("slate");
     }
   }, []);

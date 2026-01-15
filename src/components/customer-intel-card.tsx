@@ -81,7 +81,7 @@ export function CustomerIntelCard({
   // Get human-readable explanations for tooltips
   const urgencyTooltip = `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`;
   const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
-  const profitTooltip = `Estimated profit based on ${customer.squareFootage.toLocaleString()} sqft, ${customer.roofType}, and $${customer.propertyValue.toLocaleString()} property value`;
+  const profitTooltip = `Estimated profit based on ${(customer.squareFootage ?? 0).toLocaleString()} sqft, ${customer.roofType ?? 'Unknown'}, and $${(customer.propertyValue ?? 0).toLocaleString()} property value`;
 
   return (
     <>
@@ -162,7 +162,7 @@ export function CustomerIntelCard({
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="font-mono text-xs">
-                    {Math.floor((Date.now() - new Date(customer.lastContact).getTime()) / (1000 * 60 * 60 * 24))}d ago
+                    {Math.floor((Date.now() - new Date(customer.lastContact ?? customer.updatedAt ?? Date.now()).getTime()) / (1000 * 60 * 60 * 24))}d ago
                   </span>
                 </div>
               </div>
@@ -280,25 +280,25 @@ export function CustomerIntelCard({
                     <div className="space-y-2 font-mono text-sm">
                       <div className="flex justify-between">
                         <span className="text-text-muted">Built</span>
-                        <span className="text-text-secondary">{customer.yearBuilt}</span>
+                        <span className="text-text-secondary">{customer.yearBuilt ?? 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-muted">Size</span>
-                        <span className="text-text-secondary">{customer.squareFootage.toLocaleString()} sqft</span>
+                        <span className="text-text-secondary">{(customer.squareFootage ?? 0).toLocaleString()} sqft</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-muted">Roof</span>
-                        <span className="text-text-secondary">{customer.roofType}</span>
+                        <span className="text-text-secondary">{customer.roofType ?? 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-muted">Age</span>
-                        <span className={customer.roofAge > 15 ? "text-accent-danger" : "text-text-secondary"}>
-                          {customer.roofAge} years
+                        <span className={(customer.roofAge ?? 0) > 15 ? "text-accent-danger" : "text-text-secondary"}>
+                          {customer.roofAge ?? 'N/A'} years
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-muted">Value</span>
-                        <span className="text-text-secondary">{formatCurrency(customer.propertyValue)}</span>
+                        <span className="text-text-secondary">{formatCurrency(customer.propertyValue ?? 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ export function CustomerIntelCard({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-muted">Deductible</span>
-                        <span className="text-accent-success">{formatCurrency(customer.deductible)}</span>
+                        <span className="text-accent-success">{formatCurrency(customer.deductible ?? 0)}</span>
                       </div>
                     </div>
                   </div>

@@ -187,42 +187,42 @@ function TimelineItemCard({
           )}
           
           {/* Type-specific metadata */}
-          {item.type === "interaction" && item.metadata.outcome && (
+          {item.type === "interaction" && item.metadata.outcome != null ? (
             <span className="data-badge text-[9px]">
-              {item.metadata.outcome as string}
+              {String(item.metadata.outcome)}
             </span>
-          )}
+          ) : null}
           
-          {item.type === "interaction" && item.metadata.duration && (
+          {item.type === "interaction" && item.metadata.duration != null ? (
             <span className="font-mono text-[10px] text-text-muted">
-              {Math.floor((item.metadata.duration as number) / 60)}m {(item.metadata.duration as number) % 60}s
+              {Math.floor(Number(item.metadata.duration) / 60)}m {Number(item.metadata.duration) % 60}s
             </span>
-          )}
+          ) : null}
 
-          {item.type === "weather_event" && (
+          {item.type === "weather_event" && item.metadata.severity != null ? (
             <span className="data-badge text-[9px] border-accent-danger/30 text-accent-danger">
-              {item.metadata.severity as string}
+              {String(item.metadata.severity)}
             </span>
-          )}
+          ) : null}
 
-          {item.type === "intel" && (
+          {item.type === "intel" && item.metadata.confidence != null ? (
             <span className="font-mono text-[10px] text-text-muted">
-              {item.metadata.confidence as number}% confidence
+              {Number(item.metadata.confidence)}% confidence
             </span>
-          )}
+          ) : null}
 
-          {item.type === "claim" && item.metadata.approvedValue && (
+          {item.type === "claim" && item.metadata.approvedValue != null ? (
             <span className="font-mono text-[10px] text-accent-success">
-              ${(item.metadata.approvedValue as number).toLocaleString()}
+              ${Number(item.metadata.approvedValue).toLocaleString()}
             </span>
-          )}
+          ) : null}
 
-          {item.metadata.nextAction && (
+          {item.metadata.nextAction != null ? (
             <span className="flex items-center gap-1 text-accent-primary font-mono text-[10px]">
               <Zap className="w-3 h-3" />
-              {item.metadata.nextAction as string}
+              {String(item.metadata.nextAction)}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.div>

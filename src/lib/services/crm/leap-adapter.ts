@@ -515,15 +515,15 @@ export class LeapCrmAdapter implements ICrmAdapter {
               const interactions = await this.getInteractions(customer.crmId);
               
               for (const interaction of interactions) {
+                // Generate a unique crmId for the interaction
+                const interactionCrmId = `leap_${customer.crmId}_${interaction.type}_${interaction.createdAt.getTime()}`;
+                
                 await prisma.interaction.upsert({
                   where: {
-                    customerId_type_createdAt: {
-                      customerId: customer.id,
-                      type: interaction.type,
-                      createdAt: interaction.createdAt,
-                    },
+                    crmId: interactionCrmId,
                   },
                   create: {
+                    crmId: interactionCrmId,
                     customerId: customer.id,
                     type: interaction.type,
                     direction: interaction.direction as "inbound" | "outbound",

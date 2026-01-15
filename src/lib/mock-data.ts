@@ -5,33 +5,35 @@ export interface Customer {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
   address: string;
   city: string;
   state: string;
   zipCode: string;
-  propertyType: string;
-  yearBuilt: number;
-  squareFootage: number;
-  roofType: string;
-  roofAge: number;
-  propertyValue: number;
-  insuranceCarrier: string;
-  policyType: string;
-  deductible: number;
+  propertyType: string | null;
+  yearBuilt: number | null;
+  squareFootage: number | null;
+  roofType: string | null;
+  roofAge: number | null;
+  propertyValue: number | null;
+  insuranceCarrier: string | null;
+  policyType: string | null;
+  deductible: number | null;
   leadScore: number;
   // Legacy score fields - now calculated dynamically by scoring service
   // Kept for backwards compatibility and as reference data
-  urgencyScore?: number;
-  profitPotential?: number;
-  churnRisk?: number;
+  urgencyScore?: number | null;
+  profitPotential?: number | null;
+  churnRisk?: number | null;
   status: string;
   stage: string;
-  assignedRep: string;
-  lastContact: Date;
-  nextAction: string;
-  nextActionDate: Date;
+  assignedRep?: string | { id: string; name: string; email: string } | null;
+  lastContact?: Date;
+  nextAction?: string;
+  nextActionDate?: Date | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface IntelItem {
@@ -49,12 +51,12 @@ export interface IntelItem {
 
 export interface WeatherEvent {
   id: string;
-  customerId: string;
+  customerId: string | null;
   eventType: string;
   eventDate: Date;
   severity: string;
-  hailSize?: number;
-  windSpeed?: number;
+  hailSize?: number | null;
+  windSpeed?: number | null;
   damageReported: boolean;
   claimFiled: boolean;
 }

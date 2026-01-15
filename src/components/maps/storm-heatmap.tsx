@@ -14,6 +14,8 @@ import dynamic from "next/dynamic";
 import { Flame, RefreshCw, Filter, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type * as L from "leaflet";
+// leaflet.heat types are declared in src/types/leaflet-heat.d.ts
 
 // Types
 interface HeatmapPoint {
@@ -145,6 +147,7 @@ export function StormHeatmap({
     if (!isClient || !data || !mapRef.current) return;
 
     // Dynamically import leaflet.heat
+    // @ts-expect-error - leaflet.heat types are declared in src/types/leaflet-heat.d.ts
     import("leaflet.heat").then(() => {
       const L = require("leaflet");
 
