@@ -37,7 +37,7 @@ export function BulkActionModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed top-0 left-0 w-screen h-screen bg-black/60 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}

@@ -5,6 +5,8 @@
  * Redirects unauthenticated users to /login.
  */
 
+export const runtime = "nodejs";
+
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 

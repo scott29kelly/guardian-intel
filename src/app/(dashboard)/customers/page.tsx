@@ -34,7 +34,9 @@ import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-cust
 import { formatCurrency, getStatusClass } from "@/lib/utils";
 import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers } from "@/lib/hooks";
 import { BulkActionModal } from "@/components/modals/bulk-action-modal";
+import { CustomerCompareModal } from "@/components/modals/customer-compare-modal";
 import { useToast } from "@/components/ui/toast";
+import { Scale } from "lucide-react";
 
 // Customer type matching the API response
 interface Customer {
@@ -127,6 +129,7 @@ export default function CustomersPage() {
   const [showBulkStatusMenu, setShowBulkStatusMenu] = useState(false);
   const [showBulkStageMenu, setShowBulkStageMenu] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   
   // Keyboard shortcuts for customers page
   const focusSearch = useCallback(() => {
@@ -409,11 +412,6 @@ export default function CustomersPage() {
     clearSelection();
   };
 
-  // Check selection state
-  const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
-  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < filteredCustomers.length;
-  const hasSelection = selectedIds.size > 0;
-
   // Parse counties from URL for storm filtering
   const targetCounties = countyFilter 
     ? countyFilter.split(",").map(c => c.trim().toLowerCase())
@@ -445,6 +443,11 @@ export default function CustomersPage() {
         return customerCounty && targetCounties.includes(customerCounty);
       })
     : customers;
+
+  // Check selection state (must be after filteredCustomers is defined)
+  const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < filteredCustomers.length;
+  const hasSelection = selectedIds.size > 0;
 
   // Update ref for keyboard navigation
   customersLengthRef.current = filteredCustomers.length;
@@ -937,6 +940,13 @@ export default function CustomersPage() {
         count={selectedIds.size}
       />
 
+      {/* Customer Compare Modal */}
+      <CustomerCompareModal
+        isOpen={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        customers={filteredCustomers.filter((c) => selectedIds.has(c.id))}
+      />
+
       {/* Floating Bulk Action Bar */}
       <AnimatePresence>
         {hasSelection && (
@@ -1020,6 +1030,24 @@ export default function CustomersPage() {
               <Button variant="outline" size="sm" onClick={handleBulkExport}>
                 <Download className="w-3 h-3" />
                 Export
+              </Button>
+
+              {/* Compare - only enabled for 2-4 selections */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCompareModal(true)}
+                disabled={selectedIds.size < 2 || selectedIds.size > 4}
+                title={
+                  selectedIds.size < 2
+                    ? "Select at least 2 customers to compare"
+                    : selectedIds.size > 4
+                    ? "Compare up to 4 customers at a time"
+                    : `Compare ${selectedIds.size} customers`
+                }
+              >
+                <Scale className="w-3 h-3" />
+                Compare
               </Button>
 
               {/* Delete */}

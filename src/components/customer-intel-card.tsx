@@ -343,7 +343,7 @@ export function CustomerIntelCard({
                                 {event.eventType}
                               </span>
                               <span className="font-mono text-[10px] text-text-muted">
-                                {event.eventDate.toLocaleDateString()}
+                                {new Date(event.eventDate).toLocaleDateString()}
                               </span>
                             </div>
                             <div className="font-mono text-xs text-text-muted">

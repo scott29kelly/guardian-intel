@@ -11,7 +11,7 @@
  * - Generate insights
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -25,10 +25,15 @@ import {
   Sparkles,
   Check,
   AlertCircle,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { useAIAnalysis } from "@/lib/hooks/use-ai-analysis";
 import type { ActivityType, ActivityOutcome } from "@/lib/services/ai";
 
 // =============================================================================
@@ -115,7 +120,21 @@ export function QuickLogModal({
   const [nextAction, setNextAction] = useState("");
   const [nextActionDate, setNextActionDate] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [aiInsights, setAiInsights] = useState<string[]>([]);
+
+  // AI Analysis hook with context
+  const analysisContext = useMemo(() => ({
+    activityType,
+    outcome: outcome || undefined,
+    customerName,
+  }), [activityType, outcome, customerName]);
+  
+  const { 
+    analyze, 
+    isAnalyzing, 
+    lastResult: analysisResult,
+    clearResult: clearAnalysis,
+    error: analysisError 
+  } = useAIAnalysis({ context: analysisContext });
 
   const handleToggleObjection = (objection: string) => {
     setSelectedObjections(prev =>
@@ -128,66 +147,25 @@ export function QuickLogModal({
   const handleAnalyzeNotes = async () => {
     if (!notes.trim()) return;
     
-    setIsProcessing(true);
+    const result = await analyze(notes);
     
-    try {
-      const response = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: `You are analyzing sales rep notes for insights. Extract:
-1. Customer sentiment (positive/neutral/negative)
-2. Any objections mentioned
-3. Suggested next steps
-4. Key insights
-
-Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": [...], "insights": [...] }`,
-            },
-            {
-              role: "user",
-              content: `Activity: ${activityType}\nOutcome: ${outcome || "unknown"}\nNotes: ${notes}`,
-            },
-          ],
-          task: "parse",
-        }),
+    // Add detected objections to selection
+    if (result.objections.length > 0) {
+      // Map AI objections to our common objection labels
+      const mappedObjections = result.objections.map(obj => {
+        // Find matching common objection
+        const match = COMMON_OBJECTIONS.find(common => 
+          common.toLowerCase().includes(obj.toLowerCase()) ||
+          obj.toLowerCase().includes(common.toLowerCase())
+        );
+        return match || obj;
       });
-
-      const data = await response.json();
-      
-      if (data.success && data.message?.content) {
-        try {
-          const analysis = JSON.parse(data.message.content);
-          setAiInsights(analysis.insights || []);
-          
-          // Add AI-detected objections
-          if (analysis.objections?.length > 0) {
-            setSelectedObjections(prev => [...new Set([...prev, ...analysis.objections])]);
-          }
-          
-          // Suggest next step if empty
-          if (!nextAction && analysis.nextSteps?.length > 0) {
-            setNextAction(analysis.nextSteps[0]);
-          }
-        } catch {
-          // Mock insights if parsing fails
-          setAiInsights([
-            "Customer seems interested in moving forward",
-            "Consider addressing pricing concerns proactively",
-          ]);
-        }
-      }
-    } catch (error) {
-      console.error("AI analysis error:", error);
-      // Mock insights on error
-      setAiInsights([
-        "Customer seems interested in moving forward",
-        "Consider addressing pricing concerns proactively",
-      ]);
-    } finally {
-      setIsProcessing(false);
+      setSelectedObjections(prev => [...new Set([...prev, ...mappedObjections])]);
+    }
+    
+    // Suggest next step if empty
+    if (!nextAction && result.nextSteps.length > 0) {
+      setNextAction(result.nextSteps[0]);
     }
   };
 
@@ -210,7 +188,7 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
         duration,
         nextAction: nextAction || undefined,
         nextActionDate: nextActionDate || undefined,
-        aiInsights,
+        aiInsights: analysisResult?.insights,
         objections: selectedObjections.length > 0 ? selectedObjections : undefined,
         createdAt: new Date().toISOString(),
         createdBy: "S. Mitchell",
@@ -229,7 +207,7 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
       setSelectedObjections([]);
       setNextAction("");
       setNextActionDate("");
-      setAiInsights([]);
+      clearAnalysis();
       
       // Switch to history tab to show the new activity
       setActiveTab("history");
@@ -248,7 +226,7 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed top-0 left-0 w-screen h-screen bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -455,11 +433,20 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
                   variant="ghost"
                   size="sm"
                   onClick={handleAnalyzeNotes}
-                  disabled={!notes.trim() || isProcessing}
+                  disabled={!notes.trim() || isAnalyzing}
                   className="text-xs"
                 >
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Analyze with AI
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Analyze with AI
+                    </>
+                  )}
                 </Button>
               </div>
               <textarea
@@ -472,25 +459,77 @@ Respond in JSON format: { "sentiment": "...", "objections": [...], "nextSteps": 
             </div>
 
             {/* AI Insights */}
-            {aiInsights.length > 0 && (
+            {analysisResult && analysisResult.insights.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-intel-500/10 border border-intel-500/30 rounded-lg"
+                className="p-4 bg-intel-500/10 border border-intel-500/30 rounded-lg space-y-3"
               >
-                <div className="flex items-center gap-2 text-intel-400 mb-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-sm font-medium">AI Insights</span>
+                {/* Header with sentiment */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-intel-400">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm font-medium">AI Insights</span>
+                    {analysisResult.source === "heuristic" && (
+                      <span className="text-xs text-text-muted">(basic)</span>
+                    )}
+                  </div>
+                  {/* Sentiment indicator */}
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                    analysisResult.sentiment === "positive" 
+                      ? "bg-emerald-500/20 text-emerald-400" 
+                      : analysisResult.sentiment === "negative"
+                      ? "bg-rose-500/20 text-rose-400"
+                      : analysisResult.sentiment === "mixed"
+                      ? "bg-amber-500/20 text-amber-400"
+                      : "bg-surface-700 text-text-secondary"
+                  }`}>
+                    {analysisResult.sentiment === "positive" && <TrendingUp className="w-3 h-3" />}
+                    {analysisResult.sentiment === "negative" && <TrendingDown className="w-3 h-3" />}
+                    {analysisResult.sentiment === "mixed" && <AlertTriangle className="w-3 h-3" />}
+                    {analysisResult.sentiment === "neutral" && <Minus className="w-3 h-3" />}
+                    <span className="capitalize">{analysisResult.sentiment}</span>
+                  </div>
                 </div>
-                <ul className="space-y-1">
-                  {aiInsights.map((insight, index) => (
+                
+                {/* Insights */}
+                <ul className="space-y-1.5">
+                  {analysisResult.insights.map((insight, index) => (
                     <li key={index} className="text-sm text-text-secondary flex items-start gap-2">
                       <Check className="w-3 h-3 text-intel-400 mt-1 flex-shrink-0" />
                       {insight}
                     </li>
                   ))}
                 </ul>
+
+                {/* Suggested next steps */}
+                {analysisResult.nextSteps.length > 0 && !nextAction && (
+                  <div className="pt-2 border-t border-intel-500/20">
+                    <p className="text-xs text-text-muted mb-1.5">Suggested Next Steps:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.nextSteps.slice(0, 2).map((step, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setNextAction(step)}
+                          className="px-2 py-1 bg-intel-500/20 hover:bg-intel-500/30 text-intel-400 text-xs rounded-full transition-colors"
+                        >
+                          + {step}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
+            )}
+            
+            {/* Analysis error */}
+            {analysisError && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-400 text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  {analysisError}
+                </div>
+              </div>
             )}
 
             {/* Objections */}

@@ -191,23 +191,12 @@ export function useDashboard() {
     };
   }, [fetchDashboard]);
 
+  // Initial fetch and SSE connection - run only once on mount
   useEffect(() => {
-    // Initial fetch
     fetchDashboard();
-    
-    // Connect to SSE for real-time updates
     connectSSE();
     
-    // Fallback: poll every 5 minutes if SSE is connected (safety net)
-    // or every 60 seconds if SSE fails
-    const interval = setInterval(() => {
-      if (sseStatus === "error") {
-        fetchDashboard(true);
-      }
-    }, 60000);
-    
     return () => {
-      clearInterval(interval);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
@@ -215,7 +204,19 @@ export function useDashboard() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [fetchDashboard, connectSSE, sseStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount/unmount
+
+  // Fallback polling when SSE fails
+  useEffect(() => {
+    if (sseStatus !== "error") return;
+    
+    const interval = setInterval(() => {
+      fetchDashboard(true);
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [sseStatus, fetchDashboard]);
 
   return { 
     data, 

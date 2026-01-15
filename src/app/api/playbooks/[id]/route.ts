@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { updatePlaybookSchema, formatZodErrors, cuidSchema } from "@/lib/validations";
 

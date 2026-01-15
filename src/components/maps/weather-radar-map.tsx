@@ -214,6 +214,17 @@ export function WeatherRadarMap({
     return currentFrame >= radarData.radar.past.length;
   };
 
+  // Separate storm and customer markers for different clustering behavior
+  // NOTE: These useMemo hooks MUST be before any conditional returns to follow Rules of Hooks
+  const stormMarkers = useMemo(
+    () => markers.filter((m) => m.type !== "customer"),
+    [markers]
+  );
+  const customerMarkers = useMemo(
+    () => markers.filter((m) => m.type === "customer"),
+    [markers]
+  );
+
   if (!isClient) {
     return (
       <div 
@@ -320,16 +331,6 @@ export function WeatherRadarMap({
       iconAnchor: [size / 2, size / 2],
     });
   };
-
-  // Separate storm and customer markers for different clustering behavior
-  const stormMarkers = useMemo(
-    () => markers.filter((m) => m.type !== "customer"),
-    [markers]
-  );
-  const customerMarkers = useMemo(
-    () => markers.filter((m) => m.type === "customer"),
-    [markers]
-  );
 
   const radarTileUrl = getRadarTileUrl();
 

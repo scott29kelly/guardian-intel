@@ -11,3 +11,4 @@ export * from "./use-analytics";
 export * from "./use-keyboard-shortcuts";
 export * from "./use-timeline";
 export * from "./use-playbooks";
+export * from "./use-ai-analysis";

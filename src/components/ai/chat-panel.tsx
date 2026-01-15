@@ -480,32 +480,37 @@ export function AIChatPanel({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - covers entire viewport */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className={cn(
-              "fixed inset-0 z-40",
+              "fixed top-0 left-0 w-screen h-screen z-40",
               viewMode === "panel" 
-                ? "bg-black/40 backdrop-blur-sm" 
+                ? "bg-black/40 backdrop-blur-[2px]" 
                 : "bg-black/60 backdrop-blur-md"
             )}
             onClick={onClose}
           />
 
-          {/* Panel */}
+          {/* Panel - iOS style slide-over in panel mode */}
           <motion.div
             initial={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "fixed bg-[hsl(var(--surface-primary))] border border-border shadow-2xl z-50 flex flex-col",
-              viewMode === "panel" && "right-0 top-0 bottom-0 w-full max-w-lg border-l rounded-none",
-              viewMode === "expanded" && "inset-0 m-auto w-[90vw] max-w-4xl h-[80vh] max-h-[800px] rounded-xl",
-              viewMode === "fullscreen" && "inset-4 rounded-xl"
+              "fixed bg-[hsl(var(--surface-primary))] z-50 flex flex-col overflow-hidden",
+              viewMode === "panel" && "right-0 top-2 bottom-2 w-full max-w-lg border border-border/50 border-r-0 rounded-l-3xl",
+              viewMode === "expanded" && "inset-0 m-auto w-[90vw] max-w-4xl h-[80vh] max-h-[800px] rounded-2xl border border-border",
+              viewMode === "fullscreen" && "inset-3 rounded-2xl border border-border"
             )}
+            style={viewMode === "panel" ? {
+              boxShadow: "-8px 0 40px rgba(0,0,0,0.4), -2px 0 10px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.05) inset",
+            } : {
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            }}
           >
             {/* History Sidebar */}
             <AnimatePresence>
@@ -592,10 +597,23 @@ export function AIChatPanel({
 
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col min-w-0">
-              {/* Header */}
+              {/* Header with iOS-style handle in panel mode */}
               <div className={cn(
-                "flex items-center justify-between p-4 border-b border-border bg-[hsl(var(--surface-secondary))]",
-                viewMode !== "panel" && !showHistory && "rounded-t-xl"
+                "border-b border-border/50",
+                viewMode === "panel" 
+                  ? "bg-gradient-to-b from-surface-secondary/50 to-transparent" 
+                  : "bg-[hsl(var(--surface-secondary))]",
+                viewMode !== "panel" && !showHistory && "rounded-t-2xl"
+              )}>
+                {/* iOS-style drag indicator - only in panel mode */}
+                {viewMode === "panel" && (
+                  <div className="flex justify-center pt-2 pb-1">
+                    <div className="w-10 h-1 rounded-full bg-border/60" />
+                  </div>
+                )}
+              <div className={cn(
+                "flex items-center justify-between",
+                viewMode === "panel" ? "px-4 pb-4 pt-2" : "p-4"
               )}>
                 <div className="flex items-center gap-3">
                   <button
@@ -679,6 +697,7 @@ export function AIChatPanel({
                   </Button>
                 </div>
               </div>
+              </div>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
@@ -697,8 +716,13 @@ export function AIChatPanel({
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
-              <div className="p-4 border-t border-border bg-[hsl(var(--surface-secondary))]">
+              {/* Input - iOS style frosted glass */}
+              <div className={cn(
+                "p-4 border-t border-border/50",
+                viewMode === "panel"
+                  ? "bg-surface-secondary/80 backdrop-blur-sm"
+                  : "bg-[hsl(var(--surface-secondary))]"
+              )}>
                 <div className="relative">
                   <textarea
                     ref={inputRef}
