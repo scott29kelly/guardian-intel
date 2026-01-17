@@ -59,14 +59,9 @@ export async function GET(request: Request, { params }: RouteParams) {
           orderBy: { createdAt: "desc" },
           take: 20,
         },
-        mentions: {
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
         _count: {
           select: {
             activities: true,
-            mentions: true,
           },
         },
       },
@@ -77,8 +72,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Calculate win/loss stats
-    const wonAgainst = competitor.activities.filter(a => a.activityType === "won_deal").length;
-    const lostTo = competitor.activities.filter(a => a.activityType === "lost_deal").length;
+    const wonAgainst = competitor.activities.filter((a: { activityType: string }) => a.activityType === "won_deal").length;
+    const lostTo = competitor.activities.filter((a: { activityType: string }) => a.activityType === "lost_deal").length;
     const totalDeals = wonAgainst + lostTo;
     const winRate = totalDeals > 0 ? (wonAgainst / totalDeals) * 100 : null;
 
@@ -94,7 +89,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         certifications: competitor.certifications ? JSON.parse(competitor.certifications) : [],
         stats: {
           activityCount: competitor._count.activities,
-          mentionCount: competitor._count.mentions,
+          mentionCount: 0, // Mentions not tracked in current schema
           wonAgainst,
           lostTo,
           winRate: winRate ? Math.round(winRate * 10) / 10 : null,
@@ -162,7 +157,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
         specialties: data.specialties ? JSON.stringify(data.specialties) : undefined,
         certifications: data.certifications ? JSON.stringify(data.certifications) : undefined,
         website: data.website === "" ? null : data.website,
-        lastUpdated: new Date(),
+        // updatedAt is auto-updated by Prisma @updatedAt
       },
     });
 

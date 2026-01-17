@@ -111,7 +111,6 @@ export async function POST(request: NextRequest) {
         subject: validated.subject,
         body: validated.body,
         variables: JSON.stringify(usedVariables),
-        createdById: session.user.id,
       },
     });
 

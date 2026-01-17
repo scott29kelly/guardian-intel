@@ -77,7 +77,7 @@ export default function LoginPage() {
       const response = await fetch(`/api/auth/demo-credentials?role=${role}`);
       
       if (!response.ok) {
-        setError("Demo accounts not configured. Run: npx prisma db seed");
+        setError("Quick access accounts not configured. Contact your admin.");
         setIsLoading(false);
         return;
       }
@@ -93,13 +93,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Demo login failed. Please run: npx prisma db seed");
+        setError("Quick access login failed. Please use regular login.");
       } else {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (err) {
-      setError("Demo login unavailable. Please use regular login.");
+      setError("Quick access unavailable. Please use regular login.");
     } finally {
       setIsLoading(false);
     }
@@ -208,9 +208,9 @@ className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded
               </div>
             </form>
 
-            {/* Demo accounts */}
+            {/* Quick access accounts */}
             <div className="mt-6 pt-6 border-t border-void-700/50">
-              <p className="text-xs text-void-500 text-center mb-3">Quick Demo Access</p>
+              <p className="text-xs text-void-500 text-center mb-3">Quick Access</p>
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
@@ -218,7 +218,7 @@ className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded
                   onClick={() => handleDemoLogin("rep")}
                   disabled={isLoading}
                 >
-                  Sales Rep Demo
+                  Sales Rep
                 </Button>
                 <Button
                   variant="outline"
@@ -226,7 +226,7 @@ className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded
                   onClick={() => handleDemoLogin("manager")}
                   disabled={isLoading}
                 >
-                  Manager Demo
+                  Manager
                 </Button>
               </div>
             </div>

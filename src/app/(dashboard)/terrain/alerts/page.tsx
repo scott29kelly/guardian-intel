@@ -170,9 +170,9 @@ export default function AlertsPage() {
         <div className="flex items-start gap-3">
           <Settings className="w-5 h-5 text-intel-400 shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-medium text-intel-300">Alert Configuration (Demo)</h3>
+            <h3 className="font-medium text-intel-300">Alert Configuration</h3>
             <p className="text-sm text-text-secondary mt-1">
-              In production, you would configure alert thresholds, notification channels, and escalation rules here. 
+              Configure alert thresholds, notification channels, and escalation rules. 
               Alerts can be sent via email, SMS, push notifications, or integrated with Slack/Teams.
             </p>
           </div>

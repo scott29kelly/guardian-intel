@@ -878,7 +878,7 @@ function ChatMessage({ message }: { message: Message }) {
             {message.model === "mock" && (
               <div className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-500/80">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Demo Mode - Add API keys for real AI
+                Configure AI provider in settings for enhanced responses
               </div>
             )}
           </>

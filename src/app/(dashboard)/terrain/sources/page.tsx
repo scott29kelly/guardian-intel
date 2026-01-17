@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Database, Info, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Database, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { terrainData } from '@/lib/terrain/data-provider';
 import { DataSource } from '@/lib/terrain/types';
 import { SourcesGrid } from '@/components/terrain';
@@ -72,7 +72,7 @@ export default function DataSourcesPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-400">{mockCount}</p>
-              <p className="text-sm text-text-muted">Demo Data Sources</p>
+              <p className="text-sm text-text-muted">Beta Sources</p>
             </div>
           </div>
         </div>
@@ -85,21 +85,6 @@ export default function DataSourcesPage() {
               <p className="text-2xl font-bold text-zinc-400">{placeholderCount}</p>
               <p className="text-sm text-text-muted">Integration Pending</p>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Demo Notice */}
-      <div className="glass-panel p-4 bg-amber-500/5 border-amber-500/30">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-amber-300">Demo Mode Active</h3>
-            <p className="text-sm text-text-secondary mt-1">
-              This demo uses simulated data to demonstrate the Trade Terrain Intelligence module. 
-              Integration notes on each source indicate what&apos;s needed to activate real data feeds. 
-              All data shown is for demonstration purposes only.
-            </p>
           </div>
         </div>
       </div>
@@ -149,7 +134,7 @@ export default function DataSourcesPage() {
                   selectedSource.status === 'mock' ? 'text-amber-400' : 'text-zinc-400'
                 }`}>
                   {selectedSource.status === 'live' ? 'Live' :
-                   selectedSource.status === 'mock' ? 'Demo Data' : 'Pending'}
+                   selectedSource.status === 'mock' ? 'Beta' : 'Pending'}
                 </p>
               </div>
               <div className="bg-surface-secondary rounded-lg p-3">

@@ -167,20 +167,18 @@ export abstract class BaseCarrierAdapter implements CarrierAdapter {
     status: string,
     statusCode?: number,
     errorMessage?: string,
-    durationMs?: number
+    _durationMs?: number
   ): Promise<void> {
     try {
       await prisma.carrierSyncLog.create({
         data: {
           carrierCode: this.carrierCode,
-          action: this.getActionFromPath(path),
+          syncType: this.getActionFromPath(path),
           direction: "outbound",
           requestData: requestData ? JSON.stringify(requestData) : null,
           responseData: responseData ? JSON.stringify(responseData) : null,
           status,
-          statusCode,
           errorMessage,
-          durationMs,
         },
       });
     } catch (error) {

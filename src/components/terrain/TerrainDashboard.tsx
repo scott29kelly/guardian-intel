@@ -18,7 +18,6 @@ import PermitVelocityCard from './PermitVelocityCard';
 import IntelligenceBriefCard from './IntelligenceBriefCard';
 import AlertBanner from './AlertBanner';
 import InsightCard from './InsightCard';
-import DataSourceBadge from './DataSourceBadge';
 import BriefViewer from './BriefViewer';
 
 export default function TerrainDashboard() {
@@ -114,22 +113,6 @@ export default function TerrainDashboard() {
             <RefreshCw className="w-4 h-4 text-text-muted" />
           </button>
         </div>
-      </div>
-      
-      {/* Data Source Status Banner */}
-      <div className="glass-panel p-3 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-text-muted uppercase tracking-wider font-medium">Data Sources:</span>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <DataSourceBadge status="mock" />
-              <span className="text-xs text-text-muted">(Demo Mode)</span>
-            </div>
-          </div>
-        </div>
-        <p className="text-xs text-text-muted">
-          This is a demo using simulated data. Production integrations shown with status indicators.
-        </p>
       </div>
       
       {/* Active Alerts */}

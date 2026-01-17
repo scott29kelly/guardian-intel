@@ -207,19 +207,18 @@ async function logWebhook(
   payload: string,
   status: string,
   errorMessage?: string,
-  durationMs?: number
+  _durationMs?: number
 ) {
   try {
     await prisma.carrierSyncLog.create({
       data: {
         carrierCode,
         claimId,
-        action: "webhook",
+        syncType: "webhook",
         direction: "inbound",
         requestData: payload.substring(0, 10000), // Limit size
         status,
         errorMessage,
-        durationMs,
       },
     });
   } catch (e) {

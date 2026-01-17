@@ -2,7 +2,6 @@
 
 import { FileCheck, TrendingUp, TrendingDown, Minus, Building } from 'lucide-react';
 import { PermitVelocity } from '@/lib/terrain/types';
-import DataSourceBadge from './DataSourceBadge';
 
 interface PermitVelocityCardProps {
   velocities: PermitVelocity[];
@@ -40,12 +39,9 @@ export default function PermitVelocityCard({ velocities, permitStats }: PermitVe
     <div className="glass-panel overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-intel-500/20 to-intel-500/5 p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-intel-400" />
-            <h3 className="font-semibold text-text-primary">Permit Velocity</h3>
-          </div>
-          <DataSourceBadge status="mock" />
+        <div className="flex items-center gap-2 mb-3">
+          <FileCheck className="w-5 h-5 text-intel-400" />
+          <h3 className="font-semibold text-text-primary">Permit Velocity</h3>
         </div>
         
         <div className="grid grid-cols-2 gap-4">

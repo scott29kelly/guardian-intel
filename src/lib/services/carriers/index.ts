@@ -202,19 +202,12 @@ class CarrierService {
             carrierClaimId: result.data.carrierClaimId,
             claimNumber: result.data.claimNumber,
             carrierStatus: result.data.status,
-            carrierStatusCode: result.data.statusMessage,
             isFiledWithCarrier: true,
-            filedWithCarrierAt: new Date(),
-            carrierLastSync: new Date(),
+            lastSyncAt: new Date(),
             adjusterName: result.data.assignedAdjuster?.name,
             adjusterPhone: result.data.assignedAdjuster?.phone,
             adjusterEmail: result.data.assignedAdjuster?.email,
             adjusterCompany: result.data.assignedAdjuster?.company,
-            carrierMetadata: JSON.stringify({
-              nextSteps: result.data.nextSteps,
-              trackingUrl: result.data.trackingUrl,
-              estimatedResponseDate: result.data.estimatedResponseDate,
-            }),
           },
         });
         
@@ -234,12 +227,7 @@ class CarrierService {
           where: { id: claimId },
           data: {
             lastSyncError: result.error?.message,
-            syncErrors: JSON.stringify([{
-              timestamp: new Date(),
-              action: "file",
-              error: result.error,
-            }]),
-            syncAttempts: { increment: 1 },
+            lastSyncAt: new Date(),
           },
         });
       }
@@ -319,8 +307,7 @@ class CarrierService {
           where: { id: claimId },
           data: {
             carrierStatus: result.data.status,
-            carrierStatusCode: result.data.statusCode,
-            carrierLastSync: new Date(),
+            lastSyncAt: new Date(),
             status: internalStatus,
             approvedValue: result.data.approvedAmount,
             totalPaid: result.data.paidAmount,
@@ -364,7 +351,7 @@ class CarrierService {
           where: { id: claimId },
           data: {
             lastSyncError: result.error?.message,
-            syncAttempts: { increment: 1 },
+            lastSyncAt: new Date(),
           },
         });
       }

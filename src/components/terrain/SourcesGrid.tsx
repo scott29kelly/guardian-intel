@@ -48,7 +48,7 @@ export default function SourcesGrid({ sources, onSourceClick }: SourcesGridProps
   const getStatusDescription = (status: DataSource['status']) => {
     switch (status) {
       case 'live': return 'Real-time production data';
-      case 'mock': return 'Simulated demo data';
+      case 'mock': return 'Pre-release data';
       case 'placeholder': return 'Integration pending';
     }
   };

@@ -121,10 +121,10 @@ export default function TerritoryMapPage() {
           {/* Content overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
             <ZoomIn className="w-16 h-16 text-intel-400 opacity-30 mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Interactive Map (Demo Placeholder)</h3>
+            <h3 className="text-xl font-semibold text-text-primary mb-2">Interactive Map</h3>
             <p className="text-text-muted max-w-md mb-6">
-              In production, this would display an interactive Mapbox or Google Maps visualization 
-              with storm event markers, permit activity heatmaps, and market temperature overlays.
+              Interactive Mapbox visualization with storm event markers, 
+              permit activity heatmaps, and market temperature overlays coming soon.
             </p>
             <p className="text-sm text-text-muted">
               Guardian Territory covers 6 states across the Mid-Atlantic region

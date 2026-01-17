@@ -104,7 +104,6 @@ export async function GET(request: Request, { params }: RouteParams) {
           status: "viewed",
           viewedAt: proposal.viewedAt || new Date(),
           viewCount: { increment: 1 },
-          lastViewedAt: new Date(),
         },
       });
     }

@@ -3,7 +3,6 @@
 import { CloudLightning, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
 import { StormActivityIndex } from '@/lib/terrain/types';
 import { SEVERITY_CONFIG } from '@/lib/terrain/constants';
-import DataSourceBadge from './DataSourceBadge';
 
 interface StormActivityCardProps {
   index: StormActivityIndex;
@@ -38,12 +37,9 @@ export default function StormActivityCard({ index }: StormActivityCardProps) {
     <div className="glass-panel overflow-hidden">
       {/* Header with gradient background */}
       <div className={`bg-gradient-to-r ${getIndexBg(index.indexValue)} p-4 border-b border-border`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <CloudLightning className="w-5 h-5 text-intel-400" />
-            <h3 className="font-semibold text-text-primary">Storm Activity Index</h3>
-          </div>
-          <DataSourceBadge status="mock" />
+        <div className="flex items-center gap-2 mb-3">
+          <CloudLightning className="w-5 h-5 text-intel-400" />
+          <h3 className="font-semibold text-text-primary">Storm Activity Index</h3>
         </div>
         
         <div className="flex items-end justify-between">

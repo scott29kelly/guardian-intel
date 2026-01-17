@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
   mock: { 
     color: 'bg-amber-500', 
     pulseColor: 'bg-amber-400',
-    label: 'Demo Data', 
+    label: 'Beta', 
     textColor: 'text-amber-400' 
   },
   placeholder: { 
