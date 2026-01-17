@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Bot,
   LogOut,
+  Target,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState, useCallback } from "react";
@@ -45,6 +46,12 @@ const navigation = [
     href: "/storms", 
     icon: CloudLightning,
     badge: "2"
+  },
+  { 
+    name: "Trade Terrain", 
+    href: "/terrain", 
+    icon: Target,
+    badge: "NEW"
   },
   { 
     name: "Analytics", 
