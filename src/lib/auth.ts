@@ -51,6 +51,32 @@ export const authOptions: NextAuthOptions = {
         }
         // =============================================================
 
+        // =============================================================
+        // MOCK DATA MODE: Accept demo credentials without database
+        // =============================================================
+        if (process.env.USE_MOCK_DATA === "true") {
+          console.log("[Auth] 📦 MOCK DATA MODE - Using mock authentication");
+          
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Invalid credentials");
+          }
+          
+          // Accept demo password
+          if (credentials.password === "GuardianDemo2026!") {
+            const isManager = credentials.email.includes("manager");
+            return {
+              id: isManager ? "mock-manager-001" : "mock-rep-001",
+              email: credentials.email,
+              name: isManager ? "Demo Manager" : "Demo Sales Rep",
+              role: isManager ? "manager" : "rep",
+              image: null,
+            };
+          }
+          
+          throw new Error("Invalid credentials");
+        }
+        // =============================================================
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");
         }

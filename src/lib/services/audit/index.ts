@@ -77,6 +77,7 @@ export interface AuditLogFilter {
 class AuditService {
   private static instance: AuditService;
   private enabled = true;
+  private useMockData = process.env.USE_MOCK_DATA === "true";
 
   static getInstance(): AuditService {
     if (!AuditService.instance) {
@@ -97,6 +98,12 @@ class AuditService {
    */
   async log(entry: AuditLogEntry): Promise<void> {
     if (!this.enabled) return;
+    
+    // Skip database operations in mock mode
+    if (this.useMockData) {
+      console.log("[Audit] Mock mode - skipping:", entry.type, entry.description);
+      return;
+    }
 
     try {
       await prisma.activity.create({

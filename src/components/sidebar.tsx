@@ -13,8 +13,9 @@ import {
   Shield,
   ChevronLeft,
   Bot,
-  Trophy,
+  LogOut,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
 import { ThemeToggle } from "./theme-toggle";
@@ -264,12 +265,30 @@ export function Sidebar() {
             SM
           </div>
           {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-text-primary truncate">S. Mitchell</p>
-              <p className="text-xs text-text-muted">Field Ops</p>
-            </div>
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-text-primary truncate">S. Mitchell</p>
+                <p className="text-xs text-text-muted">Field Ops</p>
+              </div>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-7 h-7 rounded flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
+        {isCollapsed && (
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="mt-2 w-full flex justify-center py-2 rounded text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </motion.aside>
     </>
