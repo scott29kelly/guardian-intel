@@ -16,6 +16,7 @@ import {
   Shield,
   Bot,
   Zap,
+  Target,
 } from "lucide-react";
 import { useGamification } from "@/lib/gamification";
 import { ThemeToggle } from "./theme-toggle";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Customers", href: "/customers", icon: Users, badge: "127" },
   { name: "Storms", href: "/storms", icon: CloudLightning, badge: "2" },
+  { name: "Trade Terrain", href: "/terrain", icon: Target, badge: "NEW" },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Playbooks", href: "/playbooks", icon: BookOpen },
   { name: "Settings", href: "/settings", icon: Settings },

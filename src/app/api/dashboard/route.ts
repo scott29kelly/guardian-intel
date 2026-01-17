@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
       const customerIds = priorityCustomers.map(c => c.id);
       const intelItems = mockIntelItems.filter(i => customerIds.includes(i.customerId));
-      const weatherEvents = mockWeatherEvents.filter(w => customerIds.includes(w.customerId));
+      const weatherEvents = mockWeatherEvents.filter(w => w.customerId !== null && customerIds.includes(w.customerId));
 
       const recentStorms = mockWeatherEvents
         .filter(w => new Date(w.eventDate).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -300,7 +300,7 @@ export async function GET(request: Request) {
   }
 }
 
-function getRelativeTime(date: Date): string {
+function getRelativeTime(date: Date | string): string {
   const now = new Date();
   const diffMs = now.getTime() - new Date(date).getTime();
   const diffMins = Math.floor(diffMs / 60000);
