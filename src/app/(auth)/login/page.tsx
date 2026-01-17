@@ -109,8 +109,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       {/* Background effects */}
       <div className="fixed inset-0 -z-10">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-guardian-500/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-accent-500/15 rounded-full blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-intel-500/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-storm-500/15 rounded-full blur-[100px]" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
       </div>
 
@@ -122,13 +122,13 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-guardian-500 to-accent-500 shadow-lg shadow-guardian-500/25 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-intel-500 to-storm-500 shadow-lg shadow-intel-500/25 mb-4">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <h1 className="font-display text-2xl font-bold text-white">
             Guardian <span className="text-gradient">Intel</span>
           </h1>
-          <p className="text-surface-400 mt-2">Sales Intelligence Command Center</p>
+          <p className="text-void-400 mt-2">Sales Intelligence Command Center</p>
         </div>
 
         <Card className="backdrop-blur-xl">
@@ -140,15 +140,15 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-surface-300">Email</label>
+                <label className="text-sm font-medium text-void-300">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-void-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@guardian.com"
-                    className="w-full pl-11 pr-4 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
+className="w-full pl-11 pr-4 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
                     required
                   />
                 </div>
@@ -156,21 +156,21 @@ export default function LoginPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-surface-300">Password</label>
+                <label className="text-sm font-medium text-void-300">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-void-400" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
+className="w-full pl-11 pr-12 py-3 bg-void-800/80 border border-void-600 rounded-lg text-white placeholder:text-void-400 focus:outline-none focus:border-intel-500/50 focus:ring-1 focus:ring-intel-500/25 transition-all"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-void-400 hover:text-void-300"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -202,15 +202,15 @@ export default function LoginPage() {
 
               {/* Forgot password */}
               <div className="text-center">
-                <a href="#" className="text-sm text-guardian-400 hover:text-guardian-300">
+                <a href="#" className="text-sm text-intel-400 hover:text-intel-300">
                   Forgot your password?
                 </a>
               </div>
             </form>
 
             {/* Demo accounts */}
-            <div className="mt-6 pt-6 border-t border-surface-700/50">
-              <p className="text-xs text-surface-500 text-center mb-3">Quick Demo Access</p>
+            <div className="mt-6 pt-6 border-t border-void-700/50">
+              <p className="text-xs text-void-500 text-center mb-3">Quick Demo Access</p>
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
@@ -233,9 +233,9 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-surface-500 text-sm mt-6">
+        <p className="text-center text-void-500 text-sm mt-6">
           Need an account?{" "}
-          <a href="#" className="text-guardian-400 hover:text-guardian-300">
+          <a href="#" className="text-intel-400 hover:text-intel-300">
             Contact your admin
           </a>
         </p>
