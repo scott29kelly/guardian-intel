@@ -1,11 +1,11 @@
 /**
  * Gemini AI Adapter
  * 
- * Uses Google's Gemini models as a fallback for chat.
+ * Uses Google's Gemini models for chat and tool calling.
  * - Gemini 2.0 Flash: Fast, cost-effective responses
  */
 
-import type { AIAdapter, Message, ChatResponse, ChatRequest, ToolDefinition, AITask, StreamChunk, AIModel, AIResponse } from "../types";
+import type { AIAdapter, Message, ChatResponse, ChatRequest, ToolDefinition, AITask, StreamChunk, AIModel } from "../types";
 
 export class GeminiAdapter implements AIAdapter {
   readonly name = "gemini";
@@ -16,7 +16,7 @@ export class GeminiAdapter implements AIAdapter {
   private baseUrl = "https://generativelanguage.googleapis.com/v1beta";
   private modelName: string;
 
-  constructor(apiKey: string, model: string = "gemini-2.0-flash-exp") {
+  constructor(apiKey: string, model: AIModel = "gemini-2.0-flash-exp") {
     this.apiKey = apiKey;
     this.model = model as AIModel;
     this.modelName = model;
@@ -74,7 +74,7 @@ export class GeminiAdapter implements AIAdapter {
           role: "assistant" as const,
           content,
         },
-        model: this.model as AIModel,
+model: this.model as AIModel,
         finishReason: "stop" as const,
         usage: {
           promptTokens: data.usageMetadata?.promptTokenCount || 0,
@@ -88,13 +88,79 @@ export class GeminiAdapter implements AIAdapter {
     }
   }
 
-  async callTool(options: {
-    messages: Message[];
-    tools: ToolDefinition[];
-    temperature?: number;
-  }): Promise<AIResponse> {
-    const { messages, tools, temperature = 0.3 } = options;
+  async *chatStream(request: ChatRequest): AsyncGenerator<StreamChunk> {
+    const { messages, temperature = 0.7 } = request;
+    const contents = this.convertMessages(messages);
 
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/models/${this.model}:streamGenerateContent?key=${this.apiKey}&alt=sse`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              temperature,
+              maxOutputTokens: 2048,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const streamId = `gemini-stream-${Date.now()}`;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              yield { id: streamId, delta: "", finishReason: "stop" };
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              if (text) {
+                yield { id: streamId, delta: text };
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      yield { id: streamId, delta: "", finishReason: "stop" };
+    } catch (error) {
+      console.error("[Gemini] Stream error:", error);
+      throw error;
+    }
+  }
+
+  async callToolWithMessages(
+    messages: Message[],
+    tools: ToolDefinition[],
+    temperature: number = 0.3
+  ): Promise<ChatResponse> {
     // Convert messages and tools to Gemini format
     const contents = this.convertMessages(messages);
     const functionDeclarations = tools.map(tool => ({
@@ -136,6 +202,7 @@ export class GeminiAdapter implements AIAdapter {
       
       if (functionCalls.length > 0) {
         return {
+          id: `gemini-${Date.now()}`,
           message: {
             role: "assistant",
             content: "",
@@ -146,6 +213,7 @@ export class GeminiAdapter implements AIAdapter {
             })),
           },
           model: this.model,
+          finishReason: "tool_calls",
           usage: {
             promptTokens: data.usageMetadata?.promptTokenCount || 0,
             completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
@@ -158,11 +226,13 @@ export class GeminiAdapter implements AIAdapter {
       const textContent = parts.find((p: { text?: string }) => p.text)?.text || "";
       
       return {
+        id: `gemini-${Date.now()}`,
         message: {
           role: "assistant",
           content: textContent,
         },
         model: this.model,
+        finishReason: "stop",
         usage: {
           promptTokens: data.usageMetadata?.promptTokenCount || 0,
           completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
@@ -171,143 +241,6 @@ export class GeminiAdapter implements AIAdapter {
       };
     } catch (error) {
       console.error("[Gemini] Tool call error:", error);
-      throw error;
-    }
-  }
-
-  async *stream(options: {
-    messages: Message[];
-    temperature?: number;
-  }): AsyncGenerator<{ content: string; done: boolean }> {
-    const { messages, temperature = 0.7 } = options;
-    const contents = this.convertMessages(messages);
-
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/models/${this.modelName}:streamGenerateContent?key=${this.apiKey}&alt=sse`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              temperature,
-              maxOutputTokens: 2048,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") {
-              yield { content: "", done: true };
-              return;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-              if (text) {
-                yield { content: text, done: false };
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
-
-      yield { content: "", done: true };
-    } catch (error) {
-      console.error("[Gemini] Stream error:", error);
-      throw error;
-    }
-  }
-
-  async *chatStream(request: ChatRequest): AsyncIterable<StreamChunk> {
-    const { messages, temperature = 0.7 } = request;
-    const contents = this.convertMessages(messages);
-
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/models/${this.modelName}:streamGenerateContent?key=${this.apiKey}&alt=sse`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              temperature,
-              maxOutputTokens: request.maxTokens || 2048,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") {
-              yield { id: `gemini-${Date.now()}`, delta: "", finishReason: "stop" };
-              return;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-              if (text) {
-                yield { id: `gemini-${Date.now()}`, delta: text };
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
-
-      yield { id: `gemini-${Date.now()}`, delta: "", finishReason: "stop" };
-    } catch (error) {
-      console.error("[Gemini] ChatStream error:", error);
       throw error;
     }
   }
