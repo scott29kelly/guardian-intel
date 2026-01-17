@@ -1,8 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatDistanceToNow as fmtDistToNow } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// Re-export from date-fns for convenience
+export function formatDistanceToNow(date: Date | string, options?: { addSuffix?: boolean }): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return fmtDistToNow(d, options);
 }
 
 export function formatCurrency(amount: number): string {

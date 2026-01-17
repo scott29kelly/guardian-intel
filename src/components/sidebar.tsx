@@ -15,6 +15,9 @@ import {
   Bot,
   LogOut,
   Target,
+  FileCheck,
+  MessageSquare,
+  Building2,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState, useCallback } from "react";
@@ -42,6 +45,11 @@ const navigation = [
     badge: "127"
   },
   { 
+    name: "Claims", 
+    href: "/claims", 
+    icon: FileCheck,
+  },
+  { 
     name: "Storms", 
     href: "/storms", 
     icon: CloudLightning,
@@ -52,6 +60,16 @@ const navigation = [
     href: "/terrain", 
     icon: Target,
     badge: "NEW"
+  },
+  { 
+    name: "Competitors", 
+    href: "/competitors", 
+    icon: Building2,
+  },
+  { 
+    name: "Outreach", 
+    href: "/outreach", 
+    icon: MessageSquare,
   },
   { 
     name: "Analytics", 
