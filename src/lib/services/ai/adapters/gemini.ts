@@ -10,7 +10,7 @@ import type { AIAdapter, Message, ChatResponse, ChatRequest, ToolDefinition, AIT
 export class GeminiAdapter implements AIAdapter {
   readonly name = "gemini";
   readonly provider = "google" as const;
-  readonly model: AIModel | string;
+  readonly model: AIModel;
   
   private apiKey: string;
   private baseUrl = "https://generativelanguage.googleapis.com/v1beta";
@@ -18,7 +18,7 @@ export class GeminiAdapter implements AIAdapter {
 
   constructor(apiKey: string, model: AIModel = "gemini-2.0-flash-exp") {
     this.apiKey = apiKey;
-    this.model = model as AIModel;
+    this.model = model;
     this.modelName = model;
   }
 

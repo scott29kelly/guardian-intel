@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
       const customerIds = priorityCustomers.map(c => c.id);
       const intelItems = mockIntelItems.filter(i => customerIds.includes(i.customerId));
-      const weatherEvents = mockWeatherEvents.filter(w => customerIds.includes(w.customerId));
+      const weatherEvents = mockWeatherEvents.filter(w => w.customerId && customerIds.includes(w.customerId));
 
       const recentStorms = mockWeatherEvents
         .filter(w => new Date(w.eventDate).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         id: storm.id,
         type: "storm",
         message: `${storm.severity} ${storm.eventType} event detected`,
-        time: getRelativeTime(storm.eventDate),
+        time: getRelativeTime(new Date(storm.eventDate)),
         severity: storm.severity === "severe" ? "critical" : storm.severity === "moderate" ? "high" : "warning",
       }));
 
