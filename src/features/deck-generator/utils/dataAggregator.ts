@@ -1175,6 +1175,1154 @@ export async function generateStrategicRecommendations(): Promise<TalkingPointsS
 }
 
 // =============================================================================
+// DAILY BRIEFING DATA FUNCTIONS
+// =============================================================================
+
+export async function getDailyBriefingTitleData(repId?: string): Promise<TitleSlideContent> {
+  void repId;
+  
+  const today = new Date();
+  const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
+  
+  return {
+    title: `${greeting}!`,
+    subtitle: 'Your Daily Sales Briefing',
+    date: today.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }),
+    preparedFor: 'Sales Team',
+    preparedBy: 'Guardian Intel',
+  };
+}
+
+export async function getDailyStats(repId?: string): Promise<StatsSlideContent> {
+  void repId;
+  
+  try {
+    const response = await fetch('/api/analytics/dashboard');
+    if (!response.ok) throw new Error('Failed to fetch analytics');
+    const data = await response.json();
+    
+    return {
+      title: 'Your Day At-A-Glance',
+      stats: [
+        { 
+          label: 'Scheduled Calls', 
+          value: data.scheduledCalls || 5, 
+          icon: 'Phone' 
+        },
+        { 
+          label: 'Pending Follow-ups', 
+          value: data.pendingFollowups || 8, 
+          trend: data.pendingFollowups > 10 ? 'down' : 'neutral',
+          icon: 'Clock' 
+        },
+        { 
+          label: 'Active Deals', 
+          value: data.activeDeals || 12, 
+          icon: 'Briefcase' 
+        },
+        { 
+          label: 'Pipeline Value', 
+          value: data.pipelineValue ? `$${data.pipelineValue.toLocaleString()}` : '$45,000',
+          icon: 'DollarSign' 
+        },
+      ],
+      footnote: `Last synced: ${new Date().toLocaleTimeString()}`
+    };
+  } catch {
+    return {
+      title: 'Your Day At-A-Glance',
+      stats: [
+        { label: 'Scheduled Calls', value: 5, icon: 'Phone' },
+        { label: 'Pending Follow-ups', value: 8, icon: 'Clock' },
+        { label: 'Active Deals', value: 12, icon: 'Briefcase' },
+        { label: 'Pipeline Value', value: '$45,000', icon: 'DollarSign' },
+      ],
+    };
+  }
+}
+
+export async function getDailyWeatherForecast(): Promise<ChartSlideContent> {
+  return {
+    title: 'Weather & Storm Activity',
+    chartType: 'bar',
+    data: [
+      { day: 'Today', precip: 0, temp: 72, stormRisk: 'Low' },
+      { day: 'Tue', precip: 15, temp: 74, stormRisk: 'Low' },
+      { day: 'Wed', precip: 45, temp: 68, stormRisk: 'Medium' },
+      { day: 'Thu', precip: 60, temp: 65, stormRisk: 'High' },
+      { day: 'Fri', precip: 30, temp: 70, stormRisk: 'Medium' },
+      { day: 'Sat', precip: 10, temp: 73, stormRisk: 'Low' },
+      { day: 'Sun', precip: 5, temp: 75, stormRisk: 'Low' },
+    ],
+    xKey: 'day',
+    yKey: 'precip',
+    footnote: '⚡ Storm opportunity alert: Thursday - High probability storm activity expected',
+  };
+}
+
+export async function getPriorityCustomersToday(repId?: string): Promise<ListSlideContent> {
+  void repId;
+  
+  try {
+    const response = await fetch('/api/customers?limit=5&sort=urgencyScore&order=desc');
+    if (!response.ok) throw new Error('Failed to fetch customers');
+    const data = await response.json();
+    const customers = data.data || [];
+    
+    return {
+      title: 'Priority Customers Today',
+      items: customers.slice(0, 5).map((customer: {
+        firstName: string;
+        lastName: string;
+        address: string;
+        urgencyScore: number;
+        stage: string;
+        lastContactedAt?: string;
+      }, index: number) => ({
+        primary: `${index + 1}. ${customer.firstName} ${customer.lastName}`,
+        secondary: `${customer.address} | Urgency: ${customer.urgencyScore} | Stage: ${customer.stage?.replace(/_/g, ' ')}`,
+        icon: customer.urgencyScore > 80 ? 'Flame' : customer.urgencyScore > 50 ? 'Star' : 'User',
+        highlight: customer.urgencyScore > 80,
+      })),
+      numbered: false,
+    };
+  } catch {
+    return {
+      title: 'Priority Customers Today',
+      items: [
+        { primary: 'Loading priority customers...', secondary: 'Calculating scores', icon: 'Loader' },
+      ],
+      numbered: false,
+    };
+  }
+}
+
+export async function getAtRiskDeals(repId?: string): Promise<ListSlideContent> {
+  void repId;
+  
+  return {
+    title: 'Deals At Risk',
+    items: [
+      {
+        primary: 'Johnson Property - $18,500',
+        secondary: 'No contact in 7 days | Was in negotiation',
+        icon: 'AlertTriangle',
+        highlight: true,
+      },
+      {
+        primary: 'Martinez Roof Replacement - $24,000',
+        secondary: 'Competitor quote received | Follow up urgently',
+        icon: 'AlertTriangle',
+        highlight: true,
+      },
+      {
+        primary: 'Williams Insurance Claim - $15,200',
+        secondary: 'Adjuster meeting postponed twice',
+        icon: 'Clock',
+        highlight: false,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getScheduledCallsTimeline(repId?: string): Promise<TimelineSlideContent> {
+  void repId;
+  
+  return {
+    title: 'Today\'s Schedule',
+    events: [
+      {
+        date: '9:00 AM',
+        title: 'Smith Family - Follow-up Call',
+        description: 'Confirm inspection scheduled for Friday',
+        status: 'upcoming',
+        icon: 'Phone',
+      },
+      {
+        date: '10:30 AM',
+        title: 'Garcia Property - On-site Inspection',
+        description: '123 Oak Street | New hail damage assessment',
+        status: 'upcoming',
+        icon: 'Home',
+      },
+      {
+        date: '1:00 PM',
+        title: 'Davis Residence - Adjuster Meeting',
+        description: 'State Farm adjuster | Bring documentation',
+        status: 'upcoming',
+        icon: 'Users',
+      },
+      {
+        date: '3:30 PM',
+        title: 'Thompson - Contract Signing',
+        description: 'Close deal | $22,400 roof replacement',
+        status: 'upcoming',
+        icon: 'FileSignature',
+      },
+    ],
+  };
+}
+
+export async function generateDailyTalkingPoints(repId?: string): Promise<TalkingPointsSlideContent> {
+  void repId;
+  
+  return {
+    title: 'AI Talking Points for Today',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Storm Season Opener',
+        script: 'We\'re entering peak storm season. This is a great time to mention our free inspection offer and how we help homeowners get ahead of potential damage.',
+        priority: 'high',
+      },
+      {
+        topic: 'Insurance Deadline Reminder',
+        script: 'For customers with storm damage from last month, remind them insurance claims have a filing deadline. Acting now ensures they don\'t miss their coverage window.',
+        priority: 'high',
+      },
+      {
+        topic: 'Referral Incentive',
+        script: 'We\'re running a referral bonus this month. Mention to satisfied customers that they can earn $200 for each successful referral.',
+        priority: 'medium',
+      },
+      {
+        topic: 'Financing Highlight',
+        script: 'For price-sensitive customers, lead with our 0% financing for 12 months. This removes the budget objection upfront.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+// =============================================================================
+// COMPETITOR ANALYSIS DATA FUNCTIONS
+// =============================================================================
+
+export async function getCompetitorAnalysisTitleData(regionId?: string): Promise<TitleSlideContent> {
+  void regionId;
+  
+  return {
+    title: 'Competitive Intelligence Report',
+    subtitle: 'Regional Market Analysis | Roofing & Storm Repair',
+    date: new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }),
+    preparedFor: 'Leadership Team',
+    preparedBy: 'Guardian Intel Analytics',
+  };
+}
+
+export async function getMarketPositionStats(regionId?: string): Promise<StatsSlideContent> {
+  void regionId;
+  
+  return {
+    title: 'Market Position Overview',
+    stats: [
+      { label: 'Market Share', value: '18%', trend: 'up', change: '+3%', icon: 'PieChart' },
+      { label: 'Win Rate vs Competitors', value: '62%', trend: 'up', icon: 'Trophy' },
+      { label: 'Active Competitors', value: 12, icon: 'Users' },
+      { label: 'Price Position', value: 'Mid-High', icon: 'DollarSign' },
+    ],
+    footnote: 'Based on last 90 days of market activity',
+  };
+}
+
+export async function getCompetitorLandscapeData(): Promise<ComparisonSlideContent> {
+  return {
+    title: 'Key Competitors',
+    columns: [
+      {
+        header: 'Premium Competitors',
+        items: [
+          'RoofMasters Pro - Focus on high-end, longer warranties',
+          'StormShield Elite - Insurance claim specialists',
+          'Heritage Roofing - 40+ years reputation',
+        ],
+      },
+      {
+        header: 'Budget Competitors',
+        items: [
+          'QuickFix Roofing - Low price, minimal service',
+          'Discount Storm Repair - Volume-focused',
+          'Local Handyman Networks - Fragmented, inconsistent',
+        ],
+      },
+    ],
+  };
+}
+
+export async function getWinLossAnalysisData(): Promise<ChartSlideContent> {
+  return {
+    title: 'Win/Loss Analysis (Last 90 Days)',
+    chartType: 'bar',
+    data: [
+      { competitor: 'RoofMasters', wins: 15, losses: 8 },
+      { competitor: 'StormShield', wins: 12, losses: 10 },
+      { competitor: 'QuickFix', wins: 22, losses: 5 },
+      { competitor: 'Heritage', wins: 8, losses: 12 },
+      { competitor: 'Others', wins: 18, losses: 14 },
+    ],
+    xKey: 'competitor',
+    yKey: 'wins',
+    footnote: 'Green = deals won against competitor, tracked via CRM lost reason field',
+  };
+}
+
+export async function getPricingIntelData(): Promise<StatsSlideContent> {
+  return {
+    title: 'Pricing Intelligence',
+    stats: [
+      { label: 'Our Avg Quote', value: '$18,500', icon: 'DollarSign' },
+      { label: 'Market Average', value: '$16,200', icon: 'TrendingDown' },
+      { label: 'Premium Avg', value: '$21,400', icon: 'TrendingUp' },
+      { label: 'Budget Avg', value: '$12,800', icon: 'ArrowDown' },
+    ],
+    footnote: 'We position 14% above market avg with premium service justification',
+  };
+}
+
+export async function getTopLossReasons(): Promise<ListSlideContent> {
+  return {
+    title: 'Top Loss Reasons',
+    items: [
+      {
+        primary: 'Price (38%)',
+        secondary: 'Customer chose lower-priced competitor',
+        icon: 'DollarSign',
+        highlight: true,
+      },
+      {
+        primary: 'Timing (24%)',
+        secondary: 'Customer delayed decision or chose existing contractor',
+        icon: 'Clock',
+        highlight: false,
+      },
+      {
+        primary: 'Competitor Relationship (18%)',
+        secondary: 'Previous relationship with another contractor',
+        icon: 'Users',
+        highlight: false,
+      },
+      {
+        primary: 'Insurance Issues (12%)',
+        secondary: 'Claim denied or coverage insufficient',
+        icon: 'Shield',
+        highlight: false,
+      },
+      {
+        primary: 'Other (8%)',
+        secondary: 'Various reasons including DIY, move, etc.',
+        icon: 'HelpCircle',
+        highlight: false,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function generateDifferentiationStrategy(): Promise<TalkingPointsSlideContent> {
+  return {
+    title: 'Competitive Differentiation',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Against Premium Competitors',
+        script: 'We offer the same quality workmanship and materials at 10-15% lower cost. Our insurance expertise means faster claim approvals and maximum coverage for the customer.',
+        priority: 'high',
+      },
+      {
+        topic: 'Against Budget Competitors',
+        script: 'Emphasize our comprehensive warranty, licensed crews, and insurance claim support. Budget contractors often leave customers with denied claims and warranty issues.',
+        priority: 'high',
+      },
+      {
+        topic: 'Insurance Expertise Edge',
+        script: 'Our 85% supplement success rate means customers typically get $3,000-5,000 more in claim value. This often covers their entire deductible.',
+        priority: 'high',
+      },
+      {
+        topic: 'Response Time Advantage',
+        script: 'We respond within 2 hours vs industry average of 24-48 hours. First responder in storm situations wins 70% of deals.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+export async function getCompetitiveActionItems(): Promise<ListSlideContent> {
+  return {
+    title: 'Recommended Competitive Actions',
+    items: [
+      {
+        primary: 'Launch price-match guarantee for qualified leads',
+        secondary: 'Match competitor quotes with equivalent scope to reduce price objections',
+        icon: 'Target',
+        highlight: true,
+      },
+      {
+        primary: 'Accelerate response time SLA',
+        secondary: 'Target 1-hour response for storm leads to beat competitors to opportunities',
+        icon: 'Zap',
+        highlight: false,
+      },
+      {
+        primary: 'Develop Heritage competitor battle card',
+        secondary: 'We\'re losing market share to Heritage - need specific counter-positioning',
+        icon: 'FileText',
+        highlight: true,
+      },
+      {
+        primary: 'Increase referral incentive temporarily',
+        secondary: 'Boost from $200 to $350 to grow through word-of-mouth vs paid marketing',
+        icon: 'Users',
+        highlight: false,
+      },
+    ],
+    numbered: true,
+  };
+}
+
+// =============================================================================
+// CUSTOMER PROPOSAL DATA FUNCTIONS
+// =============================================================================
+
+export async function getProposalTitleData(customerId: string): Promise<TitleSlideContent> {
+  try {
+    const response = await fetch(`/api/customers/${customerId}`);
+    if (!response.ok) throw new Error('Failed to fetch customer');
+    const data = await response.json();
+    const customer = data.customer;
+    
+    return {
+      title: 'Roofing Proposal',
+      subtitle: `Prepared for ${customer.firstName} ${customer.lastName}`,
+      date: new Date().toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      preparedFor: `${customer.firstName} ${customer.lastName}`,
+      preparedBy: 'Guardian Storm Repair',
+      logoUrl: '/guardian-logo.svg',
+    };
+  } catch {
+    return {
+      title: 'Roofing Proposal',
+      subtitle: 'Professional Storm Repair Services',
+      date: new Date().toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      preparedBy: 'Guardian Storm Repair',
+    };
+  }
+}
+
+export async function getCompanyCredentialsStats(): Promise<StatsSlideContent> {
+  return {
+    title: 'Why Choose Guardian Storm Repair',
+    stats: [
+      { label: 'Years in Business', value: '15+', icon: 'Award' },
+      { label: 'Projects Completed', value: '5,000+', icon: 'Home' },
+      { label: 'Customer Satisfaction', value: '4.9/5', icon: 'Star' },
+      { label: 'Licensed & Insured', value: '✓', icon: 'Shield' },
+    ],
+    footnote: 'GAF Master Elite Certified | BBB A+ Rated',
+  };
+}
+
+export async function getPropertyAssessmentData(customerId: string): Promise<ImageSlideContent> {
+  try {
+    const response = await fetch(`/api/customers/${customerId}`);
+    if (!response.ok) throw new Error('Failed to fetch customer');
+    const data = await response.json();
+    const customer = data.customer;
+    
+    const address = `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}`;
+    
+    return {
+      title: 'Property Assessment',
+      imageUrl: `/api/property/street-view?address=${encodeURIComponent(address)}`,
+      altText: `Property at ${address}`,
+      caption: `${customer.address}, ${customer.city}, ${customer.state}`,
+      notes: [
+        'Comprehensive roof inspection completed',
+        'All damage documented with photos',
+        'Measurements verified for accurate scope',
+      ],
+    };
+  } catch {
+    return {
+      title: 'Property Assessment',
+      imageUrl: '/placeholder-property.svg',
+      altText: 'Property assessment',
+      caption: 'Your property',
+      notes: ['Professional inspection completed', 'All findings documented'],
+    };
+  }
+}
+
+export async function getScopeOfWorkData(): Promise<ListSlideContent> {
+  return {
+    title: 'Scope of Work',
+    items: [
+      {
+        primary: 'Complete Roof Removal',
+        secondary: 'Remove existing shingles, underlayment, and damaged decking',
+        icon: 'Trash2',
+      },
+      {
+        primary: 'Decking Inspection & Repair',
+        secondary: 'Replace any damaged or rotted decking boards',
+        icon: 'Grid',
+      },
+      {
+        primary: 'Ice & Water Shield Installation',
+        secondary: 'Full coverage in valleys and eaves per code requirements',
+        icon: 'Shield',
+      },
+      {
+        primary: 'Premium Synthetic Underlayment',
+        secondary: 'Breathable, waterproof barrier for enhanced protection',
+        icon: 'Layers',
+      },
+      {
+        primary: 'Architectural Shingles',
+        secondary: 'GAF Timberline HDZ - Lifetime warranty shingles',
+        icon: 'Home',
+        highlight: true,
+      },
+      {
+        primary: 'Ridge Vent System',
+        secondary: 'Proper attic ventilation for energy efficiency',
+        icon: 'Wind',
+      },
+      {
+        primary: 'Flashing & Trim',
+        secondary: 'All penetrations and edges properly sealed',
+        icon: 'Square',
+      },
+      {
+        primary: 'Complete Cleanup',
+        secondary: 'Magnetic nail sweep and debris removal',
+        icon: 'Sparkles',
+      },
+    ],
+    numbered: true,
+  };
+}
+
+export async function getPricingOptionsData(): Promise<ComparisonSlideContent> {
+  return {
+    title: 'Investment Options',
+    columns: [
+      {
+        header: 'Good - Standard',
+        items: [
+          '3-Tab Shingles',
+          '25-Year Warranty',
+          'Basic Underlayment',
+          'Standard Ventilation',
+          '$12,500',
+        ],
+      },
+      {
+        header: 'Better - Enhanced ⭐',
+        items: [
+          'Architectural Shingles',
+          '50-Year Warranty',
+          'Synthetic Underlayment',
+          'Ridge Vent System',
+          '$15,800',
+        ],
+      },
+      {
+        header: 'Best - Premium',
+        items: [
+          'Designer Shingles',
+          'Lifetime Warranty',
+          'Premium Ice & Water Shield',
+          'Solar Attic Fan',
+          '$19,200',
+        ],
+      },
+    ],
+  };
+}
+
+export async function getFinancingOptionsData(): Promise<StatsSlideContent> {
+  return {
+    title: 'Flexible Financing Options',
+    stats: [
+      { label: '0% APR', value: '12 months', icon: 'CreditCard' },
+      { label: 'Low Monthly', value: 'from $149/mo', icon: 'DollarSign' },
+      { label: 'Quick Approval', value: '< 5 minutes', icon: 'Zap' },
+      { label: 'No Prepayment Penalty', value: '✓', icon: 'CheckCircle' },
+    ],
+    footnote: 'Financing subject to credit approval. Multiple lender options available.',
+  };
+}
+
+export async function getTestimonialsData(): Promise<ListSlideContent> {
+  return {
+    title: 'What Our Customers Say',
+    items: [
+      {
+        primary: '"Exceptional service from start to finish!"',
+        secondary: '⭐⭐⭐⭐⭐ - Sarah M., Homeowner | Full roof replacement after hail damage',
+        icon: 'Quote',
+      },
+      {
+        primary: '"They handled my insurance claim perfectly"',
+        secondary: '⭐⭐⭐⭐⭐ - Robert T., Homeowner | Got full coverage approval in 2 weeks',
+        icon: 'Quote',
+      },
+      {
+        primary: '"Professional crew, beautiful results"',
+        secondary: '⭐⭐⭐⭐⭐ - Jennifer K., Homeowner | Neighbors are now using them too',
+        icon: 'Quote',
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getWarrantyData(): Promise<ListSlideContent> {
+  return {
+    title: 'Our Guarantee',
+    items: [
+      {
+        primary: 'Lifetime Workmanship Warranty',
+        secondary: 'We stand behind our work for as long as you own your home',
+        icon: 'Shield',
+        highlight: true,
+      },
+      {
+        primary: 'Manufacturer\'s Material Warranty',
+        secondary: 'Full coverage on all materials per manufacturer terms',
+        icon: 'Package',
+      },
+      {
+        primary: '5-Year No-Leak Guarantee',
+        secondary: 'If your roof leaks, we fix it free - no questions asked',
+        icon: 'Droplet',
+        highlight: true,
+      },
+      {
+        primary: '100% Satisfaction Promise',
+        secondary: 'We\'re not done until you\'re completely satisfied',
+        icon: 'ThumbsUp',
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getProposalNextSteps(): Promise<TimelineSlideContent> {
+  return {
+    title: 'Getting Started',
+    events: [
+      {
+        date: 'Step 1',
+        title: 'Accept Proposal',
+        description: 'Review and sign the agreement to lock in pricing',
+        status: 'upcoming',
+        icon: 'FileSignature',
+      },
+      {
+        date: 'Step 2',
+        title: 'Insurance Coordination',
+        description: 'We handle all paperwork and adjuster meetings',
+        status: 'upcoming',
+        icon: 'Shield',
+      },
+      {
+        date: 'Step 3',
+        title: 'Material Selection',
+        description: 'Choose your preferred colors and upgrade options',
+        status: 'upcoming',
+        icon: 'Palette',
+      },
+      {
+        date: 'Step 4',
+        title: 'Installation',
+        description: 'Professional installation, typically 1-2 days',
+        status: 'upcoming',
+        icon: 'Hammer',
+      },
+      {
+        date: 'Step 5',
+        title: 'Final Walkthrough',
+        description: 'Inspect completed work and receive warranty documents',
+        status: 'upcoming',
+        icon: 'CheckCircle',
+      },
+    ],
+  };
+}
+
+// =============================================================================
+// WEEKLY PIPELINE DATA FUNCTIONS
+// =============================================================================
+
+export async function getWeeklyPipelineTitleData(teamId?: string): Promise<TitleSlideContent> {
+  void teamId;
+  
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  
+  return {
+    title: 'Weekly Pipeline Review',
+    subtitle: `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${friday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+    date: new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }),
+    preparedFor: 'Sales Management',
+    preparedBy: 'Guardian Intel',
+  };
+}
+
+export async function getPipelineSummaryStats(teamId?: string): Promise<StatsSlideContent> {
+  void teamId;
+  
+  try {
+    const response = await fetch('/api/analytics/dashboard');
+    if (!response.ok) throw new Error('Failed to fetch analytics');
+    const data = await response.json();
+    
+    return {
+      title: 'Pipeline Summary',
+      stats: [
+        { 
+          label: 'Total Pipeline Value', 
+          value: data.pipelineValue ? `$${data.pipelineValue.toLocaleString()}` : '$892,000',
+          trend: 'up',
+          change: '+$45K',
+          icon: 'DollarSign' 
+        },
+        { 
+          label: 'Active Deals', 
+          value: data.activeDeals || 47, 
+          icon: 'Briefcase' 
+        },
+        { 
+          label: 'Weighted Forecast', 
+          value: data.weightedForecast ? `$${data.weightedForecast.toLocaleString()}` : '$312,000',
+          icon: 'Target' 
+        },
+        { 
+          label: 'Avg Win Probability', 
+          value: data.avgWinProbability ? `${data.avgWinProbability}%` : '42%',
+          trend: 'neutral',
+          icon: 'TrendingUp' 
+        },
+      ],
+    };
+  } catch {
+    return {
+      title: 'Pipeline Summary',
+      stats: [
+        { label: 'Total Pipeline Value', value: '$892,000', icon: 'DollarSign' },
+        { label: 'Active Deals', value: 47, icon: 'Briefcase' },
+        { label: 'Weighted Forecast', value: '$312,000', icon: 'Target' },
+        { label: 'Avg Win Probability', value: '42%', icon: 'TrendingUp' },
+      ],
+    };
+  }
+}
+
+export async function getDealsByStageChart(): Promise<ChartSlideContent> {
+  return {
+    title: 'Deals by Stage',
+    chartType: 'bar',
+    data: [
+      { stage: 'New Lead', count: 24, value: 240000 },
+      { stage: 'Contacted', count: 18, value: 198000 },
+      { stage: 'Qualified', count: 12, value: 168000 },
+      { stage: 'Proposal', count: 8, value: 152000 },
+      { stage: 'Negotiation', count: 5, value: 95000 },
+      { stage: 'Verbal Yes', count: 3, value: 39000 },
+    ],
+    xKey: 'stage',
+    yKey: 'count',
+    footnote: 'Values shown represent total estimated deal value per stage',
+  };
+}
+
+export async function getStageMovementStats(): Promise<StatsSlideContent> {
+  return {
+    title: 'Week-over-Week Movement',
+    stats: [
+      { 
+        label: 'Deals Advanced', 
+        value: 12, 
+        trend: 'up',
+        change: '+4 vs last week',
+        icon: 'ArrowUpRight' 
+      },
+      { 
+        label: 'Deals Stalled', 
+        value: 5, 
+        trend: 'down',
+        icon: 'Pause' 
+      },
+      { 
+        label: 'Deals Won', 
+        value: 4, 
+        trend: 'up',
+        change: '$68,400',
+        icon: 'Trophy' 
+      },
+      { 
+        label: 'Deals Lost', 
+        value: 2, 
+        trend: 'neutral',
+        icon: 'XCircle' 
+      },
+    ],
+    footnote: 'Stalled = no activity for 5+ business days',
+  };
+}
+
+export async function getAtRiskOpportunities(): Promise<ListSlideContent> {
+  return {
+    title: 'At-Risk Opportunities',
+    items: [
+      {
+        primary: 'Williams Property - $24,500 | Negotiation',
+        secondary: 'Last contact 12 days ago | Competitor quote received',
+        icon: 'AlertTriangle',
+        highlight: true,
+      },
+      {
+        primary: 'Chen Residence - $18,200 | Proposal',
+        secondary: 'Customer unresponsive to 3 follow-up attempts',
+        icon: 'AlertTriangle',
+        highlight: true,
+      },
+      {
+        primary: 'Garcia Insurance Claim - $21,000 | Qualified',
+        secondary: 'Adjuster meeting delayed twice | Risk of claim expiry',
+        icon: 'Clock',
+        highlight: false,
+      },
+      {
+        primary: 'Thompson Roof - $15,800 | Contacted',
+        secondary: 'Price objection raised | May need manager involvement',
+        icon: 'DollarSign',
+        highlight: false,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getHotDealsToClose(): Promise<ListSlideContent> {
+  return {
+    title: 'Hot Deals - Ready to Close',
+    items: [
+      {
+        primary: 'Martinez Residence - $22,400 | Verbal Yes',
+        secondary: 'Contract ready | Signing scheduled Thursday',
+        icon: 'Flame',
+        highlight: true,
+      },
+      {
+        primary: 'Johnson Property - $19,800 | Negotiation',
+        secondary: 'Final objection resolved | Close expected this week',
+        icon: 'Flame',
+        highlight: true,
+      },
+      {
+        primary: 'Brown Family Home - $17,500 | Proposal',
+        secondary: 'High engagement | Multiple positive touchpoints',
+        icon: 'Star',
+        highlight: false,
+      },
+      {
+        primary: 'Davis Storm Damage - $26,200 | Qualified',
+        secondary: 'Insurance approved | Just needs scheduling',
+        icon: 'CheckCircle',
+        highlight: true,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getRevenueForecastChart(): Promise<ChartSlideContent> {
+  return {
+    title: 'Revenue Forecast',
+    chartType: 'area',
+    data: [
+      { week: 'This Week', committed: 42400, likely: 25000, possible: 15000 },
+      { week: 'Week 2', committed: 18000, likely: 35000, possible: 28000 },
+      { week: 'Week 3', committed: 8000, likely: 22000, possible: 45000 },
+      { week: 'Week 4', committed: 0, likely: 15000, possible: 38000 },
+    ],
+    xKey: 'week',
+    yKey: 'committed',
+    footnote: 'Committed = verbal yes or scheduled | Likely = high probability | Possible = in pipeline',
+  };
+}
+
+export async function generatePipelineCoachingPoints(): Promise<TalkingPointsSlideContent> {
+  return {
+    title: 'Coaching Recommendations',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Rep: Mike S. - Speed to Lead',
+        script: 'Average response time is 4.2 hours. Top performers respond in under 1 hour. Review lead notification settings and morning routines.',
+        priority: 'high',
+      },
+      {
+        topic: 'Rep: Sarah T. - Proposal Follow-up',
+        script: '6 proposals sent, only 2 follow-up calls. Implement 48-hour follow-up rule for all proposals.',
+        priority: 'high',
+      },
+      {
+        topic: 'Team-wide: Stalled Deals',
+        script: '8 deals have been stalled 7+ days. Schedule deal review session to create action plans for each.',
+        priority: 'medium',
+      },
+      {
+        topic: 'Opportunity: Insurance Claims',
+        script: 'Claims with adjuster meetings scheduled close at 78% vs 34% for those without. Push for more adjuster involvement.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+// =============================================================================
+// STORM POST-MORTEM DATA FUNCTIONS
+// =============================================================================
+
+export async function getStormPostmortemTitleData(regionId?: string): Promise<TitleSlideContent> {
+  void regionId;
+  
+  return {
+    title: 'Storm Response Post-Mortem',
+    subtitle: 'After-Action Report | January 2026 Storm Event',
+    date: new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }),
+    preparedFor: 'Leadership & Operations',
+    preparedBy: 'Guardian Intel Analytics',
+  };
+}
+
+export async function getStormResponseSummaryStats(regionId?: string): Promise<StatsSlideContent> {
+  void regionId;
+  
+  return {
+    title: 'Response Summary',
+    stats: [
+      { label: 'Leads Generated', value: 342, trend: 'up', icon: 'Users' },
+      { label: 'Inspections Completed', value: 186, icon: 'ClipboardCheck' },
+      { label: 'Deals Closed', value: 47, trend: 'up', icon: 'Trophy' },
+      { label: 'Revenue Generated', value: '$824,500', icon: 'DollarSign' },
+    ],
+    footnote: 'Storm response period: Jan 5-18, 2026',
+  };
+}
+
+export async function getStormPerformanceChart(): Promise<ChartSlideContent> {
+  return {
+    title: 'Daily Performance During Storm Response',
+    chartType: 'line',
+    data: [
+      { day: 'Day 1', leads: 45, inspections: 12, deals: 0 },
+      { day: 'Day 2', leads: 62, inspections: 28, deals: 2 },
+      { day: 'Day 3', leads: 58, inspections: 35, deals: 5 },
+      { day: 'Day 4', leads: 41, inspections: 32, deals: 8 },
+      { day: 'Day 5', leads: 35, inspections: 29, deals: 7 },
+      { day: 'Day 6', leads: 28, inspections: 24, deals: 9 },
+      { day: 'Day 7', leads: 22, inspections: 18, deals: 8 },
+      { day: 'Day 8', leads: 18, inspections: 15, deals: 4 },
+      { day: 'Day 9', leads: 15, inspections: 12, deals: 4 },
+    ],
+    xKey: 'day',
+    yKey: 'leads',
+    footnote: 'Peak activity on Day 2-3 with gradual decline as storm impact lessened',
+  };
+}
+
+export async function getStormConversionFunnel(): Promise<ChartSlideContent> {
+  return {
+    title: 'Conversion Funnel',
+    chartType: 'bar',
+    data: [
+      { stage: 'Leads', count: 342, rate: '100%' },
+      { stage: 'Contacted', count: 298, rate: '87%' },
+      { stage: 'Inspections', count: 186, rate: '54%' },
+      { stage: 'Proposals', count: 124, rate: '36%' },
+      { stage: 'Closed', count: 47, rate: '14%' },
+    ],
+    xKey: 'stage',
+    yKey: 'count',
+    footnote: 'Overall lead-to-close conversion: 13.7% (above 10% target)',
+  };
+}
+
+export async function getStormRepPerformance(): Promise<ListSlideContent> {
+  return {
+    title: 'Rep Performance Breakdown',
+    items: [
+      {
+        primary: '1. Mike S. - $186,400 | 11 deals',
+        secondary: 'Highest revenue | 18% conversion rate',
+        icon: 'Trophy',
+        highlight: true,
+      },
+      {
+        primary: '2. Sarah T. - $152,200 | 9 deals',
+        secondary: 'Fastest response time (avg 42 min)',
+        icon: 'Medal',
+        highlight: false,
+      },
+      {
+        primary: '3. James R. - $148,600 | 8 deals',
+        secondary: 'Highest avg deal size ($18,575)',
+        icon: 'Medal',
+        highlight: false,
+      },
+      {
+        primary: '4. Lisa M. - $124,800 | 7 deals',
+        secondary: 'Best inspection-to-close ratio (58%)',
+        icon: 'User',
+        highlight: false,
+      },
+      {
+        primary: '5. Tom K. - $98,400 | 6 deals',
+        secondary: 'Newest team member - strong performance',
+        icon: 'User',
+        highlight: false,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function getHistoricalStormComparison(): Promise<ComparisonSlideContent> {
+  return {
+    title: 'Historical Storm Comparison',
+    columns: [
+      {
+        header: 'This Storm (Jan 2026)',
+        items: [
+          '342 leads generated',
+          '47 deals closed',
+          '$824,500 revenue',
+          '13.7% conversion',
+          'Avg response: 1.8 hrs',
+        ],
+      },
+      {
+        header: 'Previous Storm (Sep 2025)',
+        items: [
+          '289 leads generated (+18%)',
+          '38 deals closed (+24%)',
+          '$665,000 revenue (+24%)',
+          '13.1% conversion (+0.6%)',
+          'Avg response: 2.4 hrs (-25%)',
+        ],
+      },
+    ],
+  };
+}
+
+export async function getStormLessonsLearned(): Promise<ListSlideContent> {
+  return {
+    title: 'Lessons Learned',
+    items: [
+      {
+        primary: '✓ Rapid response paid off',
+        secondary: 'Deals closed within 48 hours of first contact had 3x higher close rate',
+        icon: 'CheckCircle',
+        highlight: true,
+      },
+      {
+        primary: '✓ Pre-positioned materials helped',
+        secondary: 'Having leave-behinds ready reduced canvassing setup time by 2 hours',
+        icon: 'CheckCircle',
+        highlight: false,
+      },
+      {
+        primary: '⚠ Lead distribution was uneven',
+        secondary: 'Some reps were overwhelmed while others had capacity. Need better load balancing.',
+        icon: 'AlertTriangle',
+        highlight: true,
+      },
+      {
+        primary: '⚠ Insurance prep gaps',
+        secondary: '12 claims denied due to documentation issues. Need better training.',
+        icon: 'AlertTriangle',
+        highlight: false,
+      },
+      {
+        primary: '✗ Missed evening hours opportunity',
+        secondary: 'Competitors who canvassed 6-8 PM captured leads we missed',
+        icon: 'XCircle',
+        highlight: true,
+      },
+    ],
+    numbered: false,
+  };
+}
+
+export async function generateStormPostmortemRecommendations(): Promise<TalkingPointsSlideContent> {
+  return {
+    title: 'Strategic Recommendations',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Lead Distribution System',
+        script: 'Implement automated round-robin lead assignment based on rep capacity and location. This would have improved conversion by an estimated 8-12%.',
+        priority: 'high',
+      },
+      {
+        topic: 'Extended Hours Protocol',
+        script: 'Create optional evening shift (5-8 PM) for storm events. Data shows 23% of leads prefer evening contact. Offer overtime incentive.',
+        priority: 'high',
+      },
+      {
+        topic: 'Insurance Documentation Training',
+        script: 'Mandatory 2-hour training on claim documentation. The 12 denied claims represent $156,000 in lost revenue.',
+        priority: 'medium',
+      },
+      {
+        topic: 'Storm Readiness Kit',
+        script: 'Pre-pack individual "storm kits" with 3 days of materials per rep. Reduces mobilization time from 4 hours to 30 minutes.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+// =============================================================================
 // UTILITY: Data Source Registry
 // =============================================================================
 
@@ -1229,6 +2377,56 @@ export const dataSourceRegistry: Record<string, (context: Record<string, unknown
   getOpportunityHeatMap: () => getOpportunityHeatMap(),
   getCompetitiveLandscape: () => getCompetitiveLandscape(),
   generateStrategicRecommendations: () => generateStrategicRecommendations(),
+  
+  // Daily Briefing
+  getDailyBriefingTitleData: (ctx) => getDailyBriefingTitleData(ctx.repId as string | undefined),
+  getDailyStats: (ctx) => getDailyStats(ctx.repId as string | undefined),
+  getDailyWeatherForecast: () => getDailyWeatherForecast(),
+  getPriorityCustomersToday: (ctx) => getPriorityCustomersToday(ctx.repId as string | undefined),
+  getAtRiskDeals: (ctx) => getAtRiskDeals(ctx.repId as string | undefined),
+  getScheduledCallsTimeline: (ctx) => getScheduledCallsTimeline(ctx.repId as string | undefined),
+  generateDailyTalkingPoints: (ctx) => generateDailyTalkingPoints(ctx.repId as string | undefined),
+  
+  // Competitor Analysis
+  getCompetitorAnalysisTitleData: (ctx) => getCompetitorAnalysisTitleData(ctx.regionId as string | undefined),
+  getMarketPositionStats: (ctx) => getMarketPositionStats(ctx.regionId as string | undefined),
+  getCompetitorLandscapeData: () => getCompetitorLandscapeData(),
+  getWinLossAnalysisData: () => getWinLossAnalysisData(),
+  getPricingIntelData: () => getPricingIntelData(),
+  getTopLossReasons: () => getTopLossReasons(),
+  generateDifferentiationStrategy: () => generateDifferentiationStrategy(),
+  getCompetitiveActionItems: () => getCompetitiveActionItems(),
+  
+  // Customer Proposal
+  getProposalTitleData: (ctx) => getProposalTitleData(ctx.customerId as string),
+  getCompanyCredentialsStats: () => getCompanyCredentialsStats(),
+  getPropertyAssessmentData: (ctx) => getPropertyAssessmentData(ctx.customerId as string),
+  getScopeOfWorkData: () => getScopeOfWorkData(),
+  getPricingOptionsData: () => getPricingOptionsData(),
+  getFinancingOptionsData: () => getFinancingOptionsData(),
+  getTestimonialsData: () => getTestimonialsData(),
+  getWarrantyData: () => getWarrantyData(),
+  getProposalNextSteps: () => getProposalNextSteps(),
+  
+  // Weekly Pipeline
+  getWeeklyPipelineTitleData: (ctx) => getWeeklyPipelineTitleData(ctx.teamId as string | undefined),
+  getPipelineSummaryStats: (ctx) => getPipelineSummaryStats(ctx.teamId as string | undefined),
+  getDealsByStageChart: () => getDealsByStageChart(),
+  getStageMovementStats: () => getStageMovementStats(),
+  getAtRiskOpportunities: () => getAtRiskOpportunities(),
+  getHotDealsToClose: () => getHotDealsToClose(),
+  getRevenueForecastChart: () => getRevenueForecastChart(),
+  generatePipelineCoachingPoints: () => generatePipelineCoachingPoints(),
+  
+  // Storm Post-Mortem
+  getStormPostmortemTitleData: (ctx) => getStormPostmortemTitleData(ctx.regionId as string | undefined),
+  getStormResponseSummaryStats: (ctx) => getStormResponseSummaryStats(ctx.regionId as string | undefined),
+  getStormPerformanceChart: () => getStormPerformanceChart(),
+  getStormConversionFunnel: () => getStormConversionFunnel(),
+  getStormRepPerformance: () => getStormRepPerformance(),
+  getHistoricalStormComparison: () => getHistoricalStormComparison(),
+  getStormLessonsLearned: () => getStormLessonsLearned(),
+  generateStormPostmortemRecommendations: () => generateStormPostmortemRecommendations(),
 };
 
 // Helper to call any data source by name

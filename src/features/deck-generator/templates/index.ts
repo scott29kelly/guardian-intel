@@ -5,16 +5,33 @@ import { stormDeploymentTemplate } from './storm-deployment';
 import { insurancePrepTemplate } from './insurance-prep';
 import { teamPerformanceTemplate } from './team-performance';
 import { marketAnalysisTemplate } from './market-analysis';
+import { dailyBriefingTemplate } from './daily-briefing';
+import { competitorAnalysisTemplate } from './competitor-analysis';
+import { customerProposalTemplate } from './customer-proposal';
+import { weeklyPipelineTemplate } from './weekly-pipeline';
+import { stormPostmortemTemplate } from './storm-postmortem';
 
 // All available templates
 export const deckTemplates: DeckTemplate[] = [
+  // Sales & Field templates
   customerCheatSheetTemplate,
+  dailyBriefingTemplate,
+  
+  // Operations templates
   projectTimelineTemplate,
   projectTimelineCustomerTemplate,
   stormDeploymentTemplate,
+  weeklyPipelineTemplate,
+  
+  // Leadership templates
   insurancePrepTemplate,
   teamPerformanceTemplate,
   marketAnalysisTemplate,
+  competitorAnalysisTemplate,
+  stormPostmortemTemplate,
+  
+  // Customer-facing templates
+  customerProposalTemplate,
 ];
 
 // Export individual templates
@@ -26,6 +43,11 @@ export {
   insurancePrepTemplate,
   teamPerformanceTemplate,
   marketAnalysisTemplate,
+  dailyBriefingTemplate,
+  competitorAnalysisTemplate,
+  customerProposalTemplate,
+  weeklyPipelineTemplate,
+  stormPostmortemTemplate,
 };
 
 // Helper functions
