@@ -1,0 +1,327 @@
+"use client";
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  X, 
+  ChevronRight, 
+  ChevronLeft,
+  Loader2,
+  Download,
+  Share2,
+  AlertCircle
+} from 'lucide-react';
+import type { DeckTemplate, DeckGenerationRequest, ExportFormat } from '../types/deck.types';
+import { useDeckGeneration } from '../hooks/useDeckGeneration';
+import { useDeckTemplates } from '../hooks/useDeckTemplates';
+import { DeckTemplateSelector } from './DeckTemplateSelector';
+import { DeckCustomizer } from './DeckCustomizer';
+import { DeckPreview } from './DeckPreview';
+
+interface DeckGeneratorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  // Pre-selected context (e.g., when opening from a customer card)
+  initialContext?: {
+    customerId?: string;
+    customerName?: string;
+    projectId?: string;
+    regionId?: string;
+  };
+  // Pre-selected template
+  initialTemplateId?: string;
+}
+
+type Step = 'select-template' | 'customize' | 'generating' | 'preview';
+
+export function DeckGeneratorModal({
+  isOpen,
+  onClose,
+  initialContext,
+  initialTemplateId,
+}: DeckGeneratorModalProps) {
+  const { templates, getTemplate } = useDeckTemplates();
+  const { 
+    isGenerating, 
+    progress, 
+    generatedDeck, 
+    error, 
+    generateDeck,
+    resetGeneration 
+  } = useDeckGeneration();
+
+  // State
+  const [step, setStep] = useState<Step>(initialTemplateId ? 'customize' : 'select-template');
+  const [selectedTemplate, setSelectedTemplate] = useState<DeckTemplate | null>(
+    initialTemplateId ? getTemplate(initialTemplateId) || null : null
+  );
+  const [context, setContext] = useState<DeckGenerationRequest['context']>(
+    initialContext || {}
+  );
+  const [enabledSections, setEnabledSections] = useState<string[]>([]);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialTemplateId ? 'customize' : 'select-template');
+      setSelectedTemplate(initialTemplateId ? getTemplate(initialTemplateId) || null : null);
+      setContext(initialContext || {});
+      
+      // Initialize enabled sections from template
+      if (initialTemplateId) {
+        const template = getTemplate(initialTemplateId);
+        if (template) {
+          setEnabledSections(
+            template.sections
+              .filter(s => s.defaultEnabled !== false)
+              .map(s => s.id)
+          );
+        }
+      }
+    }
+  }, [isOpen, initialTemplateId, initialContext, getTemplate]);
+
+  // Initialize enabled sections when template changes
+  const handleTemplateSelect = useCallback((template: DeckTemplate) => {
+    setSelectedTemplate(template);
+    setEnabledSections(
+      template.sections
+        .filter(s => s.defaultEnabled !== false)
+        .map(s => s.id)
+    );
+    setStep('customize');
+  }, []);
+
+  // Handle generation
+  const handleGenerate = useCallback(async () => {
+    if (!selectedTemplate) return;
+
+    setStep('generating');
+
+    const request: DeckGenerationRequest = {
+      templateId: selectedTemplate.id,
+      context,
+      options: {
+        enabledSections,
+        includeAiContent: true,
+        exportFormat,
+      },
+    };
+
+    const deck = await generateDeck(selectedTemplate, request);
+    
+    if (deck) {
+      setStep('preview');
+    }
+  }, [selectedTemplate, context, enabledSections, exportFormat, generateDeck]);
+
+  // Handle close
+  const handleClose = useCallback(() => {
+    resetGeneration();
+    setStep(initialTemplateId ? 'customize' : 'select-template');
+    setSelectedTemplate(initialTemplateId ? getTemplate(initialTemplateId) || null : null);
+    onClose();
+  }, [initialTemplateId, getTemplate, resetGeneration, onClose]);
+
+  // Handle back navigation
+  const handleBack = useCallback(() => {
+    if (step === 'customize') {
+      setStep('select-template');
+      setSelectedTemplate(null);
+    } else if (step === 'preview') {
+      setStep('customize');
+      resetGeneration();
+    }
+  }, [step, resetGeneration]);
+
+  // Check if generation can proceed
+  const canGenerate = useCallback(() => {
+    if (!selectedTemplate || enabledSections.length === 0) return false;
+    
+    // Check required context
+    const requiredContextTypes = selectedTemplate.requiredContext
+      .filter(ctx => ctx.required)
+      .map(ctx => ctx.type);
+    
+    for (const ctxType of requiredContextTypes) {
+      const ctxKey = `${ctxType}Id`;
+      if (!context[ctxKey as keyof typeof context]) {
+        return false;
+      }
+    }
+    
+    return true;
+  }, [selectedTemplate, enabledSections, context]);
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        onClick={handleClose}
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="relative w-full max-w-4xl max-h-[90vh] bg-surface-900 rounded-xl shadow-2xl border border-surface-700 overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-surface-700">
+            <div className="flex items-center gap-3">
+              {step !== 'select-template' && step !== 'generating' && (
+                <button
+                  onClick={handleBack}
+                  className="p-1 rounded-lg hover:bg-surface-800 transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-surface-400" />
+                </button>
+              )}
+              <h2 className="text-lg font-semibold text-white">
+                {step === 'select-template' && 'Generate Slide Deck'}
+                {step === 'customize' && selectedTemplate?.name}
+                {step === 'generating' && 'Generating Deck...'}
+                {step === 'preview' && 'Deck Preview'}
+              </h2>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 rounded-lg hover:bg-surface-800 transition-colors"
+            >
+              <X className="w-5 h-5 text-surface-400" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Step 1: Template Selection */}
+            {step === 'select-template' && (
+              <DeckTemplateSelector
+                templates={templates}
+                onSelect={handleTemplateSelect}
+              />
+            )}
+
+            {/* Step 2: Customization */}
+            {step === 'customize' && selectedTemplate && (
+              <DeckCustomizer
+                template={selectedTemplate}
+                context={context}
+                onContextChange={setContext}
+                enabledSections={enabledSections}
+                onSectionsChange={setEnabledSections}
+                exportFormat={exportFormat}
+                onExportFormatChange={setExportFormat}
+              />
+            )}
+
+            {/* Step 3: Generating */}
+            {step === 'generating' && progress && (
+              <div className="flex flex-col items-center justify-center py-16 px-8">
+                <div className="relative mb-6">
+                  <Loader2 className="w-16 h-16 text-accent-500 animate-spin" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {progress.message}
+                </h3>
+                {progress.currentSlide && (
+                  <p className="text-surface-400 mb-4">
+                    Processing: {progress.currentSlide}
+                  </p>
+                )}
+                {/* Progress bar */}
+                <div className="w-full max-w-md h-2 bg-surface-700 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-accent-500 to-accent-400"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress.progress}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <p className="text-sm text-surface-500 mt-2">
+                  Step {progress.currentStep} of {progress.totalSteps}
+                </p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="flex flex-col items-center justify-center py-16 px-8">
+                <AlertCircle className="w-16 h-16 text-rose-500 mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Generation Failed
+                </h3>
+                <p className="text-surface-400 mb-6 text-center max-w-md">
+                  {error}
+                </p>
+                <button
+                  onClick={() => setStep('customize')}
+                  className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Step 4: Preview */}
+            {step === 'preview' && generatedDeck && (
+              <DeckPreview deck={generatedDeck} />
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-surface-700 bg-surface-900/50">
+            <div className="text-sm text-surface-400">
+              {step === 'customize' && selectedTemplate && (
+                <>
+                  ~{enabledSections.length} slides • Est. {selectedTemplate.estimatedGenerationTime}s
+                </>
+              )}
+              {step === 'preview' && generatedDeck && (
+                <>
+                  {generatedDeck.metadata.totalSlides} slides • 
+                  Generated in {(generatedDeck.metadata.generationTimeMs / 1000).toFixed(1)}s
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {step === 'customize' && (
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate() || isGenerating}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-400 disabled:bg-surface-600 disabled:cursor-not-allowed text-surface-900 font-medium rounded-lg transition-colors"
+                >
+                  Generate
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+              {step === 'preview' && (
+                <>
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-lg transition-colors"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-400 text-surface-900 font-medium rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download {exportFormat.toUpperCase()}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
