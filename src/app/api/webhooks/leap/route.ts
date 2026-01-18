@@ -110,34 +110,44 @@ export async function POST(request: Request) {
           entityType = "customer";
           entityId = String(data.id);
           
-          await prisma.customer.upsert({
+          // Use findFirst + create/update pattern for nullable unique field
+          const existingCustomer = await prisma.customer.findFirst({
             where: { crmId: String(data.id) },
-            create: {
-              crmId: String(data.id),
-              crmSource: "leap",
-              firstName: data.first_name || "Unknown",
-              lastName: data.last_name || "",
-              email: data.email,
-              phone: data.phone,
-              address: data.address?.street || "",
-              city: data.address?.city || "",
-              state: data.address?.state || "",
-              zipCode: data.address?.zip || "",
-              status: mapLeapStatus(data.status || "new"),
-              stage: "new",
-              leadSource: data.lead_source,
-              leadScore: 50,
-              lastCrmSync: new Date(),
-            },
-            update: {
-              firstName: data.first_name,
-              lastName: data.last_name,
-              email: data.email,
-              phone: data.phone,
-              status: data.status ? mapLeapStatus(data.status) : undefined,
-              lastCrmSync: new Date(),
-            },
           });
+          
+          if (existingCustomer) {
+            await prisma.customer.update({
+              where: { id: existingCustomer.id },
+              data: {
+                firstName: data.first_name,
+                lastName: data.last_name,
+                email: data.email,
+                phone: data.phone,
+                status: data.status ? mapLeapStatus(data.status) : undefined,
+                lastCrmSync: new Date(),
+              },
+            });
+          } else {
+            await prisma.customer.create({
+              data: {
+                crmId: String(data.id),
+                crmSource: "leap",
+                firstName: data.first_name || "Unknown",
+                lastName: data.last_name || "",
+                email: data.email,
+                phone: data.phone,
+                address: data.address?.street || "",
+                city: data.address?.city || "",
+                state: data.address?.state || "",
+                zipCode: data.address?.zip || "",
+                status: mapLeapStatus(data.status || "new"),
+                stage: "new",
+                leadSource: data.lead_source,
+                leadScore: 50,
+                lastCrmSync: new Date(),
+              },
+            });
+          }
           
           recordsProcessed = 1;
           break;

@@ -3,11 +3,16 @@
  * 
  * Provides type-safe database operations for customers.
  * Replaces direct mock data usage with Prisma queries.
+ * Supports mock data mode for development without a database.
  */
 
 import { prisma } from "@/lib/prisma";
 import type { Customer, Prisma } from "@prisma/client";
 import { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
+import { mockCustomers, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+
+// Check if we're in mock data mode
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === "true";
 
 // Types for query results
 export interface CustomerWithRelations extends Customer {
@@ -40,7 +45,7 @@ export interface PaginatedResult<T> {
  */
 export async function getCustomers(
   query: CustomerQueryInput
-): Promise<PaginatedResult<CustomerWithRelations>> {
+): Promise<PaginatedResult<any>> {
   const {
     page = 1,
     limit = 20,
@@ -55,6 +60,69 @@ export async function getCustomers(
     maxLeadScore,
     stormAffected,
   } = query;
+
+  // =========================================================================
+  // MOCK DATA MODE
+  // =========================================================================
+  if (USE_MOCK_DATA) {
+    let filtered = [...mockCustomers];
+
+    // Apply filters
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.firstName.toLowerCase().includes(searchLower) ||
+        c.lastName.toLowerCase().includes(searchLower) ||
+        c.email?.toLowerCase().includes(searchLower) ||
+        c.phone?.includes(search) ||
+        c.address.toLowerCase().includes(searchLower) ||
+        c.city.toLowerCase().includes(searchLower)
+      );
+    }
+    if (status) filtered = filtered.filter(c => c.status === status);
+    if (stage) filtered = filtered.filter(c => c.stage === stage);
+    if (state) filtered = filtered.filter(c => c.state === state);
+    if (minLeadScore !== undefined) filtered = filtered.filter(c => c.leadScore >= minLeadScore);
+    if (maxLeadScore !== undefined) filtered = filtered.filter(c => c.leadScore <= maxLeadScore);
+    if (stormAffected) {
+      const stormCustomerIds = new Set(mockWeatherEvents.map(w => w.customerId));
+      filtered = filtered.filter(c => stormCustomerIds.has(c.id));
+    }
+
+    // Sort
+    const sortColumn = sortBy === "name" ? "lastName" : sortBy;
+    filtered.sort((a, b) => {
+      const aVal = (a as any)[sortColumn] ?? 0;
+      const bVal = (b as any)[sortColumn] ?? 0;
+      if (typeof aVal === "string") {
+        return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Paginate
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const data = filtered.slice(start, start + limit).map(c => ({
+      ...c,
+      id: c.id,
+      createdAt: new Date(),
+      updatedAt: c.lastContact,
+      assignedRep: { id: "mock-rep", name: c.assignedRep, email: "rep@guardian.com" },
+      _count: {
+        interactions: Math.floor(Math.random() * 10),
+        weatherEvents: mockWeatherEvents.filter(w => w.customerId === c.id).length,
+        intelItems: mockIntelItems.filter(i => i.customerId === c.id).length,
+      },
+    }));
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
+    };
+  }
+  // =========================================================================
 
   // Build where clause
   const where: Prisma.CustomerWhereInput = {};

@@ -155,15 +155,15 @@ export async function cacheInvalidateNamespace(namespace: CacheNamespace): Promi
   if (redis) {
     try {
       // Scan and delete all keys with the namespace prefix
-      let cursor = 0;
+      let cursor = "0";
       do {
-        const result = await redis.scan(cursor, { match: `${prefix}:*`, count: 100 });
-        cursor = result[0];
+        const result: [string, string[]] = await redis.scan(cursor, { match: `${prefix}:*`, count: 100 });
+        cursor = String(result[0]);
         const keys = result[1];
         if (keys.length > 0) {
           await redis.del(...keys);
         }
-      } while (cursor !== 0);
+      } while (cursor !== "0");
       return true;
     } catch (error) {
       console.error("[Cache] Redis namespace invalidation error:", error);

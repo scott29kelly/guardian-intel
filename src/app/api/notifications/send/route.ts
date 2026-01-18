@@ -153,28 +153,5 @@ export async function POST(request: Request) {
   }
 }
 
-/**
- * Utility function to send storm alerts
- * Can be imported and called from weather webhook handlers
- */
-export async function sendStormAlert(
-  title: string,
-  body: string,
-  stormId?: string,
-  affectedUserIds?: string[]
-) {
-  const payload: NotificationPayload = {
-    title,
-    body,
-    tag: stormId ? `storm-${stormId}` : "storm-alert",
-    data: {
-      type: "storm",
-      url: "/storms",
-      entityId: stormId,
-    },
-  };
-
-  // This would be called internally, not via HTTP
-  // In production, you'd implement the actual sending logic here
-  return payload;
-}
+// Note: Storm alert utility moved to @/lib/services/notifications/index.ts
+// Import from there instead: import { sendStormAlert } from "@/lib/services/notifications"

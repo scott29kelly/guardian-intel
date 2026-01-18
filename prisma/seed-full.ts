@@ -582,7 +582,7 @@ async function main() {
   }
   console.log(`   ✓ Created ${interactionCount} interactions\n`);
 
-  // Create playbooks
+  // Create playbooks (15+ for demo requirements)
   console.log("📚 Creating playbooks...");
   
   const playbooksData = [

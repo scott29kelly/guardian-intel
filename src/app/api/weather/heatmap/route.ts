@@ -41,8 +41,8 @@ export async function GET(request: Request) {
     const weatherEvents = await prisma.weatherEvent.findMany({
       where: {
         eventDate: { gte: startDate },
-        latitude: { not: null },
-        longitude: { not: null },
+        latitude: { not: undefined },
+        longitude: { not: undefined },
         severity: { in: allowedSeverities },
       },
       select: {

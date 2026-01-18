@@ -93,6 +93,8 @@ model User {
   playbookUsages    PlaybookUsage[]
   playbookFavorites PlaybookFavorite[]
   playbookRatings   PlaybookRating[]
+  contracts         Contract[]
+  campaigns         OutreachCampaign[] @relation("CampaignCreator")
 }
 
 model Customer {
@@ -179,6 +181,18 @@ model Customer {
   tasks          Task[]
   playbookUsages PlaybookUsage[]
 
+  interactions  Interaction[]
+  weatherEvents WeatherEvent[]
+  documents     Document[]
+  intelItems    IntelItem[]
+  notes         Note[]
+  claims        InsuranceClaim[]
+  tasks         Task[]
+  proposals     Proposal[]
+  contracts     Contract[]
+  photos        Photo[]
+
+  @@unique([crmId])
   // Performance indexes
   @@index([assignedRepId])
   @@index([leadScore])
@@ -303,6 +317,17 @@ model InsuranceClaim {
   // Supplement tracking
   supplementCount    Int       @default(0)
   lastSupplementDate DateTime?
+
+  // Carrier Integration Fields
+  isFiledWithCarrier Boolean   @default(false)
+  carrierClaimId     String? // Carrier's internal claim ID
+  carrierStatus      String? // Status from carrier API
+  lastSyncAt         DateTime?
+  lastSyncError      String?
+
+  @@index([customerId])
+  @@index([carrier])
+  @@index([status])
 }
 
 model PropertyData {
@@ -384,6 +409,9 @@ model Interaction {
 
   // CRM sync
   crmId String?
+
+  // Compound unique for upsert operations
+  @@unique([customerId, type, createdAt])
 }
 
 model Task {
@@ -704,4 +732,632 @@ model PushSubscription {
   userAgent String?
 
   @@index([userId])
+}
+
+// ============================================
+// GAMIFICATION SYSTEM
+// ============================================
+
+model UserGamification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+
+  // XP & Level
+  totalXP Int @default(0)
+  level   Int @default(1)
+
+  // Lifetime stats
+  totalCalls   Int   @default(0)
+  totalEmails  Int   @default(0)
+  totalVisits  Int   @default(0)
+  totalDeals   Int   @default(0)
+  totalRevenue Float @default(0)
+
+  // Today's stats (reset daily)
+  callsToday    Int      @default(0)
+  emailsToday   Int      @default(0)
+  visitsToday   Int      @default(0)
+  dealsToday    Int      @default(0)
+  revenueToday  Float    @default(0)
+  lastResetDate DateTime @default(now())
+
+  // Streaks
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastActiveDate DateTime?
+
+  // Achievements (stored as JSON array of achievement IDs)
+  achievements String[] @default([])
+
+  // Daily goals progress
+  dailyGoalsProgress String? // JSON object
+
+  @@index([level])
+  @@index([totalXP])
+}
+
+model XPTransaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  amount Int
+  reason String // Human-readable reason
+  action String // call, email, deal, achievement, streak, firstAction, etc.
+
+  // Optional metadata
+  metadata String? // JSON
+
+  @@index([userId, createdAt])
+  @@index([action])
+}
+
+model Achievement {
+  id String @id @default(cuid())
+
+  // Achievement definition
+  achievementId String @unique // e.g., "first-call", "deal-100"
+  name          String
+  description   String
+  category      String // calls, deals, revenue, streak, speed, storm
+  tier          String // bronze, silver, gold, platinum, diamond
+  icon          String // emoji
+  requirement   Int // threshold to unlock
+  xpReward      Int
+
+  // Metadata
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+}
+
+// ============================================
+// PROPOSALS (AI-Generated)
+// ============================================
+
+model Proposal {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdById String
+
+  // Auto-generated proposal number
+  proposalNumber String @unique @default(cuid())
+
+  title      String
+  status     String    @default("draft") // draft, sent, viewed, accepted, rejected, expired, revised
+  validUntil DateTime?
+
+  // Property snapshot (at time of proposal)
+  propertyAddress String
+  propertyCity    String
+  propertyState   String
+  propertyZip     String
+  propertyType    String?
+  roofType        String?
+  roofAge         Int?
+  roofSquares     Float?
+  roofPitch       String?
+  stories         Int?
+  squareFootage   Int?
+  yearBuilt       Int?
+
+  // Damage assessment
+  damageType        String?
+  damageSeverity    String?
+  damageDescription String?
+  stormEventId      String?
+  stormDate         DateTime?
+  hailSize          Float?
+  windSpeed         Float?
+
+  // Scope of work
+  scopeSummary String?
+  scopeDetails String? // Markdown
+  lineItems    String? // JSON array
+
+  // Materials
+  primaryMaterial  String?
+  materialGrade    String?
+  materialWarranty String?
+
+  // Pricing breakdown
+  materialsCost  Float   @default(0)
+  laborCost      Float   @default(0)
+  permitFees     Float   @default(0)
+  disposalFees   Float   @default(0)
+  miscFees       Float   @default(0)
+  subtotal       Float   @default(0)
+  discountAmount Float   @default(0)
+  discountReason String?
+  taxRate        Float   @default(0)
+  taxAmount      Float   @default(0)
+  totalPrice     Float   @default(0)
+
+  // Alternative pricing options
+  pricingOptions String? // JSON array of options
+
+  // Insurance info
+  isInsuranceClaim Boolean @default(false)
+  insuranceCarrier String?
+  policyNumber     String?
+  deductible       Float?
+  insuranceNotes   String?
+
+  // AI-generated content
+  executiveSummary   String?
+  valueProposition   String?
+  warrantyDetails    String?
+  termsAndConditions String?
+
+  // Source data snapshot for audit
+  sourceDataSnapshot String? // JSON
+
+  // Customer response
+  viewedAt      DateTime?
+  viewCount     Int       @default(0)
+  respondedAt   DateTime?
+  responseNotes String?
+
+  // Attachments
+  attachments String? // JSON array of attachment URLs
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdById])
+}
+
+// ============================================
+// CONTRACTS (Digital Signatures)
+// ============================================
+
+model Contract {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contractNumber String @unique
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  templateId String?
+  template   ContractTemplate? @relation(fields: [templateId], references: [id])
+
+  claimId String?
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  title       String
+  description String?
+
+  // Contract content (HTML)
+  content      String
+  termsContent String?
+
+  status String @default("draft") // draft, sent, viewed, signed, completed, cancelled, expired
+
+  // Financial
+  totalAmount    Float
+  depositAmount  Float   @default(0)
+  depositPercent Float?
+  balanceDueOn   String? // "completion", date, etc.
+  paymentTerms   String?
+
+  // Scope
+  scopeOfWork  String?
+  materials    String? // JSON array
+  laborDetails String?
+
+  // Timeline
+  estimatedStartDate DateTime?
+  estimatedEndDate   DateTime?
+  warrantyTerms      String?
+
+  // Expiration
+  expiresAt DateTime?
+
+  // Sending
+  sentAt  DateTime?
+  sentVia String? // email, sms, in-person
+
+  // Viewing
+  viewedAt DateTime?
+
+  // Customer signature
+  customerSignature String? // Base64 image
+  customerSignedAt  DateTime?
+  customerSignedIp  String?
+  customerInitials  String? // Base64 image
+  signedLatitude    Float?
+  signedLongitude   Float?
+  signedAddress     String?
+
+  // Rep signature
+  repSignature String? // Base64 image
+  repSignedAt  DateTime?
+
+  // Audit trail
+  auditLog String? // JSON array of events
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model ContractTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  category    String? // residential, commercial, insurance
+
+  content      String // HTML template with placeholders
+  termsContent String?
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  contracts Contract[]
+}
+
+// ============================================
+// COMPETITOR INTELLIGENCE
+// ============================================
+
+model Competitor {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name         String  @unique
+  displayName  String?
+  website      String?
+  phone        String?
+  headquarters String?
+
+  // Service info (JSON arrays stored as strings)
+  serviceAreas  String? // JSON array of states/regions
+  yearFounded   Int?
+  employeeCount Int?
+
+  pricingTier    String  @default("mid") // budget, mid, premium, luxury
+  specialties    String? // JSON array
+  certifications String? // JSON array
+
+  // Intel
+  strengths    String?
+  weaknesses   String?
+  salesTactics String?
+  pricingNotes String?
+
+  // Metrics
+  marketShare    Float? // 0-100
+  reputation     Int? // 1-5
+  avgReviewScore Float? // 0-5
+  reviewCount    Int?
+
+  isActive Boolean @default(true)
+
+  // Relations
+  activities CompetitorActivity[]
+
+  @@index([pricingTier])
+}
+
+model CompetitorActivity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  customerId String?
+
+  reportedById String
+
+  activityType String // sighting, quote, won_deal, lost_deal, canvassing, marketing, price_intel
+
+  // Location
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  latitude  Float?
+  longitude Float?
+
+  description String?
+
+  // Price intel
+  quotedPrice     Float?
+  priceComparison String? // lower, similar, higher
+
+  // Outcome (for won/lost deals)
+  outcome       String?
+  outcomeReason String?
+  dealValue     Float?
+
+  // Photo evidence
+  photoUrl String?
+  hasPhoto Boolean @default(false)
+
+  isVerified Boolean @default(false)
+
+  @@index([competitorId])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+// ============================================
+// OUTREACH CAMPAIGNS
+// ============================================
+
+model OutreachCampaign {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+
+  createdById String
+  createdBy   User   @relation("CampaignCreator", fields: [createdById], references: [id])
+
+  // Trigger configuration
+  triggerType String // storm, manual, scheduled
+  stormTypes  String? // JSON array of storm types
+  minSeverity String? // minor, moderate, severe
+
+  // Targeting
+  targetZipCodes String? // JSON array
+  targetStates   String? // JSON array
+  excludeRecent  Int     @default(30) // Exclude customers contacted in last N days
+
+  // Channels
+  enableSms   Boolean @default(true)
+  enableEmail Boolean @default(true)
+
+  // Templates
+  smsTemplate   String?
+  emailSubject  String?
+  emailTemplate String?
+
+  // Timing
+  delayMinutes Int     @default(0)
+  sendWindow   String? // JSON object with start/end hours
+
+  // Status
+  isActive   Boolean @default(true)
+  isArchived Boolean @default(false)
+
+  // Stats (aggregated)
+  totalSent      Int @default(0)
+  totalDelivered Int @default(0)
+
+  // Relations
+  executions CampaignExecution[]
+
+  @@index([triggerType])
+  @@index([isActive])
+}
+
+model CampaignExecution {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  campaignId String
+  campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  triggerType String // storm, manual, scheduled
+  triggerId   String? // ID of storm event or schedule
+  triggerData String? // JSON with trigger details
+
+  targetZipCodes String? // JSON array
+
+  status String @default("pending") // pending, processing, completed, failed, cancelled
+
+  // Timing
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Results
+  affectedCustomers Int @default(0)
+  smsSent           Int @default(0)
+  smsDelivered      Int @default(0)
+  smsFailed         Int @default(0)
+  emailSent         Int @default(0)
+  emailDelivered    Int @default(0)
+  emailFailed       Int @default(0)
+
+  errorMessage String?
+
+  // Relations
+  messages OutreachMessage[]
+
+  @@index([campaignId])
+  @@index([status])
+}
+
+model OutreachMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  executionId String
+  execution   CampaignExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  customerId String
+
+  channel   String // sms, email
+  recipient String // phone or email
+  subject   String? // For email only
+  body      String
+
+  status String @default("pending") // pending, queued, sent, delivered, opened, clicked, failed, bounced, unsubscribed
+
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+
+  // Provider tracking
+  externalId   String? // Provider message ID
+  errorCode    String?
+  errorMessage String?
+
+  @@index([executionId])
+  @@index([customerId])
+  @@index([status])
+}
+
+// ============================================
+// PHOTOS (GPS-Tagged)
+// ============================================
+
+model Photo {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // File info
+  filename     String
+  originalName String?
+  url          String
+  thumbnailUrl String?
+  size         Int? // bytes
+  mimeType     String  @default("image/jpeg")
+
+  // Relationships
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  claimId String?
+
+  uploadedById String
+
+  // GPS Location
+  latitude  Float?
+  longitude Float?
+  altitude  Float?
+  accuracy  Float? // meters
+  heading   Float? // degrees
+
+  // Reverse geocoded address
+  capturedAddress String?
+  capturedCity    String?
+  capturedState   String?
+  capturedZipCode String?
+
+  // Categorization
+  category    String  @default("general") // general, damage, before, after, roof, siding, gutter, interior, signature, adjuster-meeting, other
+  tags        String? // JSON array
+  description String?
+
+  // Damage info
+  damageType     String? // hail, wind, water, wear, impact
+  damageSeverity String? // minor, moderate, severe
+
+  // Device info
+  deviceType  String? // mobile, tablet, desktop
+  deviceModel String?
+
+  @@index([customerId])
+  @@index([category])
+  @@index([claimId])
+}
+
+// ============================================
+// CARRIER INTEGRATION
+// ============================================
+
+model CarrierConfig {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carrierCode String  @unique
+  carrierName String
+  displayName String?
+
+  // API Configuration
+  apiEndpoint   String?
+  apiKey        String?
+  apiSecret     String?
+  clientId      String?
+  clientSecret  String?
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  webhookSecret String?
+
+  // Features
+  supportsDirectFiling   Boolean @default(false)
+  supportsStatusUpdates  Boolean @default(false)
+  supportsDocumentUpload Boolean @default(false)
+
+  isTestMode Boolean @default(true)
+  isActive   Boolean @default(true)
+
+  @@index([carrierCode])
+}
+
+model CarrierSyncLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  carrierCode String
+  claimId     String?
+
+  syncType  String // status_check, file_claim, upload_document, webhook
+  direction String // inbound, outbound
+
+  status String // success, failed, partial
+
+  requestData  String? // JSON
+  responseData String? // JSON
+  errorMessage String?
+
+  duration Int? // milliseconds
+
+  @@index([carrierCode])
+  @@index([claimId])
+  @@index([createdAt])
+}
+
+// ============================================
+// OUTREACH TEMPLATES
+// ============================================
+
+model OutreachTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  category    String // storm, follow-up, promotional, seasonal
+  channel     String // sms, email
+
+  // Template content
+  subject  String? // For email only
+  body     String
+  htmlBody String? // For email HTML version
+
+  // Personalization
+  variables String? // JSON array of variable names used
+
+  isDefault  Boolean @default(false)
+  isActive   Boolean @default(true)
+  usageCount Int     @default(0)
+
+  @@unique([name, channel])
+  @@index([category])
+  @@index([channel])
 }

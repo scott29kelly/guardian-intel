@@ -15,6 +15,12 @@ import { Flame, RefreshCw, Filter, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+// Leaflet types - using any for dynamic imports
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMap = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HeatLayerType = any;
+
 // Types
 interface HeatmapPoint {
   lat: number;
@@ -67,22 +73,26 @@ interface StormHeatmapProps {
 }
 
 // Dynamically import map components to avoid SSR issues
-const MapContainer = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MapContainer = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
 
-const TileLayer = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TileLayer = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.TileLayer),
   { ssr: false }
 );
 
-const Circle = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Circle = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.Circle),
   { ssr: false }
 );
 
-const Popup = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Popup = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.Popup),
   { ssr: false }
 );
@@ -102,8 +112,8 @@ export function StormHeatmap({
   const [data, setData] = useState<HeatmapData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [heatLayer, setHeatLayer] = useState<L.HeatLayer | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
+  const [heatLayer, setHeatLayer] = useState<HeatLayerType | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
   // Client-side only
   useEffect(() => {
@@ -256,7 +266,7 @@ export function StormHeatmap({
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
           className="z-0"
-          ref={(map) => {
+          ref={(map: LeafletMap) => {
             if (map) {
               mapRef.current = map;
             }

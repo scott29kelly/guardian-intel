@@ -16,17 +16,96 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
+import { 
+  mockCustomers, 
+  mockIntelItems, 
+  mockWeatherEvents,
+  mockDailyMetrics 
+} from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+
+// Check if we're in mock data mode
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === "true";
 
 // Cache key for dashboard data
 const DASHBOARD_CACHE_KEY = buildCacheKey("dashboard", "main");
 
 export async function GET(request: Request) {
   try {
-    // Rate limiting
-    const rateLimitResponse = await rateLimit(request, "api");
-    if (rateLimitResponse) return rateLimitResponse;
+    // Rate limiting (skip in mock mode for simplicity)
+    if (!USE_MOCK_DATA) {
+      const rateLimitResponse = await rateLimit(request, "api");
+      if (rateLimitResponse) return rateLimitResponse;
+    }
+
+    // =========================================================================
+    // MOCK DATA MODE - Return mock data without database
+    // =========================================================================
+    if (USE_MOCK_DATA) {
+      const priorityCustomers = [...mockCustomers]
+        .filter(c => ["lead", "prospect", "customer"].includes(c.status))
+        .sort((a, b) => b.leadScore - a.leadScore)
+        .slice(0, 3);
+
+      const customerIds = priorityCustomers.map(c => c.id);
+      const intelItems = mockIntelItems.filter(i => customerIds.includes(i.customerId));
+      const weatherEvents = mockWeatherEvents.filter(w => w.customerId !== null && customerIds.includes(w.customerId));
+
+      const recentStorms = mockWeatherEvents
+        .filter(w => new Date(w.eventDate).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000)
+        .slice(0, 5);
+
+      const hotLeads = mockCustomers.filter(
+        c => c.leadScore >= 80 && ["lead", "prospect"].includes(c.status)
+      ).length;
+
+      const closedWon = mockCustomers.filter(c => c.status === "closed-won");
+      const pipelineCustomers = mockCustomers.filter(c => ["lead", "prospect"].includes(c.status));
+      const stormAffected = mockCustomers.filter(c => 
+        mockWeatherEvents.some(w => w.customerId === c.id)
+      ).length;
+
+      const metrics = {
+        revenue: {
+          value: closedWon.reduce((sum, c) => sum + (c.profitPotential || 0), 0),
+          change: 23.4,
+          target: 500000,
+        },
+        pipeline: {
+          value: pipelineCustomers.reduce((sum, c) => sum + (c.profitPotential || 0), 0),
+          deals: pipelineCustomers.length,
+        },
+        stormOpportunity: {
+          value: stormAffected * 15000,
+          affected: stormAffected,
+        },
+        activeAlerts: recentStorms.length,
+        hotLeads,
+      };
+
+      const alerts = recentStorms.slice(0, 3).map((storm) => ({
+        id: storm.id,
+        type: "storm",
+        message: `${storm.severity} ${storm.eventType} event detected`,
+        time: getRelativeTime(storm.eventDate),
+        severity: storm.severity === "severe" ? "critical" : storm.severity === "moderate" ? "high" : "warning",
+      }));
+
+      return NextResponse.json({
+        success: true,
+        priorityCustomers: priorityCustomers.map(c => ({
+          ...c,
+          lastContact: c.lastContact,
+          nextActionDate: c.nextActionDate,
+        })),
+        intelItems,
+        weatherEvents,
+        metrics,
+        alerts,
+      });
+    }
+    // =========================================================================
 
     // Check cache first
     const cached = await cacheGet<Record<string, unknown>>(DASHBOARD_CACHE_KEY);
@@ -221,7 +300,7 @@ export async function GET(request: Request) {
   }
 }
 
-function getRelativeTime(date: Date): string {
+function getRelativeTime(date: Date | string): string {
   const now = new Date();
   const diffMs = now.getTime() - new Date(date).getTime();
   const diffMins = Math.floor(diffMs / 60000);

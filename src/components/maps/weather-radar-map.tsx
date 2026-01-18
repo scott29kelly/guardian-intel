@@ -59,33 +59,39 @@ interface WeatherRadarMapProps {
 }
 
 // Dynamically import map to avoid SSR issues
-const MapContainer = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MapContainer = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
 
-const TileLayer = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TileLayer = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.TileLayer),
   { ssr: false }
 );
 
-const Marker = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Marker = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.Marker),
   { ssr: false }
 );
 
-const Popup = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Popup = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.Popup),
   { ssr: false }
 );
 
-const Circle = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Circle = dynamic<any>(
   () => import("react-leaflet").then((mod) => mod.Circle),
   { ssr: false }
 );
 
 // Marker cluster group - dynamically imported
-const MarkerClusterGroup = dynamic(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MarkerClusterGroup = dynamic<any>(
   () => import("react-leaflet-cluster").then((mod) => mod.default),
   { ssr: false }
 );
@@ -97,7 +103,8 @@ function MapClickHandler({ onClick }: { onClick?: (lat: number, lon: number) => 
       const { useMapEvents } = mod;
       return function MapEventsComponent() {
         useMapEvents({
-          click: (e) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          click: (e: any) => {
             if (onClick) {
               onClick(e.latlng.lat, e.latlng.lng);
             }

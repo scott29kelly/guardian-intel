@@ -1,4 +1,9 @@
-import * as L from "leaflet";
+// Leaflet Heat Layer types
+
+declare module "leaflet.heat" {
+  // This module augments Leaflet with heat layer functionality
+  // When imported, it adds L.heatLayer and L.HeatLayer
+}
 
 declare module "leaflet" {
   interface HeatLatLngTuple extends Array<number> {
@@ -16,7 +21,7 @@ declare module "leaflet" {
     gradient?: Record<number, string>;
   }
 
-  interface HeatLayer extends L.Layer {
+  interface HeatLayer extends Layer {
     setLatLngs(latlngs: HeatLatLngTuple[]): this;
     addLatLng(latlng: HeatLatLngTuple): this;
     setOptions(options: HeatLayerOptions): this;
@@ -27,8 +32,4 @@ declare module "leaflet" {
     latlngs: HeatLatLngTuple[],
     options?: HeatLayerOptions
   ): HeatLayer;
-}
-
-declare module "leaflet.heat" {
-  export = L;
 }

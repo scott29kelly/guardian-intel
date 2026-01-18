@@ -304,10 +304,11 @@ export class PerplexityAdapter implements AIAdapter {
     let mdMatch: RegExpExecArray | null;
     while ((mdMatch = mdLinkRegex.exec(content)) !== null) {
       // Avoid duplicates
-      if (!citations.some(c => c.url === mdMatch![2])) {
+const url = mdMatch[2];
+      if (!citations.some(c => c.url === url)) {
         citations.push({
           title: mdMatch[1].trim(),
-          url: mdMatch[2].trim(),
+          url: url.trim(),
           snippet: "",
         });
       }

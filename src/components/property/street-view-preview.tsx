@@ -136,10 +136,10 @@ export function StreetViewPreview({
         <span className="truncate max-w-[200px]">{address}</span>
       </div>
 
-      {/* API key warning */}
+      {/* API key notice */}
       {!apiKey && (
         <div className="absolute top-2 right-2 px-2 py-1 bg-amber-500/20 backdrop-blur-sm rounded text-[10px] text-amber-400">
-          Demo Mode
+          API Key Required
         </div>
       )}
 

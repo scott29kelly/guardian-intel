@@ -276,32 +276,32 @@ CURRENT CUSTOMER CONTEXT:
 =========================
 Name: ${context.customer.name}
 Location: ${context.customer.city}, ${context.customer.state} ${context.customer.zipCode}
-Phone: ${context.customer.phone}
-Email: ${context.customer.email}
+Phone: ${context.customer.phone ?? 'N/A'}
+Email: ${context.customer.email ?? 'N/A'}
 
 PROPERTY DETAILS:
-- Type: ${context.property.type}
-- Year Built: ${context.property.yearBuilt}
-- Size: ${context.property.squareFootage.toLocaleString()} sqft
-- Roof Type: ${context.property.roofType}
-- Roof Age: ${context.property.roofAge} years
-- Property Value: $${context.property.propertyValue.toLocaleString()}
+- Type: ${context.property.type ?? 'Unknown'}
+- Year Built: ${context.property.yearBuilt ?? 'Unknown'}
+- Size: ${context.property.squareFootage?.toLocaleString() ?? 'Unknown'} sqft
+- Roof Type: ${context.property.roofType ?? 'Unknown'}
+- Roof Age: ${context.property.roofAge ?? 'Unknown'} years
+- Property Value: $${context.property.propertyValue?.toLocaleString() ?? 'Unknown'}
 
 INSURANCE:
-- Carrier: ${context.insurance.carrier}
-- Policy: ${context.insurance.policyType}
-- Deductible: $${context.insurance.deductible.toLocaleString()}
+- Carrier: ${context.insurance.carrier ?? 'Unknown'}
+- Policy: ${context.insurance.policyType ?? 'Unknown'}
+- Deductible: $${context.insurance.deductible?.toLocaleString() ?? 'Unknown'}
 
 PIPELINE STATUS:
 - Status: ${context.pipeline.status}
 - Stage: ${context.pipeline.stage}
 - Lead Score: ${context.pipeline.leadScore}/100
 - Urgency: ${context.pipeline.urgencyScore}/100
-- Profit Potential: $${context.pipeline.profitPotential.toLocaleString()}
+- Profit Potential: $${context.pipeline.profitPotential?.toLocaleString() ?? '0'}
 - Churn Risk: ${context.pipeline.churnRisk}%
-- Assigned Rep: ${context.pipeline.assignedRep}
-- Last Contact: ${context.pipeline.lastContact.toLocaleDateString()}
-- Next Action: ${context.pipeline.nextAction}
+- Assigned Rep: ${context.pipeline.assignedRep ?? 'Unassigned'}
+- Last Contact: ${context.pipeline.lastContact ? (typeof context.pipeline.lastContact === 'string' ? context.pipeline.lastContact : context.pipeline.lastContact.toLocaleDateString()) : 'Never'}
+- Next Action: ${context.pipeline.nextAction ?? 'None'}
 
 WEATHER EVENTS:
 ${context.weatherEvents.map(e => 

@@ -21,10 +21,18 @@ import {
   Clock,
   Home,
   Flame,
+  Trophy,
+  Target,
 } from "lucide-react";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
+import { useGamification } from "@/lib/gamification";
+import { useShouldAnimate } from "@/lib/preferences";
+import { DailyGoalsWidget, DailyProgressBar } from "@/components/gamification/daily-goals";
+import { MiniLeaderboard } from "@/components/gamification/leaderboard";
+import { AnimatedCounter, StreakCounter } from "@/components/gamification/animated-counter";
+import { ConfettiBurst } from "@/components/gamification/confetti";
 import dynamic from "next/dynamic";
 
 // Time-based greeting helper
@@ -81,6 +89,8 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const { showToast } = useToast();
   const { data, isLoading, error } = useDashboard();
+  const { stats, dailyGoals, recordAction, updateDailyGoal, triggerCelebration } = useGamification();
+  const { shouldShowLeaderboard, shouldShowXP, shouldShowConfetti } = useShouldAnimate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
@@ -88,6 +98,7 @@ export default function DashboardPage() {
   
   // Get user's first name for greeting
   const userName = getFirstName(session?.user?.name);
+  const [confettiBurst, setConfettiBurst] = useState<{ x: number; y: number } | null>(null);
 
   // Use real data or defaults while loading
   const liveMetrics = data?.metrics || defaultMetrics;
@@ -108,16 +119,44 @@ export default function DashboardPage() {
     return () => clearInterval(alertTimer);
   }, [recentAlerts.length]);
 
-  const handleStormCanvass = () => {
+  const handleStormCanvass = (e: React.MouseEvent) => {
+    // Record activity for gamification
+    recordAction("stormResponse");
+    updateDailyGoal("log-goal", 1);
+    
+    // Show XP toast (respects preferences via the toast system)
+    if (shouldShowXP) {
+      showToast("xp", "+50 XP", "Storm response initiated!", { xp: 50 });
+    }
+    
+    // Burst effect at button position (respects preferences)
+    if (shouldShowConfetti) {
+      setConfettiBurst({ x: e.clientX, y: e.clientY });
+    }
+    
     showToast("info", "Storm Canvass Started", "Loading affected properties in your area...");
     setTimeout(() => {
       router.push("/storms");
     }, 1000);
   };
 
-  const handleDialNextLead = () => {
+  const handleDialNextLead = (e: React.MouseEvent) => {
     const nextLead = priorityCustomers.find(c => c.status === "lead" || c.status === "prospect");
     if (nextLead && nextLead.phone) {
+      // Record the call for gamification
+      recordAction("call");
+      updateDailyGoal("calls-goal", 1);
+      
+      // Show XP toast (respects preferences)
+      if (shouldShowXP) {
+        showToast("xp", "+10 XP", "Call logged!", { xp: 10 });
+      }
+      
+      // Burst effect (respects preferences)
+      if (shouldShowConfetti) {
+        setConfettiBurst({ x: e.clientX, y: e.clientY });
+      }
+      
       showToast("success", "Connecting...", `Dialing ${nextLead.firstName} ${nextLead.lastName} at ${nextLead.phone}`);
       // In real app, this would integrate with phone system
       window.location.href = `tel:${nextLead.phone}`;
@@ -456,7 +495,7 @@ export default function DashboardPage() {
       )}
 
       {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue */}
         <div
           className="panel p-4 cursor-pointer hover:border-[hsl(var(--border-hover))] transition-colors"
@@ -549,9 +588,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Priority Customers */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-medium text-text-primary">
@@ -593,46 +632,122 @@ export default function DashboardPage() {
 
         {/* Quick Actions Panel */}
         <div className="space-y-4">
-          {/* Today's Activity */}
+          {/* Weather Radar Preview */}
           <div className="panel">
             <div className="panel-header">
-              <Activity className="w-4 h-4 text-text-muted" />
-              <span className="text-sm text-text-secondary">Today's Activity</span>
+              <CloudLightning className="w-4 h-4 text-text-muted" />
+              <span className="text-sm text-text-secondary">Weather Radar</span>
+              <span className="ml-auto text-xs text-accent-success">Live</span>
             </div>
-            <div className="p-3 space-y-2">
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-text-muted">Calls Made</span>
-                <span className="text-sm font-medium text-text-primary">42</span>
+            <div className="p-3">
+              <div className="rounded overflow-hidden border border-border">
+                <WeatherRadarMap
+                  center={[40.1773, -75.0035]}
+                  zoom={7}
+                  height="200px"
+                  showRadar={true}
+                  showAnimation={true}
+                  markers={[]}
+                  compact={true}
+                />
               </div>
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-text-muted">Appointments</span>
-                <span className="text-sm font-medium text-text-primary">8</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-text-muted">Deals Closed</span>
-                <span className="text-sm font-medium text-accent-success">3</span>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-text-muted">Mid-Atlantic Region</span>
+                <button
+                  onClick={() => router.push("/storms")}
+                  className="text-xs text-accent-primary hover:underline"
+                >
+                  Expand
+                </button>
               </div>
             </div>
           </div>
 
+          {/* Today's Activity with Gamification */}
+          <div className="panel">
+            <div className="panel-header">
+              <Activity className="w-4 h-4 text-text-muted" />
+              <span className="text-sm text-text-secondary">Today's Activity</span>
+              <div className="ml-auto">
+                <StreakCounter streak={stats.currentStreak} className="scale-75 origin-right" />
+              </div>
+            </div>
+            <div className="p-3 space-y-2">
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-text-muted">Calls Made</span>
+                <span className="text-sm font-medium text-text-primary">
+                  <AnimatedCounter value={stats.callsToday} duration={300} />
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-text-muted">Emails Sent</span>
+                <span className="text-sm font-medium text-text-primary">
+                  <AnimatedCounter value={stats.emailsToday} duration={300} />
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-text-muted">Deals Closed</span>
+                <span className="text-sm font-medium text-accent-success">
+                  <AnimatedCounter value={stats.dealsToday} duration={300} />
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Daily Goals */}
+          <DailyGoalsWidget goals={dailyGoals} />
+          
+          {/* Mini Leaderboard - respects user preference */}
+          {shouldShowLeaderboard && (
+            <div className="panel">
+              <div className="panel-header">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span className="text-sm text-text-secondary">Team Ranking</span>
+              </div>
+              <div className="p-3">
+                <MiniLeaderboard />
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="space-y-2">
-            <button 
+            <motion.button 
               onClick={handleStormCanvass}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded text-sm font-medium text-white transition-colors hover:opacity-90"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded text-sm font-medium text-white transition-colors hover:opacity-90 relative overflow-hidden group"
               style={{ background: `linear-gradient(90deg, var(--gradient-start), var(--gradient-end))` }}
             >
               <Zap className="w-4 h-4" />
               Start Storm Canvass
-            </button>
-            <button 
+              <span className="absolute right-3 text-xs bg-white/20 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                +50 XP
+              </span>
+            </motion.button>
+            <motion.button 
               onClick={handleDialNextLead}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-secondary border border-border rounded text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-secondary border border-border rounded text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors relative overflow-hidden group"
             >
               <Phone className="w-4 h-4" />
               Dial Next Lead
-            </button>
+              <span className="absolute right-3 text-xs bg-accent-primary/20 text-accent-primary px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                +10 XP
+              </span>
+            </motion.button>
           </div>
+          
+          {/* Confetti Burst Effect */}
+          {confettiBurst && (
+            <ConfettiBurst
+              x={confettiBurst.x}
+              y={confettiBurst.y}
+              isActive={true}
+              onComplete={() => setConfettiBurst(null)}
+            />
+          )}
         </div>
       </div>
     </div>

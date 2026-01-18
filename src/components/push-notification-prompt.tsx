@@ -86,14 +86,14 @@ export function PushNotificationPrompt() {
         vapidData = await vapidResponse.json();
       } catch (fetchError) {
         console.warn("Failed to fetch VAPID key:", fetchError);
-        showToast("warning", "Setup Required", "Push notifications need server configuration");
+        showToast("info", "Setup Required", "Push notifications need server configuration");
         setShowPrompt(false);
         return;
       }
 
       if (!vapidData?.configured || !vapidData?.publicKey) {
         console.warn("Push notifications not configured on server");
-        showToast("warning", "Not Available", "Push notifications are not configured yet");
+        showToast("info", "Not Available", "Push notifications are not configured yet");
         setShowPrompt(false);
         return;
       }
@@ -109,7 +109,7 @@ export function PushNotificationPrompt() {
         ]) as ServiceWorkerRegistration;
       } catch (swError) {
         console.warn("Service worker not ready:", swError);
-        showToast("warning", "Please Refresh", "Service worker is still loading");
+        showToast("info", "Please Refresh", "Service worker is still loading");
         setShowPrompt(false);
         return;
       }
@@ -117,7 +117,7 @@ export function PushNotificationPrompt() {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey),
+        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey) as BufferSource,
       });
 
       // Send subscription to server
@@ -284,7 +284,7 @@ export function NotificationBellButton() {
     if (isSubscribed) {
       showToast("info", "Notifications Active", "You're receiving push notifications");
     } else if (Notification.permission === "denied") {
-      showToast("warning", "Notifications Blocked", "Enable in browser settings to receive alerts");
+      showToast("info", "Notifications Blocked", "Enable in browser settings to receive alerts");
     } else {
       // Trigger the subscription flow
       const permission = await Notification.requestPermission();

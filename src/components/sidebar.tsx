@@ -14,7 +14,12 @@ import {
   ChevronLeft,
   Bot,
   LogOut,
+  Target,
+  FileCheck,
+  MessageSquare,
+  Building2,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useState, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -22,6 +27,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { ShortcutsModal } from "./modals/shortcuts-modal";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useKeyboardShortcuts, useModifierKey } from "@/lib/hooks/use-keyboard-shortcuts";
+import { SidebarEngagementWidget } from "./gamification/sidebar-widget";
 
 // Exported constants for layout calculations
 export const SIDEBAR_WIDTH = 256; // 16rem = 256px
@@ -40,10 +46,31 @@ const navigation = [
     badge: "127"
   },
   { 
+    name: "Claims", 
+    href: "/claims", 
+    icon: FileCheck,
+  },
+  { 
     name: "Storms", 
     href: "/storms", 
     icon: CloudLightning,
     badge: "2"
+  },
+  { 
+    name: "Trade Terrain", 
+    href: "/terrain", 
+    icon: Target,
+    badge: "NEW"
+  },
+  { 
+    name: "Competitors", 
+    href: "/competitors", 
+    icon: Building2,
+  },
+  { 
+    name: "Outreach", 
+    href: "/outreach", 
+    icon: MessageSquare,
   },
   { 
     name: "Analytics", 
@@ -215,6 +242,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Engagement Widget */}
+      <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
+        <SidebarEngagementWidget 
+          isCollapsed={isCollapsed} 
+          onOpenAchievements={() => {
+            // Could open an achievements modal here
+          }}
+        />
+      </div>
 
       {/* AI Assistant Button */}
       <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
