@@ -90,6 +90,9 @@ model User {
   activities        Activity[]
   conversations     Conversation[]
   pushSubscriptions PushSubscription[]
+  playbookUsages    PlaybookUsage[]
+  playbookFavorites PlaybookFavorite[]
+  playbookRatings   PlaybookRating[]
   contracts         Contract[]
   campaigns         OutreachCampaign[] @relation("CampaignCreator")
 }
@@ -168,6 +171,15 @@ model Customer {
   // Relationships
   assignedRepId String?
   assignedRep   User?   @relation(fields: [assignedRepId], references: [id])
+
+  interactions   Interaction[]
+  weatherEvents  WeatherEvent[]
+  documents      Document[]
+  intelItems     IntelItem[]
+  notes          Note[]
+  claims         InsuranceClaim[]
+  tasks          Task[]
+  playbookUsages PlaybookUsage[]
 
   interactions  Interaction[]
   weatherEvents WeatherEvent[]
@@ -498,6 +510,9 @@ model Playbook {
   stage    String? // Which pipeline stage this applies to
   scenario String? // Specific scenario (e.g., "homeowner hesitant", "adjuster pushback")
 
+  // Dynamic variables (JSON) for placeholders like {CUSTOMER_NAME}
+  variables String? // JSON object defining available variables
+
   // Metadata
   author      String?
   isPublished Boolean @default(true)
@@ -505,6 +520,67 @@ model Playbook {
   rating      Float?
 
   tags String? // JSON array
+
+  // Relationships
+  usages    PlaybookUsage[]
+  favorites PlaybookFavorite[]
+  ratings   PlaybookRating[]
+}
+
+model PlaybookUsage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  context   String // "practice", "customer_call", "meeting", "reference", "roleplay"
+  duration  Int? // seconds spent
+  completed Boolean @default(false)
+  outcome   String? // "closed_won", "follow_up", "no_result", "objection_handled"
+
+  @@index([playbookId])
+  @@index([userId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model PlaybookFavorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([playbookId, userId])
+  @@index([userId])
+}
+
+model PlaybookRating {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating   Int // 1-5
+  feedback String?
+
+  @@unique([playbookId, userId])
+  @@index([playbookId])
 }
 
 // ============================================

@@ -29,6 +29,11 @@ import {
   Loader2,
   Edit3,
   Presentation,
+  Heart,
+  History,
+  Sparkles,
+  BarChart3,
+  CopyPlus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +42,24 @@ import { useToast } from "@/components/ui/toast";
 import { PlaybookCard, getCategoryInfo } from "@/components/playbooks";
 import { PlaybookEditor } from "@/components/playbooks/playbook-editor";
 import { PlaybookModal } from "@/components/modals/playbook-modal";
+import { RoleplayModal } from "@/components/playbooks/roleplay-modal";
+import { VariablePreview } from "@/components/playbooks/variable-preview";
 import { 
   usePlaybooks, 
   useCreatePlaybook, 
   useUpdatePlaybook, 
   useDeletePlaybook,
+  useFavoritePlaybooks,
+  useRecentPlaybooks,
+  useRecommendedPlaybooks,
+  useToggleFavorite,
+  useLogPlaybookUsage,
+  useDuplicatePlaybook,
+  useRatePlaybook,
   type Playbook 
 } from "@/lib/hooks/use-playbooks";
 import type { CreatePlaybookInput, UpdatePlaybookInput } from "@/lib/validations";
+import Link from "next/link";
 
 // Category tabs configuration
 const categories = [
@@ -67,12 +82,14 @@ export default function PlaybooksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
-  const [favorited, setFavorited] = useState<Set<string>>(new Set());
   const [showPracticeMode, setShowPracticeMode] = useState(false);
   const [practiceStep, setPracticeStep] = useState(0);
   const [isPracticePaused, setIsPracticePaused] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingPlaybook, setEditingPlaybook] = useState<Playbook | null>(null);
+  const [showRoleplay, setShowRoleplay] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   // API Hooks
   const { data: playbooksData, isLoading, error } = usePlaybooks({
@@ -81,9 +98,22 @@ export default function PlaybooksPage() {
     limit: 100,
   });
 
+  const { data: favoritesData } = useFavoritePlaybooks();
+  const { data: recentData } = useRecentPlaybooks(5);
+  const { data: recommendedData } = useRecommendedPlaybooks({ limit: 4 });
+
   const createMutation = useCreatePlaybook();
   const updateMutation = useUpdatePlaybook();
   const deleteMutation = useDeletePlaybook();
+  const toggleFavoriteMutation = useToggleFavorite();
+  const logUsageMutation = useLogPlaybookUsage();
+  const duplicateMutation = useDuplicatePlaybook();
+  const rateMutation = useRatePlaybook();
+
+  // Derived data
+  const favoriteIds = new Set(favoritesData?.data?.map((p) => p.id) || []);
+  const recentPlaybooks = recentData?.data || [];
+  const recommendedPlaybooks = recommendedData?.data || [];
 
   // Derived state
   const playbooks = playbooksData?.data || [];
@@ -160,16 +190,55 @@ export default function PlaybooksPage() {
     }
   };
 
-  const handleFavorite = (playbookId: string, playbookTitle: string) => {
-    const newFavorited = new Set(favorited);
-    if (newFavorited.has(playbookId)) {
-      newFavorited.delete(playbookId);
-      showToast("info", "Removed from Favorites", `${playbookTitle} removed from favorites`);
-    } else {
-      newFavorited.add(playbookId);
-      showToast("success", "Added to Favorites", `${playbookTitle} added to favorites`);
+  const handleFavorite = async (playbookId: string, playbookTitle: string) => {
+    try {
+      const result = await toggleFavoriteMutation.mutateAsync(playbookId);
+      if (result.isFavorited) {
+        showToast("success", "Added to Favorites", `${playbookTitle} added to favorites`);
+      } else {
+        showToast("info", "Removed from Favorites", `${playbookTitle} removed from favorites`);
+      }
+    } catch {
+      showToast("error", "Error", "Failed to update favorite");
     }
-    setFavorited(newFavorited);
+  };
+
+  const handleDuplicate = async (playbook: Playbook) => {
+    try {
+      const result = await duplicateMutation.mutateAsync({ id: playbook.id });
+      showToast("success", "Playbook Duplicated", `Created "${result.playbook.title}"`);
+      setSelectedPlaybookId(result.playbook.id);
+    } catch {
+      showToast("error", "Error", "Failed to duplicate playbook");
+    }
+  };
+
+  const handleUseWithCustomer = async (playbookId: string, playbookTitle: string) => {
+    try {
+      await logUsageMutation.mutateAsync({
+        playbookId,
+        context: "customer_call",
+        completed: true,
+      });
+      showToast("success", "Usage Logged", `${playbookTitle} usage recorded`);
+    } catch {
+      showToast("error", "Error", "Failed to log usage");
+    }
+  };
+
+  const handleRating = async (playbookId: string, rating: number) => {
+    try {
+      await rateMutation.mutateAsync({ id: playbookId, rating });
+      showToast("success", "Rating Saved", "Thanks for your feedback!");
+      setShowRating(false);
+      setUserRating(0);
+    } catch {
+      showToast("error", "Error", "Failed to save rating");
+    }
+  };
+
+  const handleStartRoleplay = () => {
+    setShowRoleplay(true);
   };
 
   const handleStartPracticeMode = () => {
@@ -217,13 +286,98 @@ export default function PlaybooksPage() {
         <div className="w-96 flex flex-col">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
-              Sales Playbooks
-            </h1>
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="font-display text-3xl font-bold text-text-primary">
+                Sales Playbooks
+              </h1>
+              <Link
+                href="/playbooks/analytics"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Analytics
+              </Link>
+            </div>
             <p className="text-text-muted">
               Battle-tested scripts and techniques for every situation
             </p>
           </div>
+
+          {/* Quick Access - Favorites */}
+          {favoriteIds.size > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
+                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                Favorites
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                {favoritesData?.data?.slice(0, 4).map((pb) => (
+                  <button
+                    key={pb.id}
+                    onClick={() => setSelectedPlaybookId(pb.id)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedPlaybookId === pb.id
+                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                        : "bg-surface-secondary text-text-secondary hover:bg-rose-500/10 hover:text-rose-400"
+                    }`}
+                  >
+                    {pb.title.length > 20 ? pb.title.slice(0, 20) + "..." : pb.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Access - Recently Used */}
+          {recentPlaybooks.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
+                <History className="w-3.5 h-3.5 text-violet-400" />
+                Recently Used
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                {recentPlaybooks.slice(0, 4).map((pb) => (
+                  <button
+                    key={pb.id}
+                    onClick={() => setSelectedPlaybookId(pb.id)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedPlaybookId === pb.id
+                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                        : "bg-surface-secondary text-text-secondary hover:bg-violet-500/10 hover:text-violet-400"
+                    }`}
+                  >
+                    {pb.title.length > 20 ? pb.title.slice(0, 20) + "..." : pb.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {recommendedPlaybooks.length > 0 && !searchQuery && selectedCategory === "all" && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg">
+              <div className="flex items-center gap-2 text-xs text-purple-400 mb-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                Recommended for You
+              </div>
+              <div className="space-y-1.5">
+                {recommendedPlaybooks.slice(0, 3).map((pb) => (
+                  <button
+                    key={pb.id}
+                    onClick={() => setSelectedPlaybookId(pb.id)}
+                    className="w-full text-left p-2 rounded bg-surface-primary/50 hover:bg-surface-primary transition-colors"
+                  >
+                    <div className="text-xs font-medium text-text-primary truncate">
+                      {pb.title}
+                    </div>
+                    <div className="text-[10px] text-purple-400 truncate">
+                      {pb.recommendationReason}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Search */}
           <div className="relative mb-4">
@@ -287,7 +441,7 @@ export default function PlaybooksPage() {
                   key={playbook.id}
                   playbook={playbook}
                   isSelected={selectedPlaybookId === playbook.id}
-                  isFavorited={favorited.has(playbook.id)}
+                  isFavorited={favoriteIds.has(playbook.id)}
                   onClick={() => setSelectedPlaybookId(playbook.id)}
                 />
               ))
@@ -363,6 +517,15 @@ export default function PlaybooksPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleDuplicate(selectedPlaybook)}
+                          disabled={duplicateMutation.isPending}
+                        >
+                          <CopyPlus className="w-4 h-4" />
+                          Duplicate
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleEditPlaybook(selectedPlaybook)}
                         >
                           <Edit3 className="w-4 h-4" />
@@ -374,23 +537,33 @@ export default function PlaybooksPage() {
                           onClick={() =>
                             handleFavorite(selectedPlaybook.id, selectedPlaybook.title)
                           }
+                          disabled={toggleFavoriteMutation.isPending}
                           className={
-                            favorited.has(selectedPlaybook.id)
-                              ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                            favoriteIds.has(selectedPlaybook.id)
+                              ? "bg-rose-500/20 border-rose-500/50 text-rose-400"
                               : ""
                           }
                         >
-                          <Star
+                          <Heart
                             className={`w-4 h-4 ${
-                              favorited.has(selectedPlaybook.id) ? "fill-current" : ""
+                              favoriteIds.has(selectedPlaybook.id) ? "fill-current" : ""
                             }`}
                           />
-                          {favorited.has(selectedPlaybook.id) ? "Favorited" : "Favorite"}
+                          {favoriteIds.has(selectedPlaybook.id) ? "Favorited" : "Favorite"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleStartRoleplay}
+                          className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          AI Roleplay
                         </Button>
                         {steps.length > 0 && (
                           <Button size="sm" onClick={handleStartPracticeMode}>
                             <Zap className="w-4 h-4" />
-                            Practice Mode
+                            Practice
                           </Button>
                         )}
                       </div>
@@ -607,7 +780,14 @@ export default function PlaybooksPage() {
                     </Card>
                   )}
 
-                  {/* Feedback Section */}
+                  {/* Variable Preview (if content has variables) */}
+                  {selectedPlaybook.content && selectedPlaybook.content.includes("{") && (
+                    <div className="mt-4">
+                      <VariablePreview content={selectedPlaybook.content} />
+                    </div>
+                  )}
+
+                  {/* Feedback & Rating Section */}
                   <Card className="mt-6">
                     <CardContent className="p-6">
                       <div className="text-center">
@@ -617,7 +797,41 @@ export default function PlaybooksPage() {
                         <p className="text-sm text-text-muted mb-4">
                           Your feedback helps improve our playbooks for everyone
                         </p>
+                        
+                        {/* Star Rating */}
+                        <div className="flex justify-center gap-1 mb-4">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => {
+                                setUserRating(star);
+                                handleRating(selectedPlaybook.id, star);
+                              }}
+                              className="p-1 transition-transform hover:scale-110"
+                            >
+                              <Star
+                                className={`w-6 h-6 ${
+                                  star <= userRating
+                                    ? "text-amber-400 fill-current"
+                                    : "text-surface-secondary hover:text-amber-400/50"
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+
                         <div className="flex justify-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              handleUseWithCustomer(selectedPlaybook.id, selectedPlaybook.title)
+                            }
+                            disabled={logUsageMutation.isPending}
+                          >
+                            <Target className="w-4 h-4" />
+                            Log Use
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -637,16 +851,6 @@ export default function PlaybooksPage() {
                           >
                             <MessageSquare className="w-4 h-4" />
                             Suggest Improvement
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handleFeedback("notes", selectedPlaybook.title)
-                            }
-                          >
-                            <FileText className="w-4 h-4" />
-                            Add Notes
                           </Button>
                         </div>
                       </div>
@@ -698,6 +902,14 @@ export default function PlaybooksPage() {
         onDelete={handleDeletePlaybook}
         isSaving={createMutation.isPending || updateMutation.isPending}
         isDeleting={deleteMutation.isPending}
+      />
+
+      {/* AI Roleplay Modal */}
+      <RoleplayModal
+        isOpen={showRoleplay}
+        onClose={() => setShowRoleplay(false)}
+        playbookId={selectedPlaybook?.id}
+        playbookTitle={selectedPlaybook?.title}
       />
     </motion.div>
   );

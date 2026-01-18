@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CloudLightning,
@@ -15,6 +16,11 @@ import {
   ArrowUpRight,
   X,
   Loader2,
+  Target,
+  Users,
+  Clock,
+  Home,
+  Flame,
   Trophy,
   Target,
 } from "lucide-react";
@@ -28,6 +34,20 @@ import { MiniLeaderboard } from "@/components/gamification/leaderboard";
 import { AnimatedCounter, StreakCounter } from "@/components/gamification/animated-counter";
 import { ConfettiBurst } from "@/components/gamification/confetti";
 import dynamic from "next/dynamic";
+
+// Time-based greeting helper
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+// Get first name from full name
+const getFirstName = (fullName: string | null | undefined): string => {
+  if (!fullName) return "there";
+  return fullName.split(" ")[0];
+};
 
 // Dynamically import the map to avoid SSR issues
 const WeatherRadarMap = dynamic(
@@ -66,6 +86,7 @@ const formatCurrency = (value: number) => {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { showToast } = useToast();
   const { data, isLoading, error } = useDashboard();
   const { stats, dailyGoals, recordAction, updateDailyGoal, triggerCelebration } = useGamification();
@@ -74,6 +95,9 @@ export default function DashboardPage() {
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [showStormWatch, setShowStormWatch] = useState(false);
+  
+  // Get user's first name for greeting
+  const userName = getFirstName(session?.user?.name);
   const [confettiBurst, setConfettiBurst] = useState<{ x: number; y: number } | null>(null);
 
   // Use real data or defaults while loading
@@ -141,45 +165,167 @@ export default function DashboardPage() {
     }
   };
 
+  // Build contextual subtitle items
+  const contextItems: string[] = [];
+  if (liveMetrics.activeAlerts > 0) {
+    contextItems.push(`${liveMetrics.activeAlerts} storm alert${liveMetrics.activeAlerts > 1 ? 's' : ''} active`);
+  }
+  if (liveMetrics.hotLeads > 0) {
+    contextItems.push(`${liveMetrics.hotLeads} hot leads waiting`);
+  }
+  const targetPercent = Math.round((liveMetrics.revenue.value / liveMetrics.revenue.target) * 100);
+  if (targetPercent > 0) {
+    contextItems.push(`${targetPercent}% to target`);
+  }
+
+  // Determine primary CTA based on context
+  const primaryCTA = liveMetrics.activeAlerts > 0 
+    ? { label: "Start Storm Canvass", action: handleStormCanvass, icon: Zap }
+    : liveMetrics.hotLeads > 0 
+    ? { label: "Dial Next Lead", action: handleDialNextLead, icon: Phone }
+    : { label: "View Customers", action: () => router.push("/customers"), icon: Users };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-semibold text-text-primary">
-              Dashboard
-            </h1>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-surface-secondary rounded text-xs text-text-muted">
-              <Activity className="w-3 h-3 text-accent-success" />
-              <span>Live</span>
-            </div>
-          </div>
-          <p className="text-sm text-text-muted">
-            Storm intelligence and operations overview
-          </p>
+      {/* Hero Section - Radar-Backed Command Center */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl h-[280px]"
+        style={{
+          boxShadow: `
+            0 0 0 1px hsl(var(--border)),
+            -4px 0 20px -5px hsl(var(--accent-primary) / 0.3),
+            0 4px 20px -5px hsl(var(--accent-primary) / 0.1)
+          `
+        }}
+      >
+        {/* Weather Radar Background - Aesthetic mode, no controls */}
+        <div className="absolute inset-0">
+          <WeatherRadarMap
+            center={[39.5, -76.5]}
+            zoom={6}
+            height="100%"
+            showRadar={true}
+            showAnimation={true}
+            markers={[]}
+            aesthetic={true}
+          />
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-2">
-          {liveMetrics.activeAlerts > 0 && (
-            <button 
-              onClick={() => setShowAlertsPanel(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[hsl(var(--accent-danger)/0.1)] border border-[hsl(var(--accent-danger)/0.2)] rounded text-accent-danger text-sm hover:bg-[hsl(var(--accent-danger)/0.15)] transition-colors"
+        {/* Gradient Overlay - dark on left, transparent on right */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(to right, 
+              hsl(var(--bg-primary)) 0%, 
+              hsl(var(--bg-primary)) 25%,
+              hsl(var(--bg-primary) / 0.95) 35%,
+              hsl(var(--bg-primary) / 0.85) 45%,
+              hsl(var(--bg-primary) / 0.6) 55%,
+              hsl(var(--bg-primary) / 0.3) 70%,
+              transparent 100%
+            )`
+          }}
+        />
+
+        {/* Accent glow on left edge */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+          style={{
+            background: `linear-gradient(to bottom, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))`,
+            boxShadow: `0 0 20px 2px hsl(var(--accent-primary) / 0.4)`
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative h-full flex flex-col justify-between p-6 pointer-events-auto">
+          {/* Top Row */}
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-text-primary mb-1">
+                {getGreeting()}, {userName}.
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Live Badge */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[hsl(var(--bg-primary)/0.8)] backdrop-blur-sm rounded-lg border border-border">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-success"></span>
+                </span>
+                <span className="text-xs font-medium text-accent-success">LIVE</span>
+                <span className="text-xs text-text-muted font-mono">
+                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Metric */}
+          <div className="flex-1 flex flex-col justify-center">
+            <div 
+              className="text-5xl font-bold font-mono tracking-tight mb-1"
+              style={{
+                background: `linear-gradient(135deg, hsl(var(--accent-primary)) 0%, hsl(var(--accent-secondary)) 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 40px hsl(var(--accent-primary) / 0.3)'
+              }}
             >
-              <AlertTriangle className="w-4 h-4" />
-              {liveMetrics.activeAlerts} Alerts
+              {formatCurrency(liveMetrics.stormOpportunity.value)}
+            </div>
+            <div className="text-sm font-medium text-text-secondary tracking-wide uppercase">
+              Storm Opportunity
+            </div>
+          </div>
+
+          {/* Bottom Row - Metrics + CTA */}
+          <div className="flex items-end justify-between">
+            {/* Metric Pills */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[hsl(var(--surface-primary)/0.9)] backdrop-blur-sm border border-border rounded-xl">
+                <Home className="w-4 h-4 text-accent-primary" />
+                <div>
+                  <div className="text-lg font-bold text-text-primary font-mono">{liveMetrics.stormOpportunity.affected}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-text-muted">Properties</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[hsl(var(--surface-primary)/0.9)] backdrop-blur-sm border border-border rounded-xl">
+                <Flame className="w-4 h-4 text-accent-danger" />
+                <div>
+                  <div className="text-lg font-bold text-text-primary font-mono">{liveMetrics.hotLeads}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-text-muted">Hot Leads</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[hsl(var(--surface-primary)/0.9)] backdrop-blur-sm border border-border rounded-xl">
+                <TrendingUp className="w-4 h-4 text-accent-success" />
+                <div>
+                  <div className="text-lg font-bold text-text-primary font-mono">{targetPercent}%</div>
+                  <div className="text-[10px] uppercase tracking-wider text-text-muted">To Target</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary CTA */}
+            <button
+              onClick={handleStormCanvass}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ 
+                background: `linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))`,
+                boxShadow: `0 0 20px hsl(var(--accent-primary) / 0.4), inset 0 1px 0 rgba(255,255,255,0.1)`
+              }}
+            >
+              <Zap className="w-4 h-4" />
+              Start Storm Canvass
             </button>
-          )}
-          <button 
-            onClick={() => setShowStormWatch(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface-secondary border border-border rounded text-text-secondary text-sm hover:bg-surface-hover hover:text-text-primary transition-colors"
-          >
-            <Radio className="w-4 h-4" />
-            Storm Watch
-          </button>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Alerts Panel Modal */}
       <AnimatePresence>

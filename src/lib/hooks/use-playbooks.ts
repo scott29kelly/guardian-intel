@@ -323,3 +323,293 @@ export function usePrefetchPlaybook() {
     });
   };
 }
+
+// =============================================================================
+// FAVORITES HOOKS
+// =============================================================================
+
+export interface FavoritePlaybook extends Playbook {
+  favoritedAt: string;
+}
+
+async function fetchFavorites(): Promise<{ success: boolean; data: FavoritePlaybook[]; total: number }> {
+  const response = await fetch("/api/playbooks/favorites");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch favorites");
+  }
+  return response.json();
+}
+
+export function useFavoritePlaybooks() {
+  return useQuery({
+    queryKey: [...playbookKeys.all, "favorites"],
+    queryFn: fetchFavorites,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+async function toggleFavorite(id: string): Promise<{ success: boolean; isFavorited: boolean }> {
+  const response = await fetch(`/api/playbooks/${id}/favorite`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to toggle favorite");
+  }
+  return response.json();
+}
+
+export function useToggleFavorite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: toggleFavorite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...playbookKeys.all, "favorites"] });
+    },
+  });
+}
+
+// =============================================================================
+// RECENT PLAYBOOKS HOOKS
+// =============================================================================
+
+export interface RecentPlaybook extends Playbook {
+  lastUsedAt: string;
+  lastContext: string;
+}
+
+async function fetchRecentPlaybooks(limit = 5): Promise<{ success: boolean; data: RecentPlaybook[] }> {
+  const response = await fetch(`/api/playbooks/recent?limit=${limit}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch recent playbooks");
+  }
+  return response.json();
+}
+
+export function useRecentPlaybooks(limit = 5) {
+  return useQuery({
+    queryKey: [...playbookKeys.all, "recent", limit],
+    queryFn: () => fetchRecentPlaybooks(limit),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+// =============================================================================
+// RECOMMENDED PLAYBOOKS HOOKS
+// =============================================================================
+
+export interface RecommendedPlaybook extends Playbook {
+  recommendationScore: number;
+  recommendationReason: string;
+}
+
+async function fetchRecommendedPlaybooks(params: {
+  customerId?: string;
+  category?: string;
+  limit?: number;
+}): Promise<{ success: boolean; data: RecommendedPlaybook[] }> {
+  const searchParams = new URLSearchParams();
+  if (params.customerId) searchParams.set("customerId", params.customerId);
+  if (params.category) searchParams.set("category", params.category);
+  if (params.limit) searchParams.set("limit", String(params.limit));
+
+  const response = await fetch(`/api/playbooks/recommended?${searchParams}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch recommendations");
+  }
+  return response.json();
+}
+
+export function useRecommendedPlaybooks(params: {
+  customerId?: string;
+  category?: string;
+  limit?: number;
+} = {}) {
+  return useQuery({
+    queryKey: [...playbookKeys.all, "recommended", params],
+    queryFn: () => fetchRecommendedPlaybooks(params),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// =============================================================================
+// USAGE TRACKING HOOKS
+// =============================================================================
+
+export interface PlaybookUsageInput {
+  playbookId: string;
+  customerId?: string;
+  context: "practice" | "customer_call" | "meeting" | "reference" | "roleplay";
+  duration?: number;
+  completed?: boolean;
+  outcome?: "closed_won" | "follow_up" | "no_result" | "objection_handled";
+}
+
+async function logPlaybookUsage(input: PlaybookUsageInput): Promise<{ success: boolean; usage: unknown }> {
+  const { playbookId, ...data } = input;
+  const response = await fetch(`/api/playbooks/${playbookId}/use`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to log usage");
+  }
+  return response.json();
+}
+
+export function useLogPlaybookUsage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: logPlaybookUsage,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [...playbookKeys.all, "recent"] });
+      queryClient.invalidateQueries({ queryKey: playbookKeys.detail(variables.playbookId) });
+    },
+  });
+}
+
+// =============================================================================
+// DUPLICATE HOOK
+// =============================================================================
+
+async function duplicatePlaybook(id: string, title?: string): Promise<PlaybookResponse> {
+  const response = await fetch(`/api/playbooks/${id}/duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to duplicate playbook");
+  }
+  return response.json();
+}
+
+export function useDuplicatePlaybook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title?: string }) => duplicatePlaybook(id, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: playbookKeys.lists() });
+    },
+  });
+}
+
+// =============================================================================
+// RATING HOOK
+// =============================================================================
+
+async function ratePlaybook(
+  id: string,
+  data: { rating: number; feedback?: string }
+): Promise<{ success: boolean; rating: unknown; newAvgRating: number }> {
+  const response = await fetch(`/api/playbooks/${id}/rating`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to rate playbook");
+  }
+  return response.json();
+}
+
+export function useRatePlaybook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, rating, feedback }: { id: string; rating: number; feedback?: string }) =>
+      ratePlaybook(id, { rating, feedback }),
+    onSuccess: (data, variables) => {
+      // Update the playbook's rating in the cache
+      queryClient.setQueryData(
+        playbookKeys.detail(variables.id),
+        (old: PlaybookResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            playbook: { ...old.playbook, rating: data.newAvgRating },
+          };
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: playbookKeys.lists() });
+    },
+  });
+}
+
+// =============================================================================
+// AI GENERATION HOOKS
+// =============================================================================
+
+export type PlaybookAIAction = 
+  | "generate_full"
+  | "generate_section"
+  | "enhance"
+  | "expand"
+  | "simplify"
+  | "add_objections"
+  | "add_closing"
+  | "add_tips"
+  | "add_opening"
+  | "make_conversational"
+  | "add_insurance_context"
+  | "brainstorm";
+
+export interface PlaybookAIRequest {
+  action: PlaybookAIAction;
+  title?: string;
+  category?: string;
+  type?: string;
+  stage?: string;
+  existingContent?: string;
+  selectedText?: string;
+  additionalContext?: string;
+}
+
+export interface PlaybookAIResponse {
+  success: boolean;
+  content: string;
+  model?: string;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  warning?: string;
+}
+
+/**
+ * Generate playbook content using AI
+ */
+async function generatePlaybookContent(request: PlaybookAIRequest): Promise<PlaybookAIResponse> {
+  const response = await fetch("/api/ai/playbook-assist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to generate content");
+  }
+  
+  return response.json();
+}
+
+/**
+ * Hook for AI-powered playbook content generation
+ */
+export function usePlaybookAI() {
+  return useMutation({
+    mutationFn: generatePlaybookContent,
+  });
+}

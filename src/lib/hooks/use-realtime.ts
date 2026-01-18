@@ -146,13 +146,14 @@ export function useSSE() {
     };
     
     eventSource.onerror = () => {
-      console.error("[SSE] Connection error");
+      // Note: Browser also logs net::ERR_CONNECTION_REFUSED - this is expected during dev startup
       eventSource.close();
       
       setConnectionState((prev) => {
         const nextAttempt = prev.reconnectAttempt + 1;
         
         if (nextAttempt > MAX_RECONNECT_ATTEMPTS) {
+          console.warn("[Dashboard SSE] Connection failed after max retries. Click 'Retry' in the status indicator to reconnect.");
           return {
             status: "error",
             lastHeartbeat: prev.lastHeartbeat,
@@ -163,7 +164,10 @@ export function useSSE() {
         
         // Schedule reconnection with exponential backoff
         const delay = calculateBackoff(nextAttempt);
-        console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${nextAttempt})`);
+        // Only log after first few attempts to reduce noise
+        if (nextAttempt <= 3) {
+          console.log(`[Dashboard SSE] Reconnecting in ${Math.round(delay / 1000)}s (attempt ${nextAttempt})`);
+        }
         
         reconnectTimeoutRef.current = setTimeout(connect, delay);
         
@@ -198,10 +202,15 @@ export function useSSE() {
     setEvents([]);
   }, []);
   
-  // Auto-connect on mount
+  // Auto-connect on mount (with small delay to let dev server stabilize)
   useEffect(() => {
-    connect();
-    return () => disconnect();
+    const initialDelay = setTimeout(() => {
+      connect();
+    }, 500);
+    return () => {
+      clearTimeout(initialDelay);
+      disconnect();
+    };
   }, [connect, disconnect]);
   
   return {

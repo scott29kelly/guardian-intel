@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bold,
   Italic,
@@ -15,6 +15,12 @@ import {
   Edit3,
   Copy,
   CheckCircle2,
+  Sparkles,
+  MessageSquare,
+  Target,
+  Lightbulb,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -25,7 +31,30 @@ interface PlaybookEditorProps {
   placeholder?: string;
   minHeight?: string;
   readOnly?: boolean;
+  playbookContext?: {
+    title: string;
+    category: string;
+    type: string;
+    stage?: string;
+  };
 }
+
+type AIGenerateAction = {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  action: string;
+};
+
+const aiGenerateActions: AIGenerateAction[] = [
+  { id: "opening", label: "Generate Opening Script", icon: MessageSquare, action: "add_opening" },
+  { id: "objections", label: "Add Objection Handlers", icon: MessageSquare, action: "add_objections" },
+  { id: "closing", label: "Write Closing Script", icon: Target, action: "add_closing" },
+  { id: "tips", label: "Generate Pro Tips", icon: Lightbulb, action: "add_tips" },
+  { id: "expand", label: "Expand This Section", icon: Sparkles, action: "expand" },
+  { id: "conversational", label: "Make More Conversational", icon: MessageSquare, action: "make_conversational" },
+  { id: "insurance", label: "Add Insurance Context", icon: Sparkles, action: "add_insurance_context" },
+];
 
 export function PlaybookEditor({
   content,
@@ -33,10 +62,16 @@ export function PlaybookEditor({
   placeholder = "Write your playbook content here...\n\nYou can use Markdown formatting:\n- **Bold text**\n- *Italic text*\n- ## Headings\n- > Quotes\n- - Lists",
   minHeight = "300px",
   readOnly = false,
+  playbookContext,
 }: PlaybookEditorProps) {
   const { showToast } = useToast();
   const [isPreview, setIsPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAIMenu, setShowAIMenu] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const aiMenuRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const insertMarkdown = useCallback((prefix: string, suffix: string = "", placeholder: string = "") => {
     const textarea = document.getElementById("playbook-editor") as HTMLTextAreaElement;
@@ -66,6 +101,60 @@ export function PlaybookEditor({
     setCopied(true);
     showToast("success", "Copied!", "Content copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAIGenerate = async (action: AIGenerateAction) => {
+    if (!playbookContext) {
+      showToast("info", "Missing Context", "Save the playbook first to use AI");
+      return;
+    }
+
+    setIsAILoading(true);
+    setLoadingAction(action.id);
+    setShowAIMenu(false);
+
+    try {
+      const response = await fetch("/api/ai/playbook-assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: action.action,
+          title: playbookContext.title,
+          category: playbookContext.category,
+          type: playbookContext.type,
+          stage: playbookContext.stage,
+          existingContent: content,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate content");
+      }
+
+      // Append the generated content
+      const newContent = content 
+        ? `${content}\n\n${data.content}`
+        : data.content;
+      
+      onChange(newContent);
+      showToast("success", "Content Generated", "AI content has been added to your playbook");
+
+      // Scroll to bottom of editor
+      if (editorRef.current) {
+        editorRef.current.scrollTop = editorRef.current.scrollHeight;
+      }
+    } catch (error) {
+      showToast(
+        "error",
+        "AI Error",
+        error instanceof Error ? error.message : "Failed to generate content"
+      );
+    } finally {
+      setIsAILoading(false);
+      setLoadingAction(null);
+    }
   };
 
   const toolbarActions = [
@@ -165,6 +254,65 @@ export function PlaybookEditor({
               <item.icon className="w-4 h-4" />
             </button>
           ))}
+          
+          {/* Separator */}
+          <div className="w-px h-5 bg-border mx-1" />
+          
+          {/* AI Generate Dropdown */}
+          <div className="relative" ref={aiMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowAIMenu(!showAIMenu)}
+              disabled={isAILoading}
+              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-purple-500/10 text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50"
+              title="AI Generate"
+            >
+              {isAILoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              <span className="text-xs font-medium">AI</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {showAIMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className="absolute left-0 top-full mt-1 z-50 w-56 bg-surface-primary border border-border rounded-lg shadow-xl overflow-hidden"
+                >
+                  <div className="p-2 border-b border-border bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-xs font-medium text-text-primary">
+                        Generate Content
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-1 max-h-64 overflow-y-auto">
+                    {aiGenerateActions.map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        onClick={() => handleAIGenerate(action)}
+                        disabled={isAILoading}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left rounded hover:bg-surface-hover transition-colors disabled:opacity-50"
+                      >
+                        <action.icon className="w-4 h-4 text-text-muted" />
+                        <span className="text-sm text-text-primary">{action.label}</span>
+                        {loadingAction === action.id && (
+                          <Loader2 className="w-3 h-3 animate-spin text-purple-400 ml-auto" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -223,6 +371,7 @@ export function PlaybookEditor({
         </motion.div>
       ) : (
         <motion.textarea
+          ref={editorRef}
           id="playbook-editor"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

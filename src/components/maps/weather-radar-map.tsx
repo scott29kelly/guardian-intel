@@ -55,6 +55,7 @@ interface WeatherRadarMapProps {
   compact?: boolean; // Compact mode for smaller containers
   enableClustering?: boolean; // Enable marker clustering for many markers
   clusterRadius?: number; // Cluster radius in pixels (default: 60)
+  aesthetic?: boolean; // Pure aesthetic mode - no controls, no interactions, just visual background
 }
 
 // Dynamically import map to avoid SSR issues
@@ -130,12 +131,13 @@ export function WeatherRadarMap({
   compact = false, // Compact mode for dashboard widget
   enableClustering = true, // Enable clustering by default
   clusterRadius = 60, // Cluster radius in pixels
+  aesthetic = false, // Pure aesthetic mode - no controls, auto-playing
 }: WeatherRadarMapProps) {
   const [isClient, setIsClient] = useState(false);
   const [radarData, setRadarData] = useState<RainViewerData | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false); // Paused by default - user controls playback
-  const [radarOpacity, setRadarOpacity] = useState(0.6);
+  const [isPlaying, setIsPlaying] = useState(aesthetic); // Auto-play in aesthetic mode, paused otherwise
+  const [radarOpacity, setRadarOpacity] = useState(aesthetic ? 0.7 : 0.6); // Slightly more visible in aesthetic mode
   const [showRadarLayer, setShowRadarLayer] = useState(showRadar);
   const [isLoading, setIsLoading] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -348,6 +350,14 @@ export function WeatherRadarMap({
         zoom={zoom}
         style={{ height: "100%", width: "100%" }}
         className="z-0"
+        zoomControl={!aesthetic}
+        dragging={!aesthetic}
+        touchZoom={!aesthetic}
+        doubleClickZoom={!aesthetic}
+        scrollWheelZoom={!aesthetic}
+        boxZoom={!aesthetic}
+        keyboard={!aesthetic}
+        attributionControl={!aesthetic}
       >
         {/* Dark-themed base map */}
         <TileLayer
@@ -526,8 +536,8 @@ export function WeatherRadarMap({
         ))}
       </MapContainer>
 
-      {/* Radar controls overlay - Compact mode for small containers */}
-      {showRadar && compact && (
+      {/* Radar controls overlay - Compact mode for small containers (hidden in aesthetic mode) */}
+      {showRadar && compact && !aesthetic && (
         <div className="absolute bottom-2 left-2 right-2 z-[1000]">
           <div className="bg-void-950/95 backdrop-blur-sm rounded p-1.5 border border-void-700/50">
             <div className="flex items-center justify-between gap-2">
@@ -575,8 +585,8 @@ export function WeatherRadarMap({
         </div>
       )}
 
-      {/* Radar controls overlay - Full mode */}
-      {showRadar && !compact && (
+      {/* Radar controls overlay - Full mode (hidden in aesthetic mode) */}
+      {showRadar && !compact && !aesthetic && (
         <div className="absolute bottom-4 left-4 right-4 z-[1000]">
           <div className="bg-void-950/90 backdrop-blur-sm rounded-lg p-3 border border-void-700">
             <div className="flex items-center justify-between gap-4">
@@ -687,8 +697,8 @@ export function WeatherRadarMap({
         </div>
       )}
 
-      {/* Legend - Hidden in compact mode */}
-      {!compact && (
+      {/* Legend - Hidden in compact and aesthetic modes */}
+      {!compact && !aesthetic && (
         <div className="absolute top-4 right-4 z-[1000]">
           <div className="bg-void-950/90 backdrop-blur-sm rounded-lg p-2 border border-void-700">
             <div className="text-xs font-medium text-text-secondary mb-2">Radar Intensity</div>
@@ -703,8 +713,8 @@ export function WeatherRadarMap({
         </div>
       )}
 
-      {/* Coordinates display - Hidden in compact mode */}
-      {!compact && (
+      {/* Coordinates display - Hidden in compact and aesthetic modes */}
+      {!compact && !aesthetic && (
         <div className="absolute top-4 left-4 z-[1000]">
           <div className="bg-void-950/90 backdrop-blur-sm rounded px-2 py-1 border border-void-700">
             <span className="text-xs font-mono text-intel-400">
