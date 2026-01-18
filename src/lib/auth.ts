@@ -111,6 +111,11 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Demo account not found. Run: npx prisma db seed");
           }
 
+          // Check if account is active (same check as password auth)
+          if (!user.isActive) {
+            throw new Error("Account is disabled");
+          }
+
           return {
             id: user.id,
             email: user.email,
