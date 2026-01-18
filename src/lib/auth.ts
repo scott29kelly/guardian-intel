@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { auditService } from "@/lib/services/audit";
+import crypto from "crypto";
 
 /**
  * Wrapper around getServerSession for cleaner API route usage
@@ -13,16 +14,58 @@ export async function auth() {
 }
 
 // =============================================================================
-// DEV BYPASS: Mock user for development (controlled by env var)
-// Remove NEXT_PUBLIC_DEV_AUTH_BYPASS from env or set to "false" for production
+// DEMO TOKEN SYSTEM: Secure, time-limited tokens for demo access
+// Tokens expire after 5 minutes and are single-use
 // =============================================================================
-const DEV_BYPASS_USER = {
-  id: "dev-user-001",
-  email: "dev@guardian.local",
-  name: "Dev User",
-  role: "manager",
-  image: null,
-};
+
+// In-memory store for demo tokens (in production, use Redis or similar)
+const demoTokens = new Map<string, { email: string; expiresAt: number; used: boolean }>();
+
+/**
+ * Generate a secure demo token for a user
+ * Token is valid for 5 minutes and single-use
+ */
+export function generateDemoToken(email: string): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  
+  demoTokens.set(token, { email, expiresAt, used: false });
+  
+  // Cleanup expired tokens
+  for (const [key, value] of demoTokens.entries()) {
+    if (value.expiresAt < Date.now()) {
+      demoTokens.delete(key);
+    }
+  }
+  
+  return token;
+}
+
+/**
+ * Validate a demo token and return the associated email
+ * Returns null if token is invalid, expired, or already used
+ */
+export function validateDemoToken(token: string): string | null {
+  const tokenData = demoTokens.get(token);
+  
+  if (!tokenData) {
+    return null;
+  }
+  
+  if (tokenData.expiresAt < Date.now()) {
+    demoTokens.delete(token);
+    return null;
+  }
+  
+  if (tokenData.used) {
+    return null;
+  }
+  
+  // Mark as used (single-use token)
+  tokenData.used = true;
+  
+  return tokenData.email;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -40,44 +83,45 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        demoToken: { label: "Demo Token", type: "text" },
       },
       async authorize(credentials) {
-        // =============================================================
-        // DEV BYPASS: Skip authentication in development
-        // =============================================================
-        if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
-          console.log("[Auth] 🔓 DEV BYPASS ACTIVE - Skipping authentication");
-          return DEV_BYPASS_USER;
-        }
-        // =============================================================
-
-        // =============================================================
-        // MOCK DATA MODE: Accept demo credentials without database
-        // =============================================================
-        if (process.env.USE_MOCK_DATA === "true") {
-          console.log("[Auth] 📦 MOCK DATA MODE - Using mock authentication");
-          
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error("Invalid credentials");
-          }
-          
-          // Accept demo password
-          if (credentials.password === "GuardianDemo2026!") {
-            const isManager = credentials.email.includes("manager");
-            return {
-              id: isManager ? "mock-manager-001" : "mock-rep-001",
-              email: credentials.email,
-              name: isManager ? "Demo Manager" : "Demo Sales Rep",
-              role: isManager ? "manager" : "rep",
-              image: null,
-            };
-          }
-          
+        if (!credentials?.email) {
           throw new Error("Invalid credentials");
         }
-        // =============================================================
 
-        if (!credentials?.email || !credentials?.password) {
+        // Demo token authentication (secure, time-limited tokens)
+        if (credentials.demoToken) {
+          // Only allow in non-production or when explicitly enabled
+          if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_LOGIN) {
+            throw new Error("Demo login disabled in production");
+          }
+
+          const validEmail = validateDemoToken(credentials.demoToken);
+          if (!validEmail || validEmail !== credentials.email) {
+            throw new Error("Invalid or expired demo token");
+          }
+
+          // Find the demo user
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          if (!user) {
+            throw new Error("Demo account not found. Run: npx prisma db seed");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            image: user.avatarUrl,
+          };
+        }
+
+        // Standard password authentication
+        if (!credentials.password) {
           throw new Error("Invalid credentials");
         }
 
@@ -113,14 +157,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
+        token.role = (user as unknown as { role: string }).role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+        (session.user as unknown as { id: string }).id = token.id as string;
+        (session.user as unknown as { role: string }).role = token.role as string;
       }
       return session;
     },

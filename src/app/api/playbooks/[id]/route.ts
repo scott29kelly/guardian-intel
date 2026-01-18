@@ -2,16 +2,19 @@
  * Single Playbook API
  * 
  * GET /api/playbooks/[id] - Get a single playbook (increments usage count)
- * PUT /api/playbooks/[id] - Update a playbook
- * DELETE /api/playbooks/[id] - Delete a playbook
+ * PUT /api/playbooks/[id] - Update a playbook (requires manager/admin role)
+ * DELETE /api/playbooks/[id] - Delete a playbook (requires admin role)
  * 
  * Security:
  * - Rate limited
  * - Input validated
- * - Authentication required via middleware
+ * - Authentication required
+ * - Role-based authorization for PUT/DELETE
  */
 
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { updatePlaybookSchema, formatZodErrors, cuidSchema } from "@/lib/validations";
@@ -86,12 +89,31 @@ export async function GET(request: Request, { params }: RouteParams) {
  * PUT /api/playbooks/[id]
  * 
  * Update a playbook
+ * Authorization: Requires manager or admin role
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // Role-based authorization: Only managers and admins can update playbooks
+    const userRole = (session.user as { role?: string }).role;
+    if (!userRole || !["manager", "admin"].includes(userRole)) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions. Manager or admin role required." },
+        { status: 403 }
+      );
+    }
 
     const { id } = await params;
 
@@ -160,12 +182,31 @@ export async function PUT(request: Request, { params }: RouteParams) {
  * DELETE /api/playbooks/[id]
  * 
  * Delete a playbook
+ * Authorization: Requires admin role only
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // Role-based authorization: Only admins can delete playbooks
+    const userRole = (session.user as { role?: string }).role;
+    if (userRole !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions. Admin role required." },
+        { status: 403 }
+      );
+    }
 
     const { id } = await params;
 
