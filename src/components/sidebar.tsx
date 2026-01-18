@@ -13,8 +13,10 @@ import {
   Shield,
   ChevronLeft,
   Bot,
+  LogOut,
 } from "lucide-react";
 import { useState, useCallback } from "react";
+import { signOut, useSession } from "next-auth/react";
 import { AIChatPanel } from "./ai/chat-panel";
 import { ThemeToggle } from "./theme-toggle";
 import { ShortcutsModal } from "./modals/shortcuts-modal";
@@ -57,10 +59,21 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [showAIChat, setShowAIChat] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { isCollapsed, toggle } = useSidebar();
   const modKey = useModifierKey();
+
+  // Get user info from session
+  const userName = session?.user?.name || "User";
+  const userRole = (session?.user as any)?.role || "rep";
+  const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const roleDisplay = userRole === "manager" ? "Manager" : userRole === "admin" ? "Admin" : "Field Ops";
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/login" });
+  };
 
   const sidebarWidth = isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
 
@@ -247,17 +260,35 @@ export function Sidebar() {
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div 
             className="w-8 h-8 rounded bg-accent-primary/20 flex items-center justify-center text-accent-primary text-sm font-medium flex-shrink-0"
-            title={isCollapsed ? "S. Mitchell" : undefined}
+            title={isCollapsed ? userName : undefined}
           >
-            SM
+            {userInitials}
           </div>
           {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-text-primary truncate">S. Mitchell</p>
-              <p className="text-xs text-text-muted">Field Ops</p>
-            </div>
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-text-primary truncate">{userName}</p>
+                <p className="text-xs text-text-muted">{roleDisplay}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
+        {isCollapsed && (
+          <button
+            onClick={handleLogout}
+            className="w-full mt-2 p-2 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors flex items-center justify-center"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </motion.aside>
     </>

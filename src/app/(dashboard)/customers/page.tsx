@@ -24,6 +24,7 @@ import {
   UserPlus,
   Trash2,
   X,
+  Users,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -193,6 +194,10 @@ export default function CustomersPage() {
   const stormFilter = searchParams.get("filter");
   const alertId = searchParams.get("alertId");
   
+  // URL-based filtering for assigned rep (from analytics page)
+  const assignedRepIdFilter = searchParams.get("assignedRepId");
+  const repNameFilter = searchParams.get("repName");
+  
   // Show banner when filtering by storm
   const isStormFiltered = stormFilter === "storm-affected" && countyFilter;
   
@@ -206,6 +211,7 @@ export default function CustomersPage() {
     sortBy,
     sortOrder,
     stormAffected: stormFilter === "storm-affected" ? true : undefined,
+    assignedRepId: assignedRepIdFilter || undefined,
   });
   
   const customers = customersData?.data || [];
@@ -507,6 +513,36 @@ export default function CustomersPage() {
               </p>
               <p className="text-sm text-text-muted">
                 Showing customers in: <span className="text-alert-400 font-medium">{countyFilter?.split(",").map(c => c.trim() + " County").join(", ")}</span>
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push("/customers")}
+          >
+            Clear Filter
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Rep Filter Banner */}
+      {assignedRepIdFilter && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-accent-primary/10 border border-accent-primary/30 rounded-lg p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-accent-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-text-primary">
+                Pipeline View
+              </p>
+              <p className="text-sm text-text-muted">
+                Showing customers assigned to: <span className="text-accent-primary font-medium">{repNameFilter || "Rep"}</span>
               </p>
             </div>
           </div>

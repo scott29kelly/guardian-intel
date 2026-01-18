@@ -10,10 +10,14 @@ import {
   Trash2,
   Tag,
   Plus,
+  Sparkles,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { PlaybookEditor } from "@/components/playbooks/playbook-editor";
+import { PlaybookAIPanel } from "@/components/playbooks/playbook-ai-panel";
 import type { Playbook } from "@/lib/hooks/use-playbooks";
 import type { CreatePlaybookInput, UpdatePlaybookInput } from "@/lib/validations";
 
@@ -82,6 +86,7 @@ export function PlaybookModal({
   const [newTag, setNewTag] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "content">("details");
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   // Reset form when modal opens/closes or playbook changes
   useEffect(() => {
@@ -182,19 +187,43 @@ export function PlaybookModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-3xl max-h-[90vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col"
+          className={`max-h-[90vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl overflow-hidden flex transition-all duration-300 ${
+            showAIPanel ? "w-full max-w-6xl" : "w-full max-w-3xl"
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
-            <h2 className="font-display font-bold text-lg text-text-primary flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-accent-primary" />
-              {isEditMode ? "Edit Playbook" : "Create New Playbook"}
-            </h2>
-            <button onClick={onClose} className="p-2 hover:bg-surface-hover rounded transition-colors">
-              <X className="w-5 h-5 text-text-muted" />
-            </button>
-          </div>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+              <h2 className="font-display font-bold text-lg text-text-primary flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-accent-primary" />
+                {isEditMode ? "Edit Playbook" : "Create New Playbook"}
+              </h2>
+              <div className="flex items-center gap-2">
+                {/* AI Panel Toggle */}
+                <button
+                  onClick={() => setShowAIPanel(!showAIPanel)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                    showAIPanel
+                      ? "bg-purple-500/20 text-purple-400"
+                      : "hover:bg-purple-500/10 text-text-muted hover:text-purple-400"
+                  }`}
+                  title={showAIPanel ? "Hide AI Panel" : "Show AI Panel"}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-sm font-medium">AI Assist</span>
+                  {showAIPanel ? (
+                    <PanelRightClose className="w-4 h-4" />
+                  ) : (
+                    <PanelRightOpen className="w-4 h-4" />
+                  )}
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-surface-hover rounded transition-colors">
+                  <X className="w-5 h-5 text-text-muted" />
+                </button>
+              </div>
+            </div>
 
           {/* Tabs */}
           <div className="flex border-b border-border flex-shrink-0">
@@ -375,6 +404,12 @@ export function PlaybookModal({
                     content={formData.content}
                     onChange={(content) => setFormData(prev => ({ ...prev, content }))}
                     minHeight="350px"
+                    playbookContext={{
+                      title: formData.title || "New Playbook",
+                      category: formData.category,
+                      type: formData.type,
+                      stage: formData.stage,
+                    }}
                   />
                 </div>
               )}
@@ -439,6 +474,36 @@ export function PlaybookModal({
               </div>
             </div>
           </form>
+          </div>
+          
+          {/* AI Panel (Side Panel) */}
+          <AnimatePresence>
+            {showAIPanel && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 350, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex-shrink-0 overflow-hidden"
+              >
+                <PlaybookAIPanel
+                  title={formData.title || "New Playbook"}
+                  category={formData.category}
+                  type={formData.type}
+                  stage={formData.stage}
+                  content={formData.content}
+                  onInsert={(text) => {
+                    const newContent = formData.content
+                      ? `${formData.content}\n\n${text}`
+                      : text;
+                    setFormData(prev => ({ ...prev, content: newContent }));
+                    setActiveTab("content");
+                  }}
+                  onClose={() => setShowAIPanel(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </motion.div>
     </AnimatePresence>
