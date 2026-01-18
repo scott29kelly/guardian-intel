@@ -22,7 +22,6 @@ import {
   Home,
   Flame,
   Trophy,
-  Target,
 } from "lucide-react";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";

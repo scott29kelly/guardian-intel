@@ -19,7 +19,6 @@ import {
   MessageSquare,
   Building2,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { useState, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { AIChatPanel } from "./ai/chat-panel";

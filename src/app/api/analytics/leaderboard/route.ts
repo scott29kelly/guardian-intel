@@ -51,8 +51,9 @@ export async function GET(request: Request) {
     });
 
     // Get stats for each rep in the time period
+    type Rep = typeof reps[number];
     const leaderboard = await Promise.all(
-      reps.map(async (rep) => {
+      reps.map(async (rep: Rep) => {
         // Closed deals in period
         const closedDeals = await prisma.customer.aggregate({
           _count: { id: true },

@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate combined estimate if multiple photos
-    let combinedEstimate = null;
+    let combinedEstimate: ReturnType<typeof damageAnalyzer.generateCombinedEstimate> | null = null;
     if (results.length > 1) {
       combinedEstimate = damageAnalyzer.generateCombinedEstimate(results);
     }

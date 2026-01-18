@@ -180,17 +180,9 @@ model Customer {
   claims         InsuranceClaim[]
   tasks          Task[]
   playbookUsages PlaybookUsage[]
-
-  interactions  Interaction[]
-  weatherEvents WeatherEvent[]
-  documents     Document[]
-  intelItems    IntelItem[]
-  notes         Note[]
-  claims        InsuranceClaim[]
-  tasks         Task[]
-  proposals     Proposal[]
-  contracts     Contract[]
-  photos        Photo[]
+  proposals      Proposal[]
+  contracts      Contract[]
+  photos         Photo[]
 
   @@unique([crmId])
   // Performance indexes
