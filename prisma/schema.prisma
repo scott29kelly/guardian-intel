@@ -52,35 +52,35 @@ model VerificationToken {
 // ============================================
 
 model User {
-  id            String    @id @default(cuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Auth fields
   email         String    @unique
   emailVerified DateTime?
-  password      String?   // For credentials auth
+  password      String? // For credentials auth
   name          String
   image         String?
-  
+
   // Guardian-specific fields
-  role          String    @default("rep") // rep, manager, admin
-  phone         String?
-  avatarUrl     String?
-  isActive      Boolean   @default(true)
-  
+  role      String  @default("rep") // rep, manager, admin
+  phone     String?
+  avatarUrl String?
+  isActive  Boolean @default(true)
+
   // Performance Metrics (aggregated)
-  totalDeals        Int      @default(0)
-  totalRevenue      Float    @default(0)
-  avgDealSize       Float    @default(0)
-  closeRate         Float    @default(0)
-  monthlyTarget     Float    @default(0)
-  
+  totalDeals    Int   @default(0)
+  totalRevenue  Float @default(0)
+  avgDealSize   Float @default(0)
+  closeRate     Float @default(0)
+  monthlyTarget Float @default(0)
+
   // Team hierarchy
-  managerId     String?
-  manager       User?     @relation("TeamHierarchy", fields: [managerId], references: [id])
-  teamMembers   User[]    @relation("TeamHierarchy")
-  
+  managerId   String?
+  manager     User?   @relation("TeamHierarchy", fields: [managerId], references: [id])
+  teamMembers User[]  @relation("TeamHierarchy")
+
   // Relationships
   accounts          Account[]
   sessions          Session[]
@@ -96,95 +96,98 @@ model User {
 }
 
 model Customer {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Basic Info
-  firstName     String
-  lastName      String
-  email         String?
-  phone         String?
-  altPhone      String?
-  
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  altPhone  String?
+
   // Property Info
-  address       String
-  city          String
-  state         String
-  zipCode       String
-  county        String?
-  latitude      Float?
-  longitude     Float?
-  
+  address   String
+  city      String
+  state     String
+  zipCode   String
+  county    String?
+  latitude  Float?
+  longitude Float?
+
   // Property Details (gathered from APIs)
-  propertyType      String?   // single-family, multi-family, commercial
-  yearBuilt         Int?
-  squareFootage     Int?
-  lotSize           Float?    // acres
-  stories           Int?
-  bedrooms          Int?
-  bathrooms         Float?
-  
+  propertyType  String? // single-family, multi-family, commercial
+  yearBuilt     Int?
+  squareFootage Int?
+  lotSize       Float? // acres
+  stories       Int?
+  bedrooms      Int?
+  bathrooms     Float?
+
   // Roof Details
-  roofType          String?   // asphalt shingle, metal, tile, etc.
-  roofAge           Int?      // estimated years
-  roofSquares       Int?      // roofing squares
-  roofPitch         String?   // 4/12, 6/12, etc.
-  lastRoofWork      DateTime?
-  roofCondition     String?   // excellent, good, fair, poor
-  
+  roofType      String? // asphalt shingle, metal, tile, etc.
+  roofAge       Int? // estimated years
+  roofSquares   Int? // roofing squares
+  roofPitch     String? // 4/12, 6/12, etc.
+  lastRoofWork  DateTime?
+  roofCondition String? // excellent, good, fair, poor
+
   // Financial
   propertyValue     Float?
   estimatedJobValue Float?
-  
+
   // Insurance Intel
-  insuranceCarrier  String?
-  policyNumber      String?
-  policyType        String?
-  deductible        Float?
-  claimHistory      Int       @default(0) // number of prior claims
-  
+  insuranceCarrier String?
+  policyNumber     String?
+  policyType       String?
+  deductible       Float?
+  claimHistory     Int     @default(0) // number of prior claims
+
   // Scores & Analytics
-  leadScore         Int       @default(0)  // 0-100
-  urgencyScore      Int       @default(0)  // 0-100  
-  profitPotential   Float     @default(0)  // estimated $
-  churnRisk         Int       @default(0)  // 0-100
-  engagementScore   Int       @default(0)  // 0-100
-  
+  leadScore       Int   @default(0) // 0-100
+  urgencyScore    Int   @default(0) // 0-100  
+  profitPotential Float @default(0) // estimated $
+  churnRisk       Int   @default(0) // 0-100
+  engagementScore Int   @default(0) // 0-100
+
   // Status
-  status            String    @default("lead") // lead, prospect, customer, closed-won, closed-lost
-  stage             String    @default("new")  // new, contacted, qualified, proposal, negotiation, closed
-  lostReason        String?
-  
+  status     String  @default("lead") // lead, prospect, customer, closed-won, closed-lost
+  stage      String  @default("new") // new, contacted, qualified, proposal, negotiation, closed
+  lostReason String?
+
   // Source tracking
-  leadSource        String?   // canvassing, referral, storm, online, etc.
-  referredBy        String?
-  campaign          String?
-  
+  leadSource String? // canvassing, referral, storm, online, etc.
+  referredBy String?
+  campaign   String?
+
   // CRM Sync
-  crmId             String?   // External CRM ID
-  crmSource         String?   // hubspot, salesforce, jobnimbus
-  lastCrmSync       DateTime?
-  
+  crmId       String? // External CRM ID
+  crmSource   String? // hubspot, salesforce, jobnimbus
+  lastCrmSync DateTime?
+
   // Relationships
-  assignedRepId     String?
-  assignedRep       User?     @relation(fields: [assignedRepId], references: [id])
-  
-  interactions      Interaction[]
-  weatherEvents     WeatherEvent[]
-  documents         Document[]
-  intelItems        IntelItem[]
-  notes             Note[]
-  claims            InsuranceClaim[]
-  tasks             Task[]
-  playbookUsages    PlaybookUsage[]
-  canvassingPins    CanvassingPin[]
+  assignedRepId String?
+  assignedRep   User?   @relation(fields: [assignedRepId], references: [id])
+
+  interactions   Interaction[]
+  weatherEvents  WeatherEvent[]
+  documents      Document[]
+  intelItems     IntelItem[]
+  notes          Note[]
+  claims         InsuranceClaim[]
+  tasks          Task[]
+  playbookUsages PlaybookUsage[]
+  canvassingPins CanvassingPin[]
 
   // Performance indexes
   @@index([assignedRepId])
   @@index([leadScore])
   @@index([status, stage])
   @@index([zipCode])
+  @@index([assignedRepId, status]) // Rep-specific lead queries
+  @@index([status, leadScore]) // High-score leads by status
+  @@index([createdAt]) // Time-based queries
 }
 
 // ============================================
@@ -192,138 +195,149 @@ model Customer {
 // ============================================
 
 model IntelItem {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  source        String   // api, web-search, manual, crm-sync, weather-api, property-api
-  sourceId      String?  // external reference ID
-  category      String   // property, insurance, weather, financial, social, news, market
-  title         String
-  content       String
-  confidence    Int      @default(80) // 0-100 confidence score
-  actionable    Boolean  @default(false)
-  priority      String   @default("medium") // low, medium, high, critical
-  
-  metadata      String?  // JSON string for flexible data
-  expiresAt     DateTime?
-  isRead        Boolean  @default(false)
-  isDismissed   Boolean  @default(false)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  source     String // api, web-search, manual, crm-sync, weather-api, property-api
+  sourceId   String? // external reference ID
+  category   String // property, insurance, weather, financial, social, news, market
+  title      String
+  content    String
+  confidence Int     @default(80) // 0-100 confidence score
+  actionable Boolean @default(false)
+  priority   String  @default("medium") // low, medium, high, critical
+
+  metadata    String? // JSON string for flexible data
+  expiresAt   DateTime?
+  isRead      Boolean   @default(false)
+  isDismissed Boolean   @default(false)
+
+  // Performance indexes
+  @@index([customerId, category]) // Customer intel by category
+  @@index([customerId, createdAt]) // Customer intel timeline
+  @@index([actionable, priority]) // Actionable items by priority
 }
 
 model WeatherEvent {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
   // Can be linked to customer or standalone for area
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   // Location
-  latitude      Float
-  longitude     Float
-  zipCode       String?
-  county        String?
-  city          String?
-  state         String?
-  
-  eventType     String   // hail, wind, tornado, hurricane, flood, thunderstorm
-  eventDate     DateTime
-  severity      String   // minor, moderate, severe, catastrophic
-  
+  latitude  Float
+  longitude Float
+  zipCode   String?
+  county    String?
+  city      String?
+  state     String?
+
+  eventType String // hail, wind, tornado, hurricane, flood, thunderstorm
+  eventDate DateTime
+  severity  String // minor, moderate, severe, catastrophic
+
   // Hail specific
-  hailSize      Float?   // inches
-  hailDuration  Int?     // minutes
-  
+  hailSize     Float? // inches
+  hailDuration Int? // minutes
+
   // Wind specific
-  windSpeed     Float?   // mph
-  windGust      Float?   // mph
+  windSpeed     Float? // mph
+  windGust      Float? // mph
   windDirection String?
-  
+
   // Damage assessment
-  damageReported    Boolean @default(false)
-  claimFiled        Boolean @default(false)
-  inspectionDone    Boolean @default(false)
-  estimatedDamage   Float?
-  
+  damageReported  Boolean @default(false)
+  claimFiled      Boolean @default(false)
+  inspectionDone  Boolean @default(false)
+  estimatedDamage Float?
+
   // Data source
-  source        String   // NOAA, weather-api, manual, hail-trace
-  sourceEventId String?  // External event ID
-  rawData       String?  // JSON
-  
+  source        String // NOAA, weather-api, manual, hail-trace
+  sourceEventId String? // External event ID
+  rawData       String? // JSON
+
   // Affected area
-  affectedRadius Float?  // miles
-  affectedCustomers Int  @default(0)
+  affectedRadius    Float? // miles
+  affectedCustomers Int    @default(0)
 
   // Performance indexes
   @@index([eventDate])
   @@index([zipCode])
+  @@index([eventDate, severity]) // Heatmap date+severity filtering
+  @@index([eventType, eventDate]) // Event type queries over time
+  @@index([latitude, longitude]) // Geospatial queries
 }
 
 model InsuranceClaim {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  claimNumber   String?
-  carrier       String
-  dateOfLoss    DateTime
-  claimType     String   // roof, siding, gutters, full-exterior, interior
-  
-  status        String   @default("pending") // pending, approved, denied, supplement, paid, closed
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  claimNumber String?
+  carrier     String
+  dateOfLoss  DateTime
+  claimType   String // roof, siding, gutters, full-exterior, interior
+
+  status String @default("pending") // pending, approved, denied, supplement, paid, closed
+
   // Financials
-  initialEstimate   Float?
-  approvedValue     Float?
-  supplementValue   Float?
-  totalPaid         Float?
-  deductible        Float?
-  acv               Float?  // Actual Cash Value
-  rcv               Float?  // Replacement Cost Value
-  depreciation      Float?
-  
+  initialEstimate Float?
+  approvedValue   Float?
+  supplementValue Float?
+  totalPaid       Float?
+  deductible      Float?
+  acv             Float? // Actual Cash Value
+  rcv             Float? // Replacement Cost Value
+  depreciation    Float?
+
   // Adjuster info
-  adjusterName      String?
-  adjusterPhone     String?
-  adjusterEmail     String?
-  adjusterCompany   String?
-  inspectionDate    DateTime?
-  reinspectionDate  DateTime?
-  
+  adjusterName     String?
+  adjusterPhone    String?
+  adjusterEmail    String?
+  adjusterCompany  String?
+  inspectionDate   DateTime?
+  reinspectionDate DateTime?
+
   // Documents
-  scopeOfWork       String?
-  photos            String?  // JSON array of URLs
-  
-  notes         String?
-  
+  scopeOfWork String?
+  photos      String? // JSON array of URLs
+
+  notes String?
+
   // Supplement tracking
-  supplementCount   Int     @default(0)
+  supplementCount    Int       @default(0)
   lastSupplementDate DateTime?
+
+  // Performance indexes
+  @@index([customerId, status]) // Customer claims by status
+  @@index([dateOfLoss]) // Claims by loss date
+  @@index([status]) // Claims filtering by status
 }
 
 model PropertyData {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Address (unique identifier)
-  address       String
-  city          String
-  state         String
-  zipCode       String
-  
-  @@unique([address, city, state, zipCode])
-  
+  address String
+  city    String
+  state   String
+  zipCode String
+
   // Property details
-  parcelNumber  String?
-  ownerName     String?
+  parcelNumber        String?
+  ownerName           String?
   ownerMailingAddress String?
-  
+
   propertyType  String?
   yearBuilt     Int?
   squareFootage Int?
@@ -331,29 +345,31 @@ model PropertyData {
   stories       Int?
   bedrooms      Int?
   bathrooms     Float?
-  
+
   // Valuation
-  assessedValue     Float?
-  marketValue       Float?
-  lastSalePrice     Float?
-  lastSaleDate      DateTime?
-  
+  assessedValue Float?
+  marketValue   Float?
+  lastSalePrice Float?
+  lastSaleDate  DateTime?
+
   // Roof specific
   roofType      String?
   roofMaterial  String?
   roofYear      Int?
   roofCondition String?
   roofArea      Int?
-  
+
   // Building materials
-  exteriorWall  String?
-  foundation    String?
-  
+  exteriorWall String?
+  foundation   String?
+
   // Source tracking
-  source        String   // zillow, county-records, attom, corelogic
-  sourceId      String?
-  rawData       String?  // JSON
-  lastFetched   DateTime @default(now())
+  source      String // zillow, county-records, attom, corelogic
+  sourceId    String?
+  rawData     String? // JSON
+  lastFetched DateTime @default(now())
+
+  @@unique([address, city, state, zipCode])
 }
 
 // ============================================
@@ -361,106 +377,127 @@ model PropertyData {
 // ============================================
 
 model Interaction {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id])
-  
-  type          String   // call, email, text, visit, meeting, video-call
-  direction     String   @default("outbound") // inbound, outbound
-  subject       String?
-  content       String?
-  outcome       String?  // connected, voicemail, no-answer, scheduled, closed, callback
-  sentiment     String?  // positive, neutral, negative
-  
-  duration      Int?     // seconds
-  recordingUrl  String?
-  
-  nextAction    String?
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  type      String // call, email, text, visit, meeting, video-call
+  direction String  @default("outbound") // inbound, outbound
+  subject   String?
+  content   String?
+  outcome   String? // connected, voicemail, no-answer, scheduled, closed, callback
+  sentiment String? // positive, neutral, negative
+
+  duration     Int? // seconds
+  recordingUrl String?
+
+  nextAction     String?
   nextActionDate DateTime?
-  
+
   // CRM sync
-  crmId         String?
+  crmId String?
+
+  // Performance indexes
+  @@index([customerId, createdAt]) // Recent interactions lookup
+  @@index([userId, createdAt]) // User activity timeline
 }
 
 model Task {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  assignedToId  String
-  createdById   String
-  
-  title         String
-  description   String?
-  type          String   // call, email, visit, follow-up, inspection, proposal, other
-  priority      String   @default("medium") // low, medium, high, urgent
-  status        String   @default("pending") // pending, in-progress, completed, cancelled
-  
-  dueDate       DateTime?
-  completedAt   DateTime?
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedToId String
+  createdById  String
+
+  title       String
+  description String?
+  type        String // call, email, visit, follow-up, inspection, proposal, other
+  priority    String  @default("medium") // low, medium, high, urgent
+  status      String  @default("pending") // pending, in-progress, completed, cancelled
+
+  dueDate     DateTime?
+  completedAt DateTime?
+
   // Reminders
-  reminderDate  DateTime?
-  reminderSent  Boolean  @default(false)
+  reminderDate DateTime?
+  reminderSent Boolean   @default(false)
+
+  // Performance indexes
+  @@index([assignedToId, status]) // Task queries by assignee
+  @@index([dueDate, status]) // Upcoming task queries
+  @@index([customerId]) // Customer task lookup
 }
 
 model Note {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  
-  content       String
-  isPinned      Boolean  @default(false)
-  category      String?  // general, objection, follow-up, insight, competitor
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  content  String
+  isPinned Boolean @default(false)
+  category String? // general, objection, follow-up, insight, competitor
+
+  // Performance indexes
+  @@index([customerId, createdAt]) // Customer notes timeline
+  @@index([userId]) // User's notes
 }
 
 model Document {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  name          String
-  type          String   // contract, photo, estimate, inspection, insurance, proposal, other
-  category      String?  // before, after, damage, signature
-  url           String
-  thumbnailUrl  String?
-  size          Int?     // bytes
-  mimeType      String?
-  
-  metadata      String?  // JSON
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  name         String
+  type         String // contract, photo, estimate, inspection, insurance, proposal, other
+  category     String? // before, after, damage, signature
+  url          String
+  thumbnailUrl String?
+  size         Int? // bytes
+  mimeType     String?
+
+  metadata String? // JSON
+
+  // Performance indexes
+  @@index([customerId, type]) // Customer documents by type
+  @@index([customerId, createdAt]) // Customer document timeline
 }
 
 model Activity {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  
-  type          String   // login, view, edit, call, email, create, delete
-  entityType    String   // customer, lead, claim, document
-  entityId      String?
-  description   String
-  
-  metadata      String?  // JSON
-  ipAddress     String?
-  userAgent     String?
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type        String // login, view, edit, call, email, create, delete
+  entityType  String // customer, lead, claim, document
+  entityId    String?
+  description String
+
+  metadata  String? // JSON
+  ipAddress String?
+  userAgent String?
+
+  // Performance indexes
+  @@index([userId, createdAt]) // User activity timeline
+  @@index([entityType, entityId]) // Entity-specific activity lookup
 }
 
 // ============================================
@@ -468,56 +505,56 @@ model Activity {
 // ============================================
 
 model Playbook {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  title         String
-  description   String?
-  category      String   // objection-handling, closing, discovery, presentation, follow-up
-  type          String   // script, checklist, guide, template
-  
-  content       String   // Markdown content
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  category    String // objection-handling, closing, discovery, presentation, follow-up
+  type        String // script, checklist, guide, template
+
+  content String // Markdown content
+
   // Targeting
-  stage         String?  // Which pipeline stage this applies to
-  scenario      String?  // Specific scenario (e.g., "homeowner hesitant", "adjuster pushback")
-  
+  stage    String? // Which pipeline stage this applies to
+  scenario String? // Specific scenario (e.g., "homeowner hesitant", "adjuster pushback")
+
   // Dynamic variables (JSON) for placeholders like {CUSTOMER_NAME}
-  variables     String?  // JSON object defining available variables
-  
+  variables String? // JSON object defining available variables
+
   // Metadata
-  author        String?
-  isPublished   Boolean  @default(true)
-  usageCount    Int      @default(0)
-  rating        Float?
-  
-  tags          String?  // JSON array
-  
+  author      String?
+  isPublished Boolean @default(true)
+  usageCount  Int     @default(0)
+  rating      Float?
+
+  tags String? // JSON array
+
   // Relationships
-  usages        PlaybookUsage[]
-  favorites     PlaybookFavorite[]
-  ratings       PlaybookRating[]
+  usages    PlaybookUsage[]
+  favorites PlaybookFavorite[]
+  ratings   PlaybookRating[]
 }
 
 model PlaybookUsage {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  
-  playbookId  String
-  playbook    Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  customerId  String?
-  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  
-  context     String   // "practice", "customer_call", "meeting", "reference", "roleplay"
-  duration    Int?     // seconds spent
-  completed   Boolean  @default(false)
-  outcome     String?  // "closed_won", "follow_up", "no_result", "objection_handled"
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  context   String // "practice", "customer_call", "meeting", "reference", "roleplay"
+  duration  Int? // seconds spent
+  completed Boolean @default(false)
+  outcome   String? // "closed_won", "follow_up", "no_result", "objection_handled"
+
   @@index([playbookId])
   @@index([userId])
   @@index([customerId])
@@ -525,33 +562,33 @@ model PlaybookUsage {
 }
 
 model PlaybookFavorite {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  
-  playbookId  String
-  playbook    Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([playbookId, userId])
   @@index([userId])
 }
 
 model PlaybookRating {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  playbookId  String
-  playbook    Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  rating      Int      // 1-5
-  feedback    String?
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playbookId String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating   Int // 1-5
+  feedback String?
+
   @@unique([playbookId, userId])
   @@index([playbookId])
 }
@@ -561,43 +598,43 @@ model PlaybookRating {
 // ============================================
 
 model DailyMetrics {
-  id            String   @id @default(cuid())
-  date          DateTime
-  userId        String?  // null = company-wide
-  
-  @@unique([date, userId])
-  
+  id     String   @id @default(cuid())
+  date   DateTime
+  userId String? // null = company-wide
+
   // Lead metrics
-  newLeads          Int @default(0)
-  qualifiedLeads    Int @default(0)
-  contactedLeads    Int @default(0)
-  
+  newLeads       Int @default(0)
+  qualifiedLeads Int @default(0)
+  contactedLeads Int @default(0)
+
   // Activity metrics
-  callsMade         Int @default(0)
-  callsConnected    Int @default(0)
-  emailsSent        Int @default(0)
-  textsSent         Int @default(0)
-  visitsMade        Int @default(0)
-  
+  callsMade      Int @default(0)
+  callsConnected Int @default(0)
+  emailsSent     Int @default(0)
+  textsSent      Int @default(0)
+  visitsMade     Int @default(0)
+
   // Pipeline metrics
-  proposalsSent     Int @default(0)
-  proposalValue     Float @default(0)
-  
+  proposalsSent Int   @default(0)
+  proposalValue Float @default(0)
+
   // Revenue metrics
-  dealsClosed       Int @default(0)
-  revenueWon        Float @default(0)
-  revenueLost       Float @default(0)
-  avgDealSize       Float @default(0)
-  
+  dealsClosed Int   @default(0)
+  revenueWon  Float @default(0)
+  revenueLost Float @default(0)
+  avgDealSize Float @default(0)
+
   // Weather intel
-  weatherAlerts     Int @default(0)
-  stormLeads        Int @default(0)
-  
+  weatherAlerts Int @default(0)
+  stormLeads    Int @default(0)
+
   // Conversion metrics
-  leadToContactRate Float @default(0)
-  contactToQualRate Float @default(0)
-  qualToProposalRate Float @default(0)
+  leadToContactRate   Float @default(0)
+  contactToQualRate   Float @default(0)
+  qualToProposalRate  Float @default(0)
   proposalToCloseRate Float @default(0)
+
+  @@unique([date, userId])
 }
 
 // ============================================
@@ -605,39 +642,39 @@ model DailyMetrics {
 // ============================================
 
 model CrmSyncLog {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  
-  crmSource     String   // hubspot, salesforce, jobnimbus
-  syncType      String   // full, incremental, webhook
-  direction     String   // inbound, outbound
-  
-  entityType    String   // customer, interaction, deal
-  entityId      String?
-  crmEntityId   String?
-  
-  status        String   // success, failed, partial
-  recordsProcessed Int   @default(0)
-  recordsFailed     Int   @default(0)
-  
-  errorMessage  String?
-  rawPayload    String?  // JSON
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  crmSource String // hubspot, salesforce, jobnimbus
+  syncType  String // full, incremental, webhook
+  direction String // inbound, outbound
+
+  entityType  String // customer, interaction, deal
+  entityId    String?
+  crmEntityId String?
+
+  status           String // success, failed, partial
+  recordsProcessed Int    @default(0)
+  recordsFailed    Int    @default(0)
+
+  errorMessage String?
+  rawPayload   String? // JSON
 }
 
 model CrmFieldMapping {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  crmSource     String   // hubspot, salesforce, jobnimbus
-  entityType    String   // customer, interaction, deal
-  
-  localField    String
-  crmField      String
-  transform     String?  // JSON transformation rules
-  
-  isActive      Boolean  @default(true)
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  crmSource  String // hubspot, salesforce, jobnimbus
+  entityType String // customer, interaction, deal
+
+  localField String
+  crmField   String
+  transform  String? // JSON transformation rules
+
+  isActive Boolean @default(true)
+
   @@unique([crmSource, entityType, localField])
 }
 
@@ -646,42 +683,42 @@ model CrmFieldMapping {
 // ============================================
 
 model Conversation {
-  id            String    @id @default(cuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Optional customer context
-  customerId    String?
-  
+  customerId String?
+
   // Auto-generated from first message
-  title         String?
-  
+  title String?
+
   // Conversation state
-  isArchived    Boolean   @default(false)
-  
-  messages      Message[]
-  
+  isArchived Boolean @default(false)
+
+  messages Message[]
+
   @@index([userId])
   @@index([customerId])
 }
 
 model Message {
-  id              String       @id @default(cuid())
-  createdAt       DateTime     @default(now())
-  
-  conversationId  String
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
-  role            String       // user, assistant, system
-  content         String
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    String // user, assistant, system
+  content String
+
   // AI metadata
-  model           String?      // Which AI model generated this
-  toolCalls       String?      // JSON array of tool calls
-  
+  model     String? // Which AI model generated this
+  toolCalls String? // JSON array of tool calls
+
   @@index([conversationId])
 }
 
@@ -692,18 +729,18 @@ model Message {
 model PushSubscription {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Web Push subscription data
-  endpoint  String   @unique
-  p256dh    String   // Public key for encryption
-  auth      String   // Auth secret
-  
+  endpoint String @unique
+  p256dh   String // Public key for encryption
+  auth     String // Auth secret
+
   // Device info (optional)
   userAgent String?
-  
+
   @@index([userId])
 }
 
@@ -748,10 +785,14 @@ model CanvassingPin {
   notes           String?
   photoUrls       String?
   lastSyncedAt    DateTime?
+
   @@index([customerId])
   @@index([status])
   @@index([zipCode])
   @@index([territoryId])
+  @@index([assignedRepId, status]) // Rep-specific pin queries
+  @@index([latitude, longitude]) // Geospatial queries
+  @@index([status, priority]) // Prioritized pin filtering
 }
 
 model CanvassingRoute {
@@ -777,6 +818,7 @@ model CanvassingRoute {
   estimatedDurationMinutes Int?
   estimatedDistanceMiles   Float?
   actualDurationMinutes    Int?
+
   @@index([status])
   @@index([assignedRepId])
   @@index([scheduledDate])
@@ -795,7 +837,7 @@ model CanvassingSyncLog {
   recordsFailed    Int      @default(0)
   errorMessage     String?
   rawPayload       String?
+
   @@index([createdAt])
   @@index([source])
 }
-
