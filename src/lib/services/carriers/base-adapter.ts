@@ -20,7 +20,7 @@ import type {
   CarrierWebhookPayload,
   CarrierClaimStatus,
 } from "./types";
-import { prisma } from "@/lib/prisma";
+// import { prisma } from "@/lib/prisma"; // TODO: Re-enable when CarrierSyncLog model exists
 
 export abstract class BaseCarrierAdapter implements CarrierAdapter {
   abstract readonly carrierCode: string;
@@ -162,27 +162,17 @@ export abstract class BaseCarrierAdapter implements CarrierAdapter {
   protected async logRequest(
     method: string,
     path: string,
-    requestData: any,
-    responseData: any,
+    _requestData: any,
+    _responseData: any,
     status: string,
     statusCode?: number,
     errorMessage?: string,
-    _durationMs?: number
+    durationMs?: number
   ): Promise<void> {
-    try {
-      await prisma.carrierSyncLog.create({
-        data: {
-          carrierCode: this.carrierCode,
-          syncType: this.getActionFromPath(path),
-          direction: "outbound",
-          requestData: requestData ? JSON.stringify(requestData) : null,
-          responseData: responseData ? JSON.stringify(responseData) : null,
-          status,
-          errorMessage,
-        },
-      });
-    } catch (error) {
-      console.error("[CarrierAdapter] Failed to log request:", error);
+    // TODO: CarrierSyncLog model not yet implemented - using console logging
+    console.log(`[CarrierAdapter:${this.carrierCode}] ${method} ${path} - ${status} (${statusCode || "N/A"}) ${durationMs ? `${durationMs}ms` : ""}`);
+    if (errorMessage) {
+      console.error(`[CarrierAdapter:${this.carrierCode}] Error: ${errorMessage}`);
     }
   }
   

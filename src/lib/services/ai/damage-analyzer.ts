@@ -151,21 +151,8 @@ class DamageAnalyzer {
       imageData = Buffer.from(buffer).toString("base64");
       mimeType = response.headers.get("content-type") || "image/jpeg";
     } else if (photoId) {
-      // Load from database
-      const photo = await prisma.photo.findUnique({
-        where: { id: photoId },
-        select: { url: true, mimeType: true },
-      });
-      if (!photo) throw new Error("Photo not found");
-      
-      // Fetch from URL
-      const fullUrl = photo.url.startsWith("http") 
-        ? photo.url 
-        : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${photo.url}`;
-      const response = await fetch(fullUrl);
-      const buffer = await response.arrayBuffer();
-      imageData = Buffer.from(buffer).toString("base64");
-      mimeType = photo.mimeType;
+      // TODO: Photo model not yet implemented
+      throw new Error("Photo lookup by ID not yet implemented. Please provide photoUrl or photoBase64 instead.");
     } else {
       throw new Error("No image provided");
     }

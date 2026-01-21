@@ -579,92 +579,13 @@ export async function generateProposal(
 }
 
 // =============================================================================
-// PROPOSAL PERSISTENCE
+// PROPOSAL PERSISTENCE (STUBBED - pending Proposal model)
 // =============================================================================
 
 export async function saveProposal(
-  proposal: GeneratedProposal,
-  createdById: string
+  _proposal: GeneratedProposal,
+  _createdById: string
 ): Promise<{ id: string; proposalNumber: string }> {
-  const recommended = proposal.recommendedOption;
-  const breakdown = recommended.breakdown;
-
-  const saved = await prisma.proposal.create({
-    data: {
-      customerId: proposal.customer.id,
-      createdById,
-      
-      title: `Roof Replacement Proposal - ${proposal.customer.firstName} ${proposal.customer.lastName}`,
-      status: "draft",
-      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      
-      // Property snapshot
-      propertyAddress: proposal.customer.address,
-      propertyCity: proposal.customer.city,
-      propertyState: proposal.customer.state,
-      propertyZip: proposal.customer.zipCode,
-      propertyType: proposal.property.propertyType,
-      roofType: proposal.property.roofType,
-      roofAge: proposal.property.roofAge,
-      roofSquares: breakdown.roofSquares,
-      roofPitch: proposal.property.roofPitch,
-      stories: proposal.property.stories,
-      squareFootage: proposal.property.squareFootage,
-      yearBuilt: proposal.property.yearBuilt,
-      
-      // Damage assessment
-      damageType: proposal.damageAssessment.damageType,
-      damageSeverity: proposal.damageAssessment.damageSeverity,
-      damageDescription: proposal.damageAssessment.damageDescription,
-      stormEventId: proposal.weatherEvents[0]?.id,
-      stormDate: proposal.weatherEvents[0]?.eventDate,
-      hailSize: proposal.weatherEvents[0]?.hailSize,
-      windSpeed: proposal.weatherEvents[0]?.windSpeed,
-      
-      // Scope
-      scopeSummary: proposal.aiContent.scopeOfWork,
-      scopeDetails: proposal.aiContent.scopeDetails,
-      lineItems: JSON.stringify(proposal.lineItems),
-      
-      // Materials
-      primaryMaterial: `${recommended.material.brand} ${recommended.material.name}`,
-      materialGrade: recommended.material.grade,
-      materialWarranty: `${recommended.material.warrantyYears} years`,
-      
-      // Pricing
-      materialsCost: breakdown.materialsCost,
-      laborCost: breakdown.laborCost,
-      permitFees: breakdown.permitFees,
-      disposalFees: breakdown.disposalCost,
-      miscFees: breakdown.miscFees,
-      subtotal: breakdown.subtotal,
-      discountAmount: breakdown.discountAmount,
-      discountReason: breakdown.discountReason,
-      taxRate: breakdown.taxRate,
-      taxAmount: breakdown.taxAmount,
-      totalPrice: breakdown.totalPrice,
-      pricingOptions: JSON.stringify(proposal.pricingOptions),
-      
-      // Insurance
-      isInsuranceClaim: !!proposal.weatherEvents[0],
-      insuranceCarrier: proposal.insurance.carrier,
-      policyNumber: proposal.insurance.policyNumber,
-      deductible: proposal.insurance.deductible,
-      insuranceNotes: proposal.aiContent.insuranceNotes,
-      
-      // AI content
-      executiveSummary: proposal.aiContent.executiveSummary,
-      valueProposition: proposal.aiContent.valueProposition,
-      warrantyDetails: proposal.aiContent.warrantyDetails,
-      termsAndConditions: proposal.aiContent.termsAndConditions,
-      
-      // Metadata
-      sourceDataSnapshot: JSON.stringify(proposal.sourceDataSnapshot),
-    },
-  });
-
-  return {
-    id: saved.id,
-    proposalNumber: saved.proposalNumber,
-  };
+  // TODO: Implement when Proposal model exists
+  throw new Error("Proposal saving coming soon");
 }

@@ -434,34 +434,44 @@ export class LeapCrmAdapter implements ICrmAdapter {
           
           for (const crmCustomer of customers) {
             try {
-              await prisma.customer.upsert({
-                where: { crmId: crmCustomer.id },
-                create: {
-                  crmId: crmCustomer.id,
-                  crmSource: "leap",
-                  firstName: crmCustomer.firstName,
-                  lastName: crmCustomer.lastName,
-                  email: crmCustomer.email,
-                  phone: crmCustomer.phone,
-                  address: crmCustomer.address,
-                  city: crmCustomer.city,
-                  state: crmCustomer.state,
-                  zipCode: crmCustomer.zipCode,
-                  status: crmCustomer.status,
-                  stage: crmCustomer.stage,
-                  leadSource: crmCustomer.leadSource,
-                  leadScore: 50, // Default score
-                  lastCrmSync: new Date(),
-                },
-                update: {
-                  firstName: crmCustomer.firstName,
-                  lastName: crmCustomer.lastName,
-                  email: crmCustomer.email,
-                  phone: crmCustomer.phone,
-                  status: crmCustomer.status,
-                  lastCrmSync: new Date(),
-                },
+              // crmId is not unique, so we can't use upsert - use findFirst + create/update instead
+              const existing = await prisma.customer.findFirst({
+                where: { crmId: crmCustomer.id, crmSource: "leap" },
               });
+
+              if (existing) {
+                await prisma.customer.update({
+                  where: { id: existing.id },
+                  data: {
+                    firstName: crmCustomer.firstName,
+                    lastName: crmCustomer.lastName,
+                    email: crmCustomer.email,
+                    phone: crmCustomer.phone,
+                    status: crmCustomer.status,
+                    lastCrmSync: new Date(),
+                  },
+                });
+              } else {
+                await prisma.customer.create({
+                  data: {
+                    crmId: crmCustomer.id,
+                    crmSource: "leap",
+                    firstName: crmCustomer.firstName,
+                    lastName: crmCustomer.lastName,
+                    email: crmCustomer.email,
+                    phone: crmCustomer.phone,
+                    address: crmCustomer.address,
+                    city: crmCustomer.city,
+                    state: crmCustomer.state,
+                    zipCode: crmCustomer.zipCode,
+                    status: crmCustomer.status,
+                    stage: crmCustomer.stage,
+                    leadSource: crmCustomer.leadSource,
+                    leadScore: 50, // Default score
+                    lastCrmSync: new Date(),
+                  },
+                });
+              }
               recordsProcessed++;
             } catch (err) {
               recordsFailed++;
@@ -515,29 +525,37 @@ export class LeapCrmAdapter implements ICrmAdapter {
               const interactions = await this.getInteractions(customer.crmId);
               
               for (const interaction of interactions) {
-                await prisma.interaction.upsert({
+                // Check if interaction already exists (no compound unique key in schema)
+                const existingInteraction = await prisma.interaction.findFirst({
                   where: {
-                    customerId_type_createdAt: {
-                      customerId: customer.id,
-                      type: interaction.type,
-                      createdAt: interaction.createdAt,
-                    },
-                  },
-                  create: {
                     customerId: customer.id,
                     type: interaction.type,
-                    direction: interaction.direction as "inbound" | "outbound",
-                    subject: interaction.subject,
-                    content: interaction.content,
-                    outcome: interaction.outcome,
                     createdAt: interaction.createdAt,
                   },
-                  update: {
-                    subject: interaction.subject,
-                    content: interaction.content,
-                    outcome: interaction.outcome,
-                  },
                 });
+
+                if (existingInteraction) {
+                  await prisma.interaction.update({
+                    where: { id: existingInteraction.id },
+                    data: {
+                      subject: interaction.subject,
+                      content: interaction.content,
+                      outcome: interaction.outcome,
+                    },
+                  });
+                } else {
+                  await prisma.interaction.create({
+                    data: {
+                      customerId: customer.id,
+                      type: interaction.type,
+                      direction: interaction.direction as "inbound" | "outbound",
+                      subject: interaction.subject,
+                      content: interaction.content,
+                      outcome: interaction.outcome,
+                      createdAt: interaction.createdAt,
+                    },
+                  });
+                }
                 recordsProcessed++;
               }
             } catch (err) {
