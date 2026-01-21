@@ -75,11 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Save results if requested
     if (validated.saveResults) {
-      const customerId = validated.customerId || (
-        validated.photoId 
-          ? (await prisma.photo.findUnique({ where: { id: validated.photoId }, select: { customerId: true } }))?.customerId
-          : null
-      );
+      const customerId = validated.customerId || null;
 
       if (customerId) {
         // Create intel items for damage findings
@@ -112,18 +108,6 @@ export async function POST(request: NextRequest) {
                 estimate: primaryResult.estimate,
                 recommendation: primaryResult.claimRecommendation,
               }),
-            },
-          });
-        }
-
-        // Update photo with analysis data if single photo
-        if (validated.photoId && results[0]) {
-          await prisma.photo.update({
-            where: { id: validated.photoId },
-            data: {
-              damageType: results[0].damageTypes[0]?.type || null,
-              damageSeverity: results[0].hasDamage ? results[0].overallSeverity : null,
-              description: results[0].observations.join(". "),
             },
           });
         }

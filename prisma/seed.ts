@@ -823,7 +823,7 @@ If they're still hesitant:
 - Always get the policy number and carrier during inspection`,
       stage: "qualified",
       scenario: "insurance fear",
-      tags: ["objection", "insurance", "claim", "hesitation"],
+      tags: JSON.stringify(["objection", "insurance", "claim", "hesitation"]),
       isPublished: true,
     },
     {
@@ -1109,7 +1109,7 @@ Sometimes the scope needs to be adjusted after the insurance approval:
 - Take a photo of the signed contract before leaving (backup)`,
       stage: "proposal",
       scenario: "insurance job",
-      tags: ["closing", "insurance", "deductible", "aob"],
+      tags: JSON.stringify(["closing", "insurance", "deductible", "aob"]),
       isPublished: true,
     },
 
@@ -1301,7 +1301,7 @@ Knowing the roof's age, history, and previous repairs helps you:
 - Always verify what they tell you with what you see on the roof`,
       stage: "new",
       scenario: "roof assessment",
-      tags: ["discovery", "roof-age", "history", "inspection"],
+      tags: JSON.stringify(["discovery", "roof-age", "history", "inspection"]),
       isPublished: true,
     },
 
@@ -1522,7 +1522,7 @@ For prospects who went cold but didn't say "no":
 ❌ Giving up after one or two attempts`,
       stage: "contacted",
       scenario: "undecided prospect",
-      tags: ["follow-up", "nurture", "cadence", "touchpoints"],
+      tags: JSON.stringify(["follow-up", "nurture", "cadence", "touchpoints"]),
       isPublished: true,
     },
     {
@@ -1830,313 +1830,6 @@ During the visit, look for:
       stage: "proposal",
       scenario: "in-home meeting",
       tags: JSON.stringify(["presentation", "proposal", "in-home", "closing"]),
-      isPublished: true,
-    },
-    {
-      title: "Price Objection Handler",
-      description: "Scripts for handling pricing concerns from homeowners",
-      category: "objection-handling",
-      type: "script",
-      content: `# Handling Price Objections
-
-## "Your price is too high"
-"I understand price is important. Let me show you what's included in our quote that you might not see from other contractors..."
-
-## Value Points to Emphasize
-- Quality materials with manufacturer warranty
-- Licensed, bonded, and insured crew
-- Post-installation inspection and warranty
-- Insurance claim assistance included
-
-## Reframe the Conversation
-"Would you rather pay a bit more now, or potentially pay twice when a cheaper job fails in 5 years?"`,
-      stage: "negotiation",
-      scenario: "budget concerns",
-      isPublished: true,
-    },
-    {
-      title: "Hail Damage Assessment Checklist",
-      description: "Step-by-step roof inspection for hail damage",
-      category: "discovery",
-      type: "checklist",
-      content: `# Hail Damage Roof Inspection
-
-## Exterior Check
-- [ ] Check gutters for granule buildup
-- [ ] Inspect downspouts for dents
-- [ ] Look for dents on AC units and vents
-- [ ] Check siding for impact marks
-
-## Roof Surface
-- [ ] Document shingle bruising (soft spots)
-- [ ] Note missing granules (circular patterns)
-- [ ] Check for cracked shingles
-- [ ] Photograph all damage with ruler for scale
-
-## Metal Components
-- [ ] Inspect flashing around chimneys
-- [ ] Check roof vents for dents
-- [ ] Examine ridge caps
-
-## Documentation
-- [ ] Take wide shots showing roof coverage
-- [ ] Close-up photos of each damage point
-- [ ] Note storm date and time`,
-      stage: "new",
-      scenario: "storm-lead",
-      isPublished: true,
-    },
-    {
-      title: "Competitor Win-Back Strategy",
-      description: "Recapturing leads lost to competitors",
-      category: "objection-handling",
-      type: "guide",
-      content: `# Competitor Win-Back
-
-## Timing
-- Wait 2-4 weeks after they chose competitor
-- Check if work has started
-
-## Opening Approach
-"Hi [Name], I wanted to follow up. Have you had your roof work done yet?"
-
-## If Not Started
-"Sometimes things don't work out as planned. We're still here if you need us."
-
-## If Started (Issues)
-Listen for complaints about:
-- Crew not showing up
-- Poor communication
-- Quality concerns
-
-Offer: "We can provide a second opinion if you'd like."`,
-      stage: "new",
-      isPublished: true,
-    },
-    {
-      title: "30-Day Follow-up Call",
-      description: "Post-installation satisfaction check",
-      category: "follow-up",
-      type: "script",
-      content: `# 30-Day Customer Check-In
-
-## Opening
-"Hi [Name], this is [Your Name] from Guardian. We completed your roof about a month ago, and I wanted to check in to make sure everything is looking great."
-
-## Key Questions
-1. "Have you noticed any issues with the new roof?"
-2. "Did our crew leave the property clean?"
-3. "Do you have any questions about your warranty?"
-
-## Referral Ask
-"We're glad you're happy! Would you happen to know any neighbors or friends who might need roofing work? We offer a referral bonus..."
-
-## Close
-"Thank you for choosing Guardian. Don't hesitate to call if you ever have questions!"`,
-      stage: "closed",
-      isPublished: true,
-    },
-    {
-      title: "Cold Call Script - Storm Season",
-      description: "Outbound calling script for storm season",
-      category: "discovery",
-      type: "script",
-      content: `# Storm Season Cold Call
-
-## Introduction
-"Hi, this is [Name] from Guardian Roofing. I'm reaching out to homeowners in [Area] because storm season is approaching."
-
-## Value Proposition
-"We're offering free pre-storm roof inspections to help identify any weak points before the next big storm hits."
-
-## Overcome Objections
-- "My roof is fine" → "Great! An inspection confirms that and gives you peace of mind."
-- "I'm not interested" → "I understand. Would it be okay to send you our storm prep checklist by email?"
-
-## Close
-"We have openings [Day]. Would morning or afternoon work better for a quick 20-minute inspection?"`,
-      stage: "new",
-      isPublished: true,
-    },
-    {
-      title: "Roof Material Options Presentation",
-      description: "Presenting different roofing material choices",
-      category: "presentation",
-      type: "template",
-      content: `# Roofing Material Options
-
-## 3-Tab Shingles
-- **Lifespan:** 15-20 years
-- **Cost:** Budget-friendly
-- **Best For:** Basic protection, rental properties
-
-## Architectural Shingles
-- **Lifespan:** 25-30 years
-- **Cost:** Mid-range
-- **Best For:** Most homeowners, better aesthetics
-
-## Metal Roofing
-- **Lifespan:** 40-70 years
-- **Cost:** Premium
-- **Best For:** Long-term investment, energy savings
-
-## Recommendation Guide
-Based on your [property type], budget of [amount], and plans to stay [X years], I'd recommend...`,
-      stage: "proposal",
-      isPublished: true,
-    },
-    {
-      title: "Insurance Adjuster Meeting Prep",
-      description: "Preparing for the insurance adjuster visit",
-      category: "closing",
-      type: "checklist",
-      content: `# Adjuster Meeting Preparation
-
-## Before the Meeting
-- [ ] Review your damage documentation
-- [ ] Have your contractor's estimate ready
-- [ ] Know your policy deductible
-- [ ] Prepare a list of all damage areas
-
-## During the Meeting
-- [ ] Walk the adjuster through each damage point
-- [ ] Point out any items they might miss
-- [ ] Take notes on what they document
-- [ ] Ask questions about timeline and next steps
-
-## After the Meeting
-- [ ] Request a copy of their report
-- [ ] Compare their assessment to contractor estimate
-- [ ] Follow up within 48 hours if discrepancies`,
-      stage: "proposal",
-      isPublished: true,
-    },
-    {
-      title: "Emergency Tarp Protocol",
-      description: "Emergency response for active roof leaks",
-      category: "follow-up",
-      type: "checklist",
-      content: `# Emergency Tarp Response
-
-## Initial Assessment
-- [ ] Confirm leak location inside home
-- [ ] Check weather conditions (safety first)
-- [ ] Take photos before tarping
-
-## Tarp Installation
-- [ ] Use proper 6mil or thicker tarp
-- [ ] Extend tarp 4ft past damage on all sides
-- [ ] Secure with 2x4 boards, not just sandbags
-- [ ] Ensure water runoff path is clear
-
-## Documentation
-- [ ] Before and after photos
-- [ ] Note time and date
-- [ ] Document emergency response for insurance`,
-      stage: "new",
-      isPublished: true,
-    },
-    {
-      title: "Warranty Explanation Guide",
-      description: "Explaining roofing warranties to customers",
-      category: "presentation",
-      type: "guide",
-      content: `# Understanding Roofing Warranties
-
-## Manufacturer Warranty
-- Covers defects in roofing materials
-- Typically 20-50 years depending on product
-- May be prorated after certain period
-- Requires proper installation by certified contractor
-
-## Workmanship Warranty
-- Covers installation errors
-- Guardian offers 10-year workmanship warranty
-- Covers leaks due to improper installation
-- Does not cover storm damage
-
-## What's NOT Covered
-- Normal wear and tear
-- Damage from foot traffic
-- Acts of nature (storms, hail, wind)
-- Lack of maintenance`,
-      stage: "proposal",
-      isPublished: true,
-    },
-    {
-      title: "Referral Request Script",
-      description: "Asking for referrals from satisfied customers",
-      category: "closing",
-      type: "script",
-      content: `# Referral Request Approach
-
-## Best Timing
-Ask for referrals when customers are happiest:
-- Right after installation completion
-- After positive follow-up call
-- After warranty claim resolved
-
-## The Ask
-"We're so glad you're happy with your new roof! We grow our business through happy customers like you. Do you know anyone—neighbors, family, coworkers—who might need roofing work?"
-
-## Incentive Mention
-"As a thank you, we offer a $250 referral bonus when your referral becomes a customer."
-
-## Follow Up
-"Would it be okay if I checked back in a few weeks? Sometimes people remember someone after thinking about it."`,
-      stage: "closed",
-      isPublished: true,
-    },
-    {
-      title: "Homeowner Objection: Already Have a Roofer",
-      description: "Handling the 'I already have someone' objection",
-      category: "objection-handling",
-      type: "script",
-      content: `# "I Already Have a Roofer"
-
-## Acknowledge Their Position
-"That's great that you have someone you trust. May I ask who you're working with?"
-
-## Find the Gap
-"Have they helped with insurance claims before? That's actually our specialty."
-
-## Offer Value-Add
-"Even if you use your regular roofer, we're happy to provide a free second opinion on the damage assessment—especially for insurance purposes."
-
-## Leave the Door Open
-"If anything changes or you'd like another perspective, please keep my card. We're here to help."`,
-      stage: "new",
-      isPublished: true,
-    },
-    {
-      title: "Supplement Filing Guide",
-      description: "Filing supplements when insurance underpays",
-      category: "closing",
-      type: "guide",
-      content: `# Insurance Supplement Process
-
-## When to File
-- Initial payout doesn't cover repair costs
-- Hidden damage discovered during work
-- Adjuster missed damage items
-
-## Required Documentation
-1. Original estimate and scope
-2. Photos of additional damage
-3. Contractor's revised estimate
-4. Detailed explanation letter
-
-## Filing Steps
-1. Gather all new documentation
-2. Contact claims adjuster directly
-3. Request re-inspection if needed
-4. Follow up in writing within 48 hours
-
-## Key Points
-- Be specific and factual
-- Reference policy language
-- Keep all communication records`,
-      stage: "proposal",
       isPublished: true,
     },
   ];

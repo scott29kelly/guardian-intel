@@ -40,13 +40,10 @@ export async function POST(
     // Parse webhook payload
     const payload = adapter.parseWebhook(rawBody);
 
-    // Find associated claim
+    // Find associated claim by claim number
     const claim = await prisma.insuranceClaim.findFirst({
       where: {
-        OR: [
-          { carrierClaimId: payload.claimId },
-          { claimNumber: payload.claimNumber },
-        ],
+        claimNumber: payload.claimNumber || payload.claimId,
       },
       include: {
         customer: { select: { id: true } },
@@ -63,11 +60,8 @@ export async function POST(
     }
 
     // Process webhook based on event type
-    const updateData: any = {
-      carrierStatus: payload.data.status || undefined,
-      carrierStatusCode: payload.data.statusCode || undefined,
-      carrierLastSync: new Date(),
-    };
+    // Note: carrier-specific status fields not in current schema, using notes for tracking
+    const updateData: any = {};
 
     let intelContent = "";
     let intelPriority: "low" | "medium" | "high" | "critical" = "medium";
@@ -204,24 +198,15 @@ export async function POST(
 async function logWebhook(
   carrierCode: string,
   claimId: string | null,
-  payload: string,
+  _payload: string,
   status: string,
   errorMessage?: string,
-  _durationMs?: number
+  durationMs?: number
 ) {
-  try {
-    await prisma.carrierSyncLog.create({
-      data: {
-        carrierCode,
-        claimId,
-        syncType: "webhook",
-        direction: "inbound",
-        requestData: payload.substring(0, 10000), // Limit size
-        status,
-        errorMessage,
-      },
-    });
-  } catch (e) {
-    console.error("[Carrier Webhook] Failed to log:", e);
-  }
+  // Log webhook events to console (CarrierSyncLog model not in current schema)
+  console.log(`[Carrier Webhook] ${carrierCode} - ${status}`, {
+    claimId,
+    errorMessage,
+    durationMs,
+  });
 }

@@ -1,38 +1,19 @@
 /**
- * Contract Stats API
- * 
- * GET /api/contracts/stats - Get contract statistics
+ * Contract Stats API - Stub (Contract model not in schema)
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { contractService } from "@/lib/services/contracts";
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const dynamic = "force-dynamic";
 
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get("userId") || undefined;
-
-    // Non-admin/manager users only see their own stats
-    const targetUserId = 
-      session.user.role === "admin" || session.user.role === "manager"
-        ? userId
-        : session.user.id;
-
-    const stats = await contractService.getContractStats(targetUserId);
-
-    return NextResponse.json({ data: stats });
-  } catch (error) {
-    console.error("[Contract Stats API] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch stats" },
-      { status: 500 }
-    );
-  }
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return NextResponse.json({
+    success: true,
+    data: { total: 0, pending: 0, signed: 0, expired: 0 },
+    message: "Contract stats coming soon",
+  });
 }

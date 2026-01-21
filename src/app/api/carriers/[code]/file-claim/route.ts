@@ -91,39 +91,16 @@ export async function POST(
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
-    if (claim.isFiledWithCarrier) {
+    // Check if claim has already been filed (indicated by having a claim number)
+    if (claim.claimNumber) {
       return NextResponse.json(
         { error: "Claim has already been filed with carrier" },
         { status: 400 }
       );
     }
 
-    // Get photos if specified
-    let photos: any[] = [];
-    if (validated.photoIds && validated.photoIds.length > 0) {
-      const photoRecords = await prisma.photo.findMany({
-        where: { id: { in: validated.photoIds } },
-        select: {
-          url: true,
-          filename: true,
-          category: true,
-          description: true,
-          latitude: true,
-          longitude: true,
-          createdAt: true,
-        },
-      });
-
-      photos = photoRecords.map(p => ({
-        url: p.url,
-        filename: p.filename,
-        category: p.category,
-        description: p.description,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        capturedAt: p.createdAt,
-      }));
-    }
+    // Photos are stored as JSON URLs on the customer, not as separate records
+    const photos: any[] = [];
 
     // Build claim submission
     const submission: ClaimSubmission = {

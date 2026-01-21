@@ -19,8 +19,8 @@ import {
   MessageSquare,
   Building2,
 } from "lucide-react";
-import { useState, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
 import { ThemeToggle } from "./theme-toggle";
 import { ShortcutsModal } from "./modals/shortcuts-modal";

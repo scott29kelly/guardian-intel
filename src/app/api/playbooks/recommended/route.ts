@@ -83,7 +83,7 @@ export async function GET(request: Request) {
 
     // Build recommendation query
     const recommendations: Array<{
-      playbook: typeof rawPlaybook;
+      playbook: rawPlaybook;
       score: number;
       reason: string;
     }> = [];
@@ -255,5 +255,5 @@ export async function GET(request: Request) {
   }
 }
 
-// Type helper for the playbook query result
-type rawPlaybook = Awaited<ReturnType<typeof prisma.playbook.findFirst>>;
+// Type helper for the playbook query result (non-null)
+type rawPlaybook = NonNullable<Awaited<ReturnType<typeof prisma.playbook.findFirst>>>;
