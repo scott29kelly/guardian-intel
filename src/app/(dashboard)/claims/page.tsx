@@ -6,7 +6,8 @@
  * Insurance claim tracking with Kanban board and table views.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useDebounce } from "@/lib/hooks";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield,
@@ -66,14 +67,15 @@ export default function ClaimsPage() {
   // State
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState<ClaimStatus | "all">("all");
   const [carrierFilter, setCarrierFilter] = useState<string>("all");
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   
-  // Fetch data
+  // Fetch data (uses debounced search for better performance)
   const { data: claimsData, isLoading } = useClaims({
-    search: searchQuery || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     carrier: carrierFilter !== "all" ? carrierFilter : undefined,
     limit: 100,

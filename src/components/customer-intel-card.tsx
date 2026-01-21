@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -23,8 +23,7 @@ import {
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
-import { CustomerProfileModal } from "./modals/customer-profile-modal";
-import { TakeActionModal } from "./modals/take-action-modal";
+import { LazyCustomerProfileModal, LazyTakeActionModal } from "./modals/lazy-modals";
 import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
@@ -51,7 +50,7 @@ const getScoreColor = (score: number) => {
   return "text-text-muted bg-surface-secondary border-border";
 };
 
-export function CustomerIntelCard({
+export const CustomerIntelCard = memo(function CustomerIntelCard({
   customer,
   intelItems,
   weatherEvents,
@@ -466,21 +465,25 @@ export function CustomerIntelCard({
         </AnimatePresence>
       </motion.div>
 
-      {/* Modals */}
-      <CustomerProfileModal 
-        customer={customer}
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        onAskAI={() => {
-          setShowProfileModal(false);
-          setShowAIChat(true);
-        }}
-      />
-      <TakeActionModal 
-        customer={customer}
-        isOpen={showActionModal}
-        onClose={() => setShowActionModal(false)}
-      />
+      {/* Modals - Lazy loaded for better performance */}
+      {showProfileModal && (
+        <LazyCustomerProfileModal
+          customer={customer}
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          onAskAI={() => {
+            setShowProfileModal(false);
+            setShowAIChat(true);
+          }}
+        />
+      )}
+      {showActionModal && (
+        <LazyTakeActionModal
+          customer={customer}
+          isOpen={showActionModal}
+          onClose={() => setShowActionModal(false)}
+        />
+      )}
       
       {/* AI Components */}
       <AIChatPanel
@@ -509,4 +512,4 @@ export function CustomerIntelCard({
       />
     </>
   );
-}
+});

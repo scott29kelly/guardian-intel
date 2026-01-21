@@ -2,10 +2,12 @@
 
 /**
  * ClaimCard Component
- * 
+ *
  * Displays a claim in a card format for kanban or list views.
+ * Memoized to prevent unnecessary re-renders in list views.
  */
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import {
   Phone,
@@ -53,7 +55,7 @@ const claimTypeLabels: Record<string, string> = {
   interior: "Interior",
 };
 
-export function ClaimCard({ claim, onClick, compact = false, draggable = false }: ClaimCardProps) {
+export const ClaimCard = memo(function ClaimCard({ claim, onClick, compact = false, draggable = false }: ClaimCardProps) {
   const config = statusConfig[claim.status];
   const StatusIcon = config.icon;
   const displayValue = claim.approvedValue ?? claim.initialEstimate ?? 0;
@@ -247,6 +249,6 @@ export function ClaimCard({ claim, onClick, compact = false, draggable = false }
       </div>
     </motion.div>
   );
-}
+});
 
 export default ClaimCard;

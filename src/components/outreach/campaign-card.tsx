@@ -2,10 +2,12 @@
 
 /**
  * CampaignCard Component
- * 
+ *
  * Displays campaign summary with stats and quick actions.
+ * Memoized to prevent unnecessary re-renders in list views.
  */
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import {
   Cloud,
@@ -38,7 +40,7 @@ const triggerConfig = {
   scheduled: { icon: Clock, color: "text-amber-400", bg: "bg-amber-500/20", label: "Scheduled" },
 };
 
-export function CampaignCard({ campaign, onEdit, onExecute, onToggleActive }: CampaignCardProps) {
+export const CampaignCard = memo(function CampaignCard({ campaign, onEdit, onExecute, onToggleActive }: CampaignCardProps) {
   const trigger = triggerConfig[campaign.triggerType] || triggerConfig.manual;
   const TriggerIcon = trigger.icon;
 
@@ -146,6 +148,6 @@ export function CampaignCard({ campaign, onEdit, onExecute, onToggleActive }: Ca
       )}
     </motion.div>
   );
-}
+});
 
 export default CampaignCard;

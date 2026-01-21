@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -27,8 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
-import { FilterModal } from "@/components/modals/filter-modal";
-import { StormDetailsModal } from "@/components/modals/storm-details-modal";
+import { LazyFilterModal, LazyStormDetailsModal } from "@/components/modals/lazy-modals";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import dynamic from "next/dynamic";
@@ -310,32 +309,64 @@ export default function StormsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
-  const totalOpportunity = recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0);
-  const totalAffected = recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0);
-  const totalPending = recentStormEvents.reduce((sum, e) => sum + e.inspectionsPending, 0);
+  // Memoized aggregated stats to avoid recalculation on every render
+  const totalOpportunity = useMemo(
+    () => recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0),
+    []
+  );
+  const totalAffected = useMemo(
+    () => recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0),
+    []
+  );
+  const totalPending = useMemo(
+    () => recentStormEvents.reduce((sum, e) => sum + e.inspectionsPending, 0),
+    []
+  );
 
-  const handleApplyFilters = (filters: Record<string, string[]>) => {
+  // Memoized filtered events
+  const filteredEvents = useMemo(() => {
+    return recentStormEvents.filter(event => {
+      if (activeFilters.type?.length && !activeFilters.type.includes(event.type)) {
+        return false;
+      }
+      if (activeFilters.severity?.length && !activeFilters.severity.includes(event.severity)) {
+        return false;
+      }
+      if (activeFilters.county?.length && !activeFilters.county.includes(event.county.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  }, [activeFilters]);
+
+  const activeFilterCount = useMemo(
+    () => Object.values(activeFilters).reduce((acc, arr) => acc + arr.length, 0),
+    [activeFilters]
+  );
+
+  // Memoized callbacks to prevent child re-renders
+  const handleApplyFilters = useCallback((filters: Record<string, string[]>) => {
     setActiveFilters(filters);
     const filterCount = Object.values(filters).reduce((acc, arr) => acc + arr.length, 0);
     if (filterCount > 0) {
       showToast("success", "Filters Applied", `${filterCount} filter(s) active`);
     }
-  };
+  }, [showToast]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     showToast("info", "Refreshing Data", "Fetching latest weather data from NOAA...");
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsRefreshing(false);
     showToast("success", "Data Updated", "Weather data refreshed successfully");
-  };
+  }, [showToast]);
 
-  const handleOpenWeatherMap = () => {
+  const handleOpenWeatherMap = useCallback(() => {
     window.open("https://www.weather.gov/", "_blank");
-  };
+  }, []);
 
-  const handleViewAffectedCustomers = (alertId: string, areas: string[]) => {
+  const handleViewAffectedCustomers = useCallback((alertId: string, areas: string[]) => {
     showToast("info", "Loading Customers", `Finding customers in ${areas.join(", ")}...`);
     // Extract counties from areas (e.g., "Bucks County, PA" -> "Bucks")
     const counties = areas.map(area => {
@@ -343,32 +374,16 @@ export default function StormsPage() {
       return match ? match[1] : area.split(",")[0].trim();
     });
     router.push(`/customers?filter=storm-affected&counties=${encodeURIComponent(counties.join(","))}&alertId=${alertId}`);
-  };
+  }, [router, showToast]);
 
-  const handleViewEventDetails = (event: StormEvent) => {
+  const handleViewEventDetails = useCallback((event: StormEvent) => {
     setSelectedEvent(event);
     setShowDetailsModal(true);
-  };
+  }, []);
 
-  const handleOpenNOAA = () => {
+  const handleOpenNOAA = useCallback(() => {
     window.open("https://www.ncdc.noaa.gov/stormevents/", "_blank");
-  };
-
-  // Filter storm events based on active filters
-  const filteredEvents = recentStormEvents.filter(event => {
-    if (activeFilters.type?.length && !activeFilters.type.includes(event.type)) {
-      return false;
-    }
-    if (activeFilters.severity?.length && !activeFilters.severity.includes(event.severity)) {
-      return false;
-    }
-    if (activeFilters.county?.length && !activeFilters.county.includes(event.county.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
-
-  const activeFilterCount = Object.values(activeFilters).reduce((acc, arr) => acc + arr.length, 0);
+  }, []);
 
   return (
     <motion.div
@@ -729,22 +744,26 @@ export default function StormsPage() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        isOpen={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        title="Filter Storm Events"
-        filters={stormFilterConfig}
-        activeFilters={activeFilters}
-        onApply={handleApplyFilters}
-      />
+      {/* Filter Modal - Lazy loaded */}
+      {showFilterModal && (
+        <LazyFilterModal
+          isOpen={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          title="Filter Storm Events"
+          filters={stormFilterConfig}
+          activeFilters={activeFilters}
+          onApply={handleApplyFilters}
+        />
+      )}
 
-      {/* Storm Details Modal */}
-      <StormDetailsModal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        event={selectedEvent}
-      />
+      {/* Storm Details Modal - Lazy loaded */}
+      {showDetailsModal && (
+        <LazyStormDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          event={selectedEvent}
+        />
+      )}
     </motion.div>
   );
 }

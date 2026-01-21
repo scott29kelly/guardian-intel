@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -31,11 +31,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { CustomerIntelCard } from "@/components/customer-intel-card";
-import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
+import { LazyAddCustomerModal, LazyBulkActionModal, LazyCustomerCompareModal } from "@/components/modals/lazy-modals";
+import type { CustomerFormData } from "@/components/modals/add-customer-modal";
 import { formatCurrency, getStatusClass } from "@/lib/utils";
-import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers } from "@/lib/hooks";
-import { BulkActionModal } from "@/components/modals/bulk-action-modal";
-import { CustomerCompareModal } from "@/components/modals/customer-compare-modal";
+import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers, useDebounce } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import { Scale } from "lucide-react";
 
@@ -115,6 +114,7 @@ export default function CustomersPage() {
   
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("leadScore");
@@ -201,11 +201,11 @@ export default function CustomersPage() {
   // Show banner when filtering by storm
   const isStormFiltered = stormFilter === "storm-affected" && countyFilter;
   
-  // Fetch customers from API
+  // Fetch customers from API (uses debounced search for better performance)
   const { data: customersData, isLoading, error } = useCustomers({
     page,
     limit: 20,
-    search: searchQuery || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     stage: stageFilter !== "all" ? stageFilter as any : undefined,
     sortBy,
@@ -421,13 +421,8 @@ export default function CustomersPage() {
     clearSelection();
   };
 
-  // Parse counties from URL for storm filtering
-  const targetCounties = countyFilter 
-    ? countyFilter.split(",").map(c => c.trim().toLowerCase())
-    : [];
-
   // County filter from storm alerts (client-side since API doesn't support it yet)
-  const cityToCounty: Record<string, string> = {
+  const cityToCounty: Record<string, string> = useMemo(() => ({
     // Bucks County, PA
     "southampton": "bucks", "warminster": "bucks", "doylestown": "bucks",
     "bensalem": "bucks", "newtown": "bucks", "langhorne": "bucks",
@@ -442,16 +437,25 @@ export default function CustomersPage() {
     // Others
     "baltimore": "baltimore", "cherry hill": "camden", "trenton": "mercer",
     "richmond": "henrico", "arlington": "arlington", "brooklyn": "kings",
-  };
-  
-  // Apply county filter if storm-affected filter is active
-  const filteredCustomers = isStormFiltered && targetCounties.length > 0
-    ? customers.filter((customer) => {
+  }), []);
+
+  // Parse counties from URL for storm filtering (memoized)
+  const targetCounties = useMemo(
+    () => countyFilter ? countyFilter.split(",").map(c => c.trim().toLowerCase()) : [],
+    [countyFilter]
+  );
+
+  // Apply county filter if storm-affected filter is active (memoized)
+  const filteredCustomers = useMemo(() => {
+    if (isStormFiltered && targetCounties.length > 0) {
+      return customers.filter((customer) => {
         const customerCity = customer.city.toLowerCase();
         const customerCounty = cityToCounty[customerCity];
         return customerCounty && targetCounties.includes(customerCounty);
-      })
-    : customers;
+      });
+    }
+    return customers;
+  }, [customers, isStormFiltered, targetCounties, cityToCounty]);
 
   // Check selection state (must be after filteredCustomers is defined)
   const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
@@ -963,32 +967,38 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Add Customer Modal */}
-      <AddCustomerModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={handleAddCustomer}
-      />
+      {/* Add Customer Modal - Lazy loaded */}
+      {showAddModal && (
+        <LazyAddCustomerModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddCustomer}
+        />
+      )}
 
-      {/* Bulk Delete Confirmation Modal */}
-      <BulkActionModal
-        isOpen={showBulkDeleteModal}
-        onClose={() => setShowBulkDeleteModal(false)}
-        onConfirm={handleBulkDelete}
-        title="Delete Customers"
-        description="Are you sure you want to delete these customers? This action will mark them as 'Closed Lost' and they will be hidden from the main list."
-        confirmLabel="Delete"
-        confirmVariant="danger"
-        isLoading={bulkDelete.isPending}
-        count={selectedIds.size}
-      />
+      {/* Bulk Delete Confirmation Modal - Lazy loaded */}
+      {showBulkDeleteModal && (
+        <LazyBulkActionModal
+          isOpen={showBulkDeleteModal}
+          onClose={() => setShowBulkDeleteModal(false)}
+          onConfirm={handleBulkDelete}
+          title="Delete Customers"
+          description="Are you sure you want to delete these customers? This action will mark them as 'Closed Lost' and they will be hidden from the main list."
+          confirmLabel="Delete"
+          confirmVariant="danger"
+          isLoading={bulkDelete.isPending}
+          count={selectedIds.size}
+        />
+      )}
 
-      {/* Customer Compare Modal */}
-      <CustomerCompareModal
-        isOpen={showCompareModal}
-        onClose={() => setShowCompareModal(false)}
-        customers={filteredCustomers.filter((c) => selectedIds.has(c.id))}
-      />
+      {/* Customer Compare Modal - Lazy loaded */}
+      {showCompareModal && (
+        <LazyCustomerCompareModal
+          isOpen={showCompareModal}
+          onClose={() => setShowCompareModal(false)}
+          customers={filteredCustomers.filter((c) => selectedIds.has(c.id))}
+        />
+      )}
 
       {/* Floating Bulk Action Bar */}
       <AnimatePresence>

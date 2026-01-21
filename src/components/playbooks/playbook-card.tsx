@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -44,7 +45,7 @@ const typeConfig: Record<string, { label: string; color: string }> = {
   template: { label: "Template", color: "bg-violet-500/20 text-violet-400 border-violet-500/30" },
 };
 
-export function PlaybookCard({ playbook, isSelected, isFavorited, onClick }: PlaybookCardProps) {
+export const PlaybookCard = memo(function PlaybookCard({ playbook, isSelected, isFavorited, onClick }: PlaybookCardProps) {
   const config = categoryConfig[playbook.category] || { icon: BookOpen, gradient: "from-accent-primary to-accent-primary/70" };
   const CategoryIcon = config.icon;
   const typeInfo = typeConfig[playbook.type] || typeConfig.script;
@@ -103,7 +104,7 @@ export function PlaybookCard({ playbook, isSelected, isFavorited, onClick }: Pla
       </div>
     </motion.div>
   );
-}
+});
 
 export function getCategoryInfo(category: string) {
   return categoryConfig[category] || { icon: BookOpen, gradient: "from-accent-primary to-accent-primary/70" };

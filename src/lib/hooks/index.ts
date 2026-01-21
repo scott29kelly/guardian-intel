@@ -27,3 +27,6 @@ export * from "./use-predictions";
 // PR #10 - Competitors, Proposals
 export * from "./use-competitors";
 export * from "./use-proposals";
+
+// Performance Hooks
+export * from "./use-debounce";

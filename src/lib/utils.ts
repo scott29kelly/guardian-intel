@@ -12,17 +12,46 @@ export function formatDistanceToNow(date: Date | string, options?: { addSuffix?:
   return fmtDistToNow(d, options);
 }
 
+// Cached formatters for better performance (Intl.NumberFormat creation is expensive)
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+const numberFormatter = new Intl.NumberFormat("en-US");
+
+// Memoization cache for currency formatting
+const currencyCache = new Map<number, string>();
+const CURRENCY_CACHE_SIZE = 500;
+
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  // Handle NaN and Infinity
+  if (!Number.isFinite(amount)) return "$0";
+
+  // Round to avoid floating point precision issues in cache keys
+  const rounded = Math.round(amount);
+
+  // Check cache first
+  const cached = currencyCache.get(rounded);
+  if (cached !== undefined) return cached;
+
+  // Format and cache the result
+  const formatted = currencyFormatter.format(rounded);
+
+  // Maintain cache size limit with LRU-like behavior
+  if (currencyCache.size >= CURRENCY_CACHE_SIZE) {
+    const firstKey = currencyCache.keys().next().value;
+    if (firstKey !== undefined) currencyCache.delete(firstKey);
+  }
+
+  currencyCache.set(rounded, formatted);
+  return formatted;
 }
 
 export function formatNumber(num: number): string {
-  return new Intl.NumberFormat("en-US").format(num);
+  return numberFormatter.format(num);
 }
 
 export function formatPercentage(value: number): string {
