@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, Plus, Download, Upload, Loader2, MapPin, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AddCustomerModal, CustomerFormData } from "@/components/modals/add-customer-modal";
-import { BulkActionModal } from "@/components/modals/bulk-action-modal";
-import { CustomerCompareModal } from "@/components/modals/customer-compare-modal";
+import { LazyAddCustomerModal, LazyBulkActionModal, LazyCustomerCompareModal } from "@/components/modals/lazy-modals";
+import type { CustomerFormData } from "@/components/modals/add-customer-modal";
 import { useToast } from "@/components/ui/toast";
-import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers } from "@/lib/hooks";
+import { useCustomers, useCreateCustomer, useKeyboardShortcuts, useBulkUpdateCustomers, useBulkDeleteCustomers, useDebounce } from "@/lib/hooks";
 import {
   Customer,
   ViewMode,
@@ -46,6 +45,7 @@ export default function CustomersPage() {
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("leadScore");
@@ -93,11 +93,11 @@ export default function CustomersPage() {
   const repNameFilter = searchParams.get("repName");
   const isStormFiltered = stormFilter === "storm-affected" && countyFilter;
 
-  // Fetch customers from API
+  // Fetch customers from API (uses debounced search for better performance)
   const { data: customersData, isLoading, error } = useCustomers({
     page,
     limit: 20,
-    search: searchQuery || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter as "lead" | "prospect" | "customer" | "closed-won" | "closed-lost" : undefined,
     stage: stageFilter !== "all" ? stageFilter as "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "closed" : undefined,
     sortBy,
@@ -109,14 +109,21 @@ export default function CustomersPage() {
   const customers = customersData?.data || [];
   const pagination = customersData?.pagination;
 
-  // Apply county filter if storm-affected filter is active
-  const targetCounties = countyFilter?.split(",").map(c => c.trim().toLowerCase()) || [];
-  const filteredCustomers = isStormFiltered && targetCounties.length > 0
-    ? customers.filter((customer) => {
+  // Apply county filter if storm-affected filter is active (memoized for performance)
+  const targetCounties = useMemo(
+    () => countyFilter?.split(",").map(c => c.trim().toLowerCase()) || [],
+    [countyFilter]
+  );
+
+  const filteredCustomers = useMemo(() => {
+    if (isStormFiltered && targetCounties.length > 0) {
+      return customers.filter((customer) => {
         const customerCounty = cityToCounty[customer.city.toLowerCase()];
         return customerCounty && targetCounties.includes(customerCounty);
-      })
-    : customers;
+      });
+    }
+    return customers;
+  }, [customers, isStormFiltered, targetCounties]);
 
   // Selection helpers
   const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
@@ -351,14 +358,20 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Modals */}
-      <AddCustomerModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddCustomer} />
-      <BulkActionModal
-        isOpen={showBulkDeleteModal} onClose={() => setShowBulkDeleteModal(false)} onConfirm={handleBulkDelete}
-        title="Delete Customers" description="Are you sure you want to delete these customers? This action will mark them as 'Closed Lost' and they will be hidden from the main list."
-        confirmLabel="Delete" confirmVariant="danger" isLoading={bulkDelete.isPending} count={selectedIds.size}
-      />
-      <CustomerCompareModal isOpen={showCompareModal} onClose={() => setShowCompareModal(false)} customers={filteredCustomers.filter((c) => selectedIds.has(c.id))} />
+      {/* Modals - Lazy loaded for performance */}
+      {showAddModal && (
+        <LazyAddCustomerModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddCustomer} />
+      )}
+      {showBulkDeleteModal && (
+        <LazyBulkActionModal
+          isOpen={showBulkDeleteModal} onClose={() => setShowBulkDeleteModal(false)} onConfirm={handleBulkDelete}
+          title="Delete Customers" description="Are you sure you want to delete these customers? This action will mark them as 'Closed Lost' and they will be hidden from the main list."
+          confirmLabel="Delete" confirmVariant="danger" isLoading={bulkDelete.isPending} count={selectedIds.size}
+        />
+      )}
+      {showCompareModal && (
+        <LazyCustomerCompareModal isOpen={showCompareModal} onClose={() => setShowCompareModal(false)} customers={filteredCustomers.filter((c) => selectedIds.has(c.id))} />
+      )}
 
       {/* Bulk Action Bar */}
       <BulkActionBar

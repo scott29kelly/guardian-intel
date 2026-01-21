@@ -2,10 +2,12 @@
 
 /**
  * PredictiveStormCard Component
- * 
+ *
  * Displays a predicted storm with timing, severity, and action recommendations.
+ * Memoized to prevent unnecessary re-renders in dashboard views.
  */
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import {
   CloudLightning,
@@ -56,7 +58,7 @@ const priorityConfig = {
   critical: { label: "Critical", color: "text-rose-400", bgColor: "bg-rose-500/10 animate-pulse" },
 };
 
-export function PredictiveStormCard({
+export const PredictiveStormCard = memo(function PredictiveStormCard({
   prediction,
   onClick,
   onNotify,
@@ -270,6 +272,6 @@ export function PredictiveStormCard({
       </div>
     </motion.div>
   );
-}
+});
 
 export default PredictiveStormCard;

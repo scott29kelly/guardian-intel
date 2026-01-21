@@ -350,6 +350,8 @@ export function PhotoGallery({
                 src={selectedPhoto.url}
                 alt={selectedPhoto.description || "Photo"}
                 className="max-w-full max-h-full object-contain"
+                loading="eager"
+                decoding="async"
               />
 
               {/* Navigation */}
@@ -464,6 +466,8 @@ function PhotoThumbnail({ photo, onClick, compact }: PhotoThumbnailProps) {
         src={photo.thumbnailUrl || photo.url}
         alt={photo.description || "Photo"}
         className="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
       />
 
       {/* Overlay on hover */}

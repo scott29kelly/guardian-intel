@@ -119,6 +119,8 @@ export function StreetViewPreview({
           src={imageUrl}
           alt={`Street View of ${fullAddress}`}
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
           onLoad={() => setIsLoading(false)}
           onError={() => {
             setIsLoading(false);
@@ -268,6 +270,8 @@ export function StreetViewThumbnail({
         src={imageUrl}
         alt={`Street View of ${city}, ${state}`}
         className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        loading="lazy"
+        decoding="async"
         onError={() => setHasError(true)}
       />
       {/* Always visible overlay with label */}

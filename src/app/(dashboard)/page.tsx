@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -96,8 +96,9 @@ export default function DashboardPage() {
   const intelItems = data?.intelItems || [];
   const weatherEvents = data?.weatherEvents || [];
 
+  // Update time less frequently (every 5 seconds instead of every second)
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 5000);
     return () => clearInterval(timer);
   }, []);
 
@@ -108,14 +109,15 @@ export default function DashboardPage() {
     return () => clearInterval(alertTimer);
   }, [recentAlerts.length]);
 
-  const handleStormCanvass = () => {
+  // Memoized callbacks to prevent child re-renders
+  const handleStormCanvass = useCallback(() => {
     showToast("info", "Storm Canvass Started", "Loading affected properties in your area...");
     setTimeout(() => {
       router.push("/storms");
     }, 1000);
-  };
+  }, [router, showToast]);
 
-  const handleDialNextLead = () => {
+  const handleDialNextLead = useCallback(() => {
     const nextLead = priorityCustomers.find(c => c.status === "lead" || c.status === "prospect");
     if (nextLead && nextLead.phone) {
       showToast("success", "Connecting...", `Dialing ${nextLead.firstName} ${nextLead.lastName} at ${nextLead.phone}`);
@@ -124,27 +126,39 @@ export default function DashboardPage() {
     } else {
       showToast("info", "No leads available", "All priority leads have been contacted");
     }
-  };
+  }, [priorityCustomers, showToast]);
 
-  // Build contextual subtitle items
-  const contextItems: string[] = [];
-  if (liveMetrics.activeAlerts > 0) {
-    contextItems.push(`${liveMetrics.activeAlerts} storm alert${liveMetrics.activeAlerts > 1 ? 's' : ''} active`);
-  }
-  if (liveMetrics.hotLeads > 0) {
-    contextItems.push(`${liveMetrics.hotLeads} hot leads waiting`);
-  }
-  const targetPercent = Math.round((liveMetrics.revenue.value / liveMetrics.revenue.target) * 100);
-  if (targetPercent > 0) {
-    contextItems.push(`${targetPercent}% to target`);
-  }
+  // Memoized computed values
+  const targetPercent = useMemo(
+    () => Math.round((liveMetrics.revenue.value / liveMetrics.revenue.target) * 100),
+    [liveMetrics.revenue.value, liveMetrics.revenue.target]
+  );
 
-  // Determine primary CTA based on context
-  const primaryCTA = liveMetrics.activeAlerts > 0 
-    ? { label: "Start Storm Canvass", action: handleStormCanvass, icon: Zap }
-    : liveMetrics.hotLeads > 0 
-    ? { label: "Dial Next Lead", action: handleDialNextLead, icon: Phone }
-    : { label: "View Customers", action: () => router.push("/customers"), icon: Users };
+  // Build contextual subtitle items (memoized)
+  const contextItems = useMemo(() => {
+    const items: string[] = [];
+    if (liveMetrics.activeAlerts > 0) {
+      items.push(`${liveMetrics.activeAlerts} storm alert${liveMetrics.activeAlerts > 1 ? 's' : ''} active`);
+    }
+    if (liveMetrics.hotLeads > 0) {
+      items.push(`${liveMetrics.hotLeads} hot leads waiting`);
+    }
+    if (targetPercent > 0) {
+      items.push(`${targetPercent}% to target`);
+    }
+    return items;
+  }, [liveMetrics.activeAlerts, liveMetrics.hotLeads, targetPercent]);
+
+  // Determine primary CTA based on context (memoized)
+  const primaryCTA = useMemo(() => {
+    if (liveMetrics.activeAlerts > 0) {
+      return { label: "Start Storm Canvass", action: handleStormCanvass, icon: Zap };
+    }
+    if (liveMetrics.hotLeads > 0) {
+      return { label: "Dial Next Lead", action: handleDialNextLead, icon: Phone };
+    }
+    return { label: "View Customers", action: () => router.push("/customers"), icon: Users };
+  }, [liveMetrics.activeAlerts, liveMetrics.hotLeads, handleStormCanvass, handleDialNextLead, router]);
 
   return (
     <div className="space-y-6">

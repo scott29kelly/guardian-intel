@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 
@@ -28,7 +29,7 @@ const iconBgStyles = {
   danger: "bg-rose-500/20 text-rose-400",
 };
 
-export function MetricCard({
+export const MetricCard = memo(function MetricCard({
   title,
   value,
   change,
@@ -85,4 +86,4 @@ export function MetricCard({
       </div>
     </div>
   );
-}
+});
