@@ -1,0 +1,34 @@
+# Progress Log
+
+## 2026-01-21: Create Project Timeline Template (DECK-004)
+
+### Completed
+- Verified project-timeline.ts template implementation at src/features/deck-generator/templates/project-timeline.ts
+- Template exports TWO templates as specified:
+  1. `projectTimelineTemplate` - For manager audience with dark theme (guardianBrandConfig)
+  2. `projectTimelineCustomerTemplate` - For customer audience with light theme (guardianLightBrandConfig)
+
+### Template Sections
+- title: Cover slide with project name, address, and current status
+- project-stats: Contract value, timeline, completion percentage
+- timeline: Visual milestone tracker
+- upcoming-tasks: Next steps and action items (optional)
+- weather-forecast: 7-day forecast for scheduling (optional, disabled by default)
+
+### Data Sources
+- getProjectTitleData
+- getProjectStats
+- getProjectTimeline
+- getUpcomingTasks
+- getWeatherForecast
+
+### Integration
+- Template is properly exported in src/features/deck-generator/templates/index.ts
+- Included in deckTemplates array
+- TypeScript compilation passes
+
+### Notes
+- Template follows DeckTemplate interface from types/deck.types.ts
+- Uses Calendar icon from lucide-react
+- Category: 'operations' for manager version, 'customer-facing' for customer version
+- Tags: ['operations', 'project-management', 'customer-update']
