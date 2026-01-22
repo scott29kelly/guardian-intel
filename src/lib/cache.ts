@@ -34,6 +34,60 @@ const inMemoryCache = new Map<string, { value: unknown; expiresAt: number }>();
 // Redis client singleton
 let redisClient: Redis | null = null;
 
+// Hit/miss tracking for debugging (per-namespace)
+interface CacheStatEntry {
+  hits: number;
+  misses: number;
+  lastReset: number;
+}
+
+const cacheStats = new Map<CacheNamespace | "global", CacheStatEntry>();
+
+function initStatsEntry(): CacheStatEntry {
+  return { hits: 0, misses: 0, lastReset: Date.now() };
+}
+
+function trackHit(namespace?: CacheNamespace): void {
+  // Track global stats
+  if (!cacheStats.has("global")) {
+    cacheStats.set("global", initStatsEntry());
+  }
+  cacheStats.get("global")!.hits++;
+
+  // Track namespace-specific stats
+  if (namespace) {
+    if (!cacheStats.has(namespace)) {
+      cacheStats.set(namespace, initStatsEntry());
+    }
+    cacheStats.get(namespace)!.hits++;
+  }
+}
+
+function trackMiss(namespace?: CacheNamespace): void {
+  // Track global stats
+  if (!cacheStats.has("global")) {
+    cacheStats.set("global", initStatsEntry());
+  }
+  cacheStats.get("global")!.misses++;
+
+  // Track namespace-specific stats
+  if (namespace) {
+    if (!cacheStats.has(namespace)) {
+      cacheStats.set(namespace, initStatsEntry());
+    }
+    cacheStats.get(namespace)!.misses++;
+  }
+}
+
+function getNamespaceFromKey(key: string): CacheNamespace | undefined {
+  for (const [ns, prefix] of Object.entries(CACHE_NAMESPACES)) {
+    if (key.startsWith(prefix)) {
+      return ns as CacheNamespace;
+    }
+  }
+  return undefined;
+}
+
 function getRedisClient(): Redis | null {
   if (!USE_REDIS) return null;
   
@@ -73,26 +127,38 @@ export function hashString(str: string): string {
  */
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const redis = getRedisClient();
-  
+  const namespace = getNamespaceFromKey(key);
+
   if (redis) {
     try {
       const value = await redis.get<T>(key);
+      if (value !== null) {
+        trackHit(namespace);
+      } else {
+        trackMiss(namespace);
+      }
       return value;
     } catch (error) {
       console.error("[Cache] Redis GET error:", error);
+      trackMiss(namespace);
       return null;
     }
   }
-  
+
   // Fallback to in-memory cache
   const entry = inMemoryCache.get(key);
-  if (!entry) return null;
-  
-  if (Date.now() > entry.expiresAt) {
-    inMemoryCache.delete(key);
+  if (!entry) {
+    trackMiss(namespace);
     return null;
   }
-  
+
+  if (Date.now() > entry.expiresAt) {
+    inMemoryCache.delete(key);
+    trackMiss(namespace);
+    return null;
+  }
+
+  trackHit(namespace);
   return entry.value as T;
 }
 
@@ -172,11 +238,13 @@ export async function cacheInvalidateNamespace(namespace: CacheNamespace): Promi
   }
   
   // Fallback to in-memory cache
-  for (const key of inMemoryCache.keys()) {
+  const keysToDelete: string[] = [];
+  inMemoryCache.forEach((_, key) => {
     if (key.startsWith(prefix)) {
-      inMemoryCache.delete(key);
+      keysToDelete.push(key);
     }
-  }
+  });
+  keysToDelete.forEach((key) => inMemoryCache.delete(key));
   return true;
 }
 
@@ -213,22 +281,74 @@ export function isCacheRedisEnabled(): boolean {
 /**
  * Get cache stats (for debugging)
  */
-export async function getCacheStats(): Promise<{
+export interface CacheStatsResult {
   type: "redis" | "memory";
   keys?: number;
-}> {
+  global: {
+    hits: number;
+    misses: number;
+    hitRate: number;
+    totalRequests: number;
+    lastReset: number;
+  };
+  namespaces: Record<string, {
+    hits: number;
+    misses: number;
+    hitRate: number;
+    totalRequests: number;
+  }>;
+}
+
+export async function getCacheStats(): Promise<CacheStatsResult> {
   const redis = getRedisClient();
-  
-  if (redis) {
-    try {
-      const info = await redis.dbsize();
-      return { type: "redis", keys: info };
-    } catch {
-      return { type: "redis" };
+
+  // Get global stats
+  const globalStats = cacheStats.get("global") || initStatsEntry();
+  const globalTotal = globalStats.hits + globalStats.misses;
+
+  // Get namespace-specific stats
+  const namespaceStats: CacheStatsResult["namespaces"] = {};
+  for (const ns of Object.keys(CACHE_NAMESPACES) as CacheNamespace[]) {
+    const stats = cacheStats.get(ns);
+    if (stats) {
+      const total = stats.hits + stats.misses;
+      namespaceStats[ns] = {
+        hits: stats.hits,
+        misses: stats.misses,
+        hitRate: total > 0 ? Math.round((stats.hits / total) * 100) : 0,
+        totalRequests: total,
+      };
     }
   }
-  
-  return { type: "memory", keys: inMemoryCache.size };
+
+  const baseResult = {
+    global: {
+      hits: globalStats.hits,
+      misses: globalStats.misses,
+      hitRate: globalTotal > 0 ? Math.round((globalStats.hits / globalTotal) * 100) : 0,
+      totalRequests: globalTotal,
+      lastReset: globalStats.lastReset,
+    },
+    namespaces: namespaceStats,
+  };
+
+  if (redis) {
+    try {
+      const keyCount = await redis.dbsize();
+      return { type: "redis", keys: keyCount, ...baseResult };
+    } catch {
+      return { type: "redis", ...baseResult };
+    }
+  }
+
+  return { type: "memory", keys: inMemoryCache.size, ...baseResult };
+}
+
+/**
+ * Reset cache statistics
+ */
+export function resetCacheStats(): void {
+  cacheStats.clear();
 }
 
 // ============================================
