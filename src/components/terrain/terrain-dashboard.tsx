@@ -17,8 +17,8 @@ import StormActivityCard from './StormActivityCard';
 import PermitVelocityCard from './PermitVelocityCard';
 import IntelligenceBriefCard from './IntelligenceBriefCard';
 import AlertBanner from './AlertBanner';
-import InsightCard from './InsightCard';
-import BriefViewer from './BriefViewer';
+import InsightCard from './insight-card';
+import BriefViewer from './brief-viewer';
 
 export default function TerrainDashboard() {
   const [isLoading, setIsLoading] = useState(true);
