@@ -42,6 +42,8 @@ export type {
   ChartSlideContent,
   TalkingPointsSlideContent,
   ComparisonSlideContent,
+  MapSlideContent,
+  QuoteSlideContent,
   BrandingConfig,
   ExportFormat,
   DeckAudience,

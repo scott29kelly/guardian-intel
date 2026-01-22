@@ -1,0 +1,26 @@
+# Deck Generator Progress
+
+## DECK-001: Create Deck Generator TypeScript Types
+**Status:** Complete
+**Date:** January 21, 2026
+
+### What was done:
+1. Verified existing deck.types.ts had comprehensive type definitions for the deck generator feature
+2. Added missing slide content types:
+   - MapSlideContent - For map-based slides with markers and regions
+   - QuoteSlideContent - For testimonial/quote slides
+3. Created types/index.ts barrel export file for cleaner imports
+4. Updated src/features/deck-generator/index.ts to export the new types
+
+### Files modified:
+- src/features/deck-generator/types/deck.types.ts - Added MapSlideContent and QuoteSlideContent interfaces
+- src/features/deck-generator/types/index.ts - Created new barrel export file
+- src/features/deck-generator/index.ts - Added MapSlideContent and QuoteSlideContent to exports
+
+### Types now available:
+- Core Types: DeckAudience, SlideType, ContextType, ExportFormat
+- Template Types: ContextRequirement, SlideSection, BrandingConfig, DeckTemplate
+- Slide Content Types: TitleSlideContent, StatsSlideContent, ListSlideContent, TimelineSlideContent, ImageSlideContent, ChartSlideContent, TalkingPointsSlideContent, ComparisonSlideContent, MapSlideContent, QuoteSlideContent
+- Generated Deck Types: GeneratedSlide, GeneratedDeck
+- Request/Response Types: DeckGenerationRequest, DeckGenerationProgress, DeckGenerationResponse
+- UI State Types: DeckGeneratorState, DeckHistoryItem
