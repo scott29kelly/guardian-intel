@@ -16,7 +16,7 @@ import {
 import { IntelligenceBrief } from '@/lib/terrain/types';
 import { format } from 'date-fns';
 import TerrainMetricCard from './TerrainMetricCard';
-import InsightCard from './InsightCard';
+import InsightCard from './insight-card';
 import ActionItemCard from './ActionItemCard';
 import DataSourceBadge from './DataSourceBadge';
 
