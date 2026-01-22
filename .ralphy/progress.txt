@@ -1,34 +1,53 @@
-# Progress Log
+## Task: Create Storm Deployment Template (DECK-005)
 
-## 2026-01-21: Create Project Timeline Template (DECK-004)
+**Status:** Completed
+**Date:** 2026-01-21
 
-### Completed
-- Verified project-timeline.ts template implementation at src/features/deck-generator/templates/project-timeline.ts
-- Template exports TWO templates as specified:
-  1. `projectTimelineTemplate` - For manager audience with dark theme (guardianBrandConfig)
-  2. `projectTimelineCustomerTemplate` - For customer audience with light theme (guardianLightBrandConfig)
+### Summary
+The Storm Deployment Template for the deck generator feature was verified and tested.
 
-### Template Sections
-- title: Cover slide with project name, address, and current status
-- project-stats: Contract value, timeline, completion percentage
-- timeline: Visual milestone tracker
-- upcoming-tasks: Next steps and action items (optional)
-- weather-forecast: 7-day forecast for scheduling (optional, disabled by default)
+### What was done:
 
-### Data Sources
-- getProjectTitleData
-- getProjectStats
-- getProjectTimeline
-- getUpcomingTasks
-- getWeatherForecast
+1. **Verified Template Implementation** - The `storm-deployment.ts` template was already implemented with all required sections:
+   - `title` - Storm event summary (type: title)
+   - `storm-stats` - Properties affected, severity, opportunity size (type: stats)
+   - `affected-map` - Geographic visualization (type: map)
+   - `priority-leads` - Top opportunities ranked by AI (type: list, aiEnhanced: true)
+   - `team-assignments` - Rep assignments (type: list, aiEnhanced: true, optional)
+   - `talking-points` - Storm response scripts (type: talking-points, aiEnhanced: true)
+   - `logistics` - Equipment checklist (type: list, optional)
 
-### Integration
-- Template is properly exported in src/features/deck-generator/templates/index.ts
-- Included in deckTemplates array
-- TypeScript compilation passes
+2. **Verified Template Configuration:**
+   - Correct id: `storm-deployment`
+   - Name: `Storm Response Deployment Brief`
+   - Audience: `manager`
+   - Category: `operations`
+   - Tags: `storm-response`, `deployment`, `urgent`
+   - Required context: region (required), date-range (optional)
 
-### Notes
-- Template follows DeckTemplate interface from types/deck.types.ts
-- Uses Calendar icon from lucide-react
-- Category: 'operations' for manager version, 'customer-facing' for customer version
-- Tags: ['operations', 'project-management', 'customer-update']
+3. **Verified Template Export** - Template is properly exported in `templates/index.ts` and included in:
+   - `deckTemplates` array
+   - Named export `stormDeploymentTemplate`
+   - Accessible via `getTemplateById('storm-deployment')`
+   - Listed in operations category templates
+
+4. **Added Unit Tests** - Created comprehensive test suite in `tests/unit/deck-templates.test.ts`:
+   - 25 tests covering:
+     - Template structure and metadata
+     - All 7 sections validation
+     - AI-enhanced section flags
+     - Required vs optional sections
+     - Branding configuration
+     - Template registry functions
+     - Template uniqueness validation
+
+### Files Modified:
+- Created: `tests/unit/deck-templates.test.ts` (new test file)
+
+### Files Verified (no changes needed):
+- `src/features/deck-generator/templates/storm-deployment.ts`
+- `src/features/deck-generator/templates/index.ts`
+- `src/features/deck-generator/types/deck.types.ts`
+
+### Test Results:
+All 25 tests pass successfully.
