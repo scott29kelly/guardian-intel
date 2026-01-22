@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import {
@@ -135,7 +135,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
             title: `Level ${levelInfo.level}!`,
             subtitle: `You've reached a new level`,
             xpEarned: amount,
-            icon: "🎖️",
+            icon: "ðŸŽ–ï¸",
           },
         ]);
       }
@@ -174,7 +174,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
                   title: `Level ${data.data.level}!`,
                   subtitle: "You've reached a new level",
                   xpEarned: data.data.xpEarned,
-                  icon: "🎖️",
+                  icon: "ðŸŽ–ï¸",
                 },
               ]);
             }
@@ -377,3 +377,4 @@ export function useGamification() {
   }
   return context;
 }
+

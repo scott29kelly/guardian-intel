@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,7 @@ import {
   DollarSign,
   Bot,
   ClipboardList,
+  Presentation,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
@@ -28,6 +29,7 @@ import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
+import { DeckGeneratorModal } from "@/features/deck-generator";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -61,6 +63,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const [showAIChat, setShowAIChat] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
+  const [showDeckGenerator, setShowDeckGenerator] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const handleActivitySaved = (activity: ActivityLog) => {
@@ -69,14 +72,14 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
 
   const criticalItems = intelItems.filter((i) => i.priority === "critical");
   const hasStormDamage = weatherEvents.length > 0;
-  
+
   // Calculate dynamic scores based on customer data
   const scores = calculateCustomerScores({
     customer,
     intelItems,
     weatherEvents,
   });
-  
+
   // Get human-readable explanations for tooltips
   const urgencyTooltip = `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`;
   const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
@@ -161,7 +164,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="font-mono text-xs">
-                    {customer.lastContact 
+                    {customer.lastContact
                       ? `${Math.floor((Date.now() - new Date(customer.lastContact).getTime()) / (1000 * 60 * 60 * 24))}d ago`
                       : 'Never contacted'}
                   </span>
@@ -176,8 +179,8 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       key={item.id}
                       className={`
                         px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider
-                        ${item.priority === "critical" 
-                          ? "bg-[hsl(var(--accent-danger)/0.1)] text-accent-danger border border-[hsl(var(--accent-danger)/0.3)]" 
+                        ${item.priority === "critical"
+                          ? "bg-[hsl(var(--accent-danger)/0.1)] text-accent-danger border border-[hsl(var(--accent-danger)/0.3)]"
                           : "bg-surface-secondary text-text-muted border border-border"
                         }
                       `}
@@ -214,7 +217,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                 </div>
                 <span className="font-mono text-[9px] text-text-muted uppercase">Retention</span>
               </div>
-              
+
               {/* Expand Button */}
               <motion.div
                 animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -373,8 +376,8 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                           key={item.id}
                           className={`
                             p-3 rounded border
-                            ${item.priority === "critical" 
-                              ? "bg-[hsl(var(--accent-danger)/0.05)] border-[hsl(var(--accent-danger)/0.3)]" 
+                            ${item.priority === "critical"
+                              ? "bg-[hsl(var(--accent-danger)/0.05)] border-[hsl(var(--accent-danger)/0.3)]"
                               : "bg-surface-secondary/50 border-border/50"
                             }
                           `}
@@ -417,7 +420,17 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeckGenerator(true);
+                      }}
+                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
+                    >
+                      <Presentation className="w-3 h-3" />
+                      PREP DECK
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowQuickLog(true);
@@ -427,7 +440,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <ClipboardList className="w-3 h-3" />
                       LOG
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowAIChat(true);
@@ -437,7 +450,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <Bot className="w-3 h-3" />
                       ASK AI
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowProfileModal(true);
@@ -446,7 +459,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                     >
                       VIEW PROFILE
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowActionModal(true);
@@ -484,7 +497,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
           onClose={() => setShowActionModal(false)}
         />
       )}
-      
+
       {/* AI Components */}
       <AIChatPanel
         isOpen={showAIChat}
@@ -500,7 +513,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         activities={activities}
         onLogSaved={handleActivitySaved}
       />
-      
+
       {/* Street View Modal */}
       <StreetViewModal
         isOpen={showStreetViewModal}
@@ -510,7 +523,17 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         state={customer.state}
         zipCode={customer.zipCode}
       />
+
+      {/* Deck Generator Modal */}
+      <DeckGeneratorModal
+        isOpen={showDeckGenerator}
+        onClose={() => setShowDeckGenerator(false)}
+        initialContext={{
+          customerId: customer.id,
+          customerName: `${customer.firstName} ${customer.lastName}`,
+        }}
+        initialTemplateId="customer-cheat-sheet"
+      />
     </>
   );
 });
-

@@ -1,0 +1,480 @@
+# Guardian Intel - Deck Generator Feature
+# Ralphy YAML Configuration
+# Generated: January 21, 2026
+# 
+# Run with:
+#   ./ralphy.sh --yaml deck-generator-tasks.yaml --parallel --max-parallel 4 --branch-per-task --draft-pr
+#
+# Total tasks: 16
+# Estimated time: 2-3 hours with parallelization
+
+project: guardian-intel
+feature: deck-generator
+version: 1.0.0
+# =============================================================================
+# PARALLEL GROUP 0: FOUNDATION (Types + Config)
+# No dependencies - these are standalone files
+# =============================================================================
+tasks:
+  - id: DECK-001
+    title: "Create Deck Generator TypeScript Types"
+    parallel_group: 0
+    description: |
+      Create the complete type definitions for the deck generator feature.
+
+      File: src/features/deck-generator/types/deck.types.ts
+
+      Include all types from DECK_GENERATOR_IMPLEMENTATION_GUIDE.md:
+      - DeckAudience, SlideType, ContextType, ExportFormat
+      - ContextRequirement, SlideSection, BrandingConfig, DeckTemplate
+      - All SlideContent variants (TitleSlideContent, StatsSlideContent, etc.)
+      - GeneratedSlide, GeneratedDeck
+      - DeckGenerationRequest, DeckGenerationProgress, DeckGenerationResponse
+      - DeckGeneratorState, DeckHistoryItem
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md section "TypeScript Type Definitions"
+    files:
+      - src/features/deck-generator/types/deck.types.ts
+    estimate: 20m
+    completed: true
+  - id: DECK-002
+    title: "Create Branding Configuration"
+    parallel_group: 0
+    description: |
+      Create the Guardian Intel brand configuration for decks.
+
+      File: src/features/deck-generator/utils/brandingConfig.ts
+
+      Include:
+      - guardianBrandConfig (dark theme - navy/gold/teal)
+      - guardianLightBrandConfig (light theme for customer-facing)
+      - getBrandingForAudience() helper function
+
+      Colors from guide:
+      - primary: #1E3A5F (Navy)
+      - secondary: #D4A656 (Gold)
+      - accent: #4A90A4 (Teal)
+      - background: #0F1419 (Dark)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md section "Branding Configuration"
+    files:
+      - src/features/deck-generator/utils/brandingConfig.ts
+    estimate: 10m
+    # =============================================================================
+    # PARALLEL GROUP 1: TEMPLATES
+    # Depends on: Types (DECK-001), Branding (DECK-002)
+    # Each template is a separate file - can run in parallel
+    # =============================================================================
+
+    completed: true
+  - id: DECK-003
+    title: "Create Customer Cheat Sheet Template"
+    parallel_group: 1
+    description: |
+      Create the customer interaction prep template.
+
+      File: src/features/deck-generator/templates/customer-cheat-sheet.ts
+
+      Sections:
+      - title: Cover slide with customer name/address
+      - customer-overview: Stats (lead score, property value, roof age, storm exposure)
+      - property-intel: Street View image with property details
+      - storm-history: Timeline of storm events
+      - talking-points: AI-generated conversation starters (aiEnhanced: true)
+      - objection-handlers: Common objections with responses (aiEnhanced: true)
+      - next-steps: AI-suggested actions (optional)
+
+      Import types from ../types/deck.types and branding from ../utils/brandingConfig
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Customer Cheat Sheet Template"
+    files:
+      - src/features/deck-generator/templates/customer-cheat-sheet.ts
+    estimate: 15m
+  - id: DECK-004
+    title: "Create Project Timeline Template"
+    parallel_group: 1
+    description: |
+      Create the project timeline template for manager/customer updates.
+
+      File: src/features/deck-generator/templates/project-timeline.ts
+
+      Export TWO templates:
+      1. projectTimelineTemplate (manager audience, dark theme)
+      2. projectTimelineCustomerTemplate (customer audience, light theme)
+
+      Sections:
+      - title: Project name, address, status
+      - project-stats: Contract value, timeline, completion %
+      - timeline: Visual milestone tracker
+      - upcoming-tasks: Next steps
+      - weather-forecast: 7-day forecast (optional)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Project Timeline Template"
+    files:
+      - src/features/deck-generator/templates/project-timeline.ts
+    estimate: 15m
+  - id: DECK-005
+    title: "Create Storm Deployment Template"
+    parallel_group: 1
+    description: |
+      Create the storm response deployment brief template.
+
+      File: src/features/deck-generator/templates/storm-deployment.ts
+
+      Sections:
+      - title: Storm event summary
+      - storm-stats: Properties affected, severity, opportunity size
+      - affected-map: Geographic visualization (type: 'map')
+      - priority-leads: Top opportunities ranked by AI (aiEnhanced: true)
+      - team-assignments: Rep assignments (aiEnhanced: true)
+      - talking-points: Storm response scripts (aiEnhanced: true)
+      - logistics: Equipment checklist (optional)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Storm Deployment Template"
+    files:
+      - src/features/deck-generator/templates/storm-deployment.ts
+    estimate: 15m
+  - id: DECK-006
+    title: "Create Insurance Prep & Team Performance Templates"
+    parallel_group: 1
+    description: |
+      Create two templates in separate files.
+
+      File 1: src/features/deck-generator/templates/insurance-prep.ts
+      - Adjuster meeting preparation
+      - Sections: title, claim-overview, damage-documentation, carrier-intel, negotiation-points, checklist
+
+      File 2: src/features/deck-generator/templates/team-performance.ts
+      - Leadership performance reports
+      - Sections: title, kpi-summary, revenue-trend, leaderboard, coaching-opportunities, pipeline-health, insights
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Insurance Prep Template" and "Team Performance Template"
+    files:
+      - src/features/deck-generator/templates/insurance-prep.ts
+      - src/features/deck-generator/templates/team-performance.ts
+    estimate: 25m
+  - id: DECK-007
+    title: "Create Market Analysis Template + Templates Index"
+    parallel_group: 1
+    description: |
+      Create market analysis template and the templates barrel export.
+
+      File 1: src/features/deck-generator/templates/market-analysis.ts
+      - Regional market intelligence for strategic planning
+      - Sections: title, market-stats, storm-activity, opportunity-map, competitive-landscape, strategic-recommendations
+
+      File 2: src/features/deck-generator/templates/index.ts
+      - Import all templates
+      - Export deckTemplates array
+      - Export individual templates
+      - Export helper functions: getTemplateById, getTemplatesByAudience, getTemplatesByCategory
+      - Export templateCategories array
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Market Analysis Template" and "Templates Index"
+    files:
+      - src/features/deck-generator/templates/market-analysis.ts
+      - src/features/deck-generator/templates/index.ts
+    estimate: 20m
+    # =============================================================================
+    # PARALLEL GROUP 2: DATA LAYER + HOOKS
+    # Depends on: Types (DECK-001)
+    # These work with types but don't need templates yet
+    # =============================================================================
+  - id: DECK-008
+    title: "Create Data Aggregator Utility"
+    parallel_group: 2
+    description: |
+      Create the data aggregator that fetches and formats data for slides.
+
+      File: src/features/deck-generator/utils/dataAggregator.ts
+
+      Implement these data source functions:
+      - getCustomerTitleData(customerId) -> TitleSlideContent
+      - getCustomerOverviewStats(customerId) -> StatsSlideContent
+      - getPropertyIntelData(customerId) -> ImageSlideContent
+      - getStormHistoryTimeline(customerId) -> TimelineSlideContent
+      - generateCustomerTalkingPoints(customerId) -> TalkingPointsSlideContent (calls /api/ai/generate-talking-points)
+      - generateObjectionHandlers(customerId) -> ListSlideContent
+      - getTeamKPIStats(teamId?, dateRange?) -> StatsSlideContent
+      - getLeaderboardData(teamId?) -> ListSlideContent
+      - getRevenueTrendData(teamId?, dateRange?) -> ChartSlideContent
+      - getStormImpactStats(regionId) -> StatsSlideContent
+      - getPriorityStormLeads(regionId) -> ListSlideContent
+      - generateStormTalkingPoints(regionId) -> TalkingPointsSlideContent
+
+      Also create:
+      - dataSourceRegistry: Record<string, Function> mapping function names
+      - fetchDataForSlide(dataSourceName, context): Helper to call any data source
+
+      Use existing Guardian Intel API endpoints where possible (e.g., /api/customers/[id], /api/analytics/*)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Data Aggregator Utility"
+    files:
+      - src/features/deck-generator/utils/dataAggregator.ts
+    estimate: 45m
+  - id: DECK-009
+    title: "Create Deck Generation Hook"
+    parallel_group: 2
+    description: |
+      Create the main React hook for deck generation.
+
+      File: src/features/deck-generator/hooks/useDeckGeneration.ts
+
+      Implement useDeckGeneration() hook returning:
+      - isGenerating: boolean
+      - progress: DeckGenerationProgress | null
+      - generatedDeck: GeneratedDeck | null
+      - error: string | null
+      - generateDeck(template, request): Promise<GeneratedDeck | null>
+      - resetGeneration(): void
+
+      Logic:
+      1. Initialize progress state
+      2. Get enabled sections from request
+      3. Loop through sections, call fetchDataForSlide for each
+      4. Update progress as each slide completes
+      5. Build GeneratedDeck object
+      6. Handle errors gracefully
+
+      Import types from ../types/deck.types
+      Import fetchDataForSlide from ../utils/dataAggregator (will be available after merge)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Main Generation Hook"
+    files:
+      - src/features/deck-generator/hooks/useDeckGeneration.ts
+    estimate: 30m
+  - id: DECK-010
+    title: "Create Templates Hook + Hooks Index"
+    parallel_group: 2
+    description: |
+      Create the templates hook and hooks barrel export.
+
+      File 1: src/features/deck-generator/hooks/useDeckTemplates.ts
+      - useDeckTemplates() hook returning:
+        - templates: DeckTemplate[]
+        - categories: templateCategories
+        - getTemplate(id): DeckTemplate | undefined
+        - getByAudience(audience): DeckTemplate[]
+        - getByCategory(category): DeckTemplate[]
+        - searchTemplates(query): DeckTemplate[]
+
+      File 2: src/features/deck-generator/hooks/index.ts
+      - Export useDeckGeneration from './useDeckGeneration'
+      - Export useDeckTemplates from './useDeckTemplates'
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Templates Hook" and "Hooks Index"
+    files:
+      - src/features/deck-generator/hooks/useDeckTemplates.ts
+      - src/features/deck-generator/hooks/index.ts
+    estimate: 15m
+    # =============================================================================
+    # PARALLEL GROUP 3: UI COMPONENTS
+    # Depends on: Types (DECK-001), Hooks (DECK-009, DECK-010)
+    # Each component is separate file - can run in parallel
+    # =============================================================================
+  - id: DECK-011
+    title: "Create Template Selector Component"
+    parallel_group: 3
+    description: |
+      Create the template selection UI component.
+
+      File: src/features/deck-generator/components/DeckTemplateSelector.tsx
+
+      Features:
+      - Search input with icon
+      - Category filter buttons (All, Sales & Field, Operations, Leadership, Customer-Facing)
+      - Template grid with cards showing:
+        - Icon (from lucide-react)
+        - Name and description
+        - Estimated slides and generation time
+        - AI-enhanced badge if applicable
+      - Click to select template
+      - Uses framer-motion for animations
+
+      Props:
+      - templates: DeckTemplate[]
+      - onSelect: (template: DeckTemplate) => void
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Template Selector Component"
+    files:
+      - src/features/deck-generator/components/DeckTemplateSelector.tsx
+    estimate: 30m
+  - id: DECK-012
+    title: "Create Customizer Component"
+    parallel_group: 3
+    description: |
+      Create the deck customization UI component.
+
+      File: src/features/deck-generator/components/DeckCustomizer.tsx
+
+      Features:
+      - Context selection (customer/project/team dropdowns)
+      - Section toggles with checkboxes
+      - AI-enhanced badges on AI sections
+      - Required sections marked and disabled
+      - Export format selector (PDF, PPTX, Link)
+
+      Props:
+      - template: DeckTemplate
+      - context: Record<string, any>
+      - onContextChange: (context) => void
+      - enabledSections: string[]
+      - onSectionsChange: (sections) => void
+      - exportFormat: ExportFormat
+      - onExportFormatChange: (format) => void
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Customizer Component"
+    files:
+      - src/features/deck-generator/components/DeckCustomizer.tsx
+    estimate: 25m
+  - id: DECK-013
+    title: "Create Preview Component"
+    parallel_group: 3
+    description: |
+      Create the deck preview UI component.
+
+      File: src/features/deck-generator/components/DeckPreview.tsx
+
+      Features:
+      - 16:9 aspect ratio slide preview area
+      - Navigation arrows (left/right)
+      - Slide counter (e.g., "3 / 8")
+      - Thumbnail strip below main preview
+      - Click thumbnail to jump to slide
+      - Apply branding colors from deck
+
+      Props:
+      - deck: GeneratedDeck
+
+      Note: Initially render basic slide info (title, type, AI badge)
+      Full slide rendering can be enhanced later
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Preview Component"
+    files:
+      - src/features/deck-generator/components/DeckPreview.tsx
+    estimate: 25m
+    # =============================================================================
+    # PARALLEL GROUP 4: MAIN MODAL + INTEGRATION
+    # Depends on: All components (DECK-011, DECK-012, DECK-013), Hooks (DECK-009, DECK-010)
+    # =============================================================================
+  - id: DECK-014
+    title: "Create Main Modal Component"
+    parallel_group: 4
+    description: |
+      Create the main DeckGeneratorModal component that orchestrates the flow.
+
+      File: src/features/deck-generator/components/DeckGeneratorModal.tsx
+
+      Features:
+      - Multi-step flow: select-template → customize → generating → preview
+      - AnimatePresence for smooth transitions
+      - Header with back navigation and close button
+      - Footer with context info and action buttons
+      - Progress indicator during generation
+      - Error state with retry option
+      - Download and Share buttons in preview step
+
+      Props:
+      - isOpen: boolean
+      - onClose: () => void
+      - initialContext?: { customerId?, customerName?, projectId?, regionId? }
+      - initialTemplateId?: string (to skip template selection)
+
+      Compose:
+      - DeckTemplateSelector (step 1)
+      - DeckCustomizer (step 2)
+      - Progress spinner (step 3)
+      - DeckPreview (step 4)
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Main Modal Component"
+    files:
+      - src/features/deck-generator/components/DeckGeneratorModal.tsx
+    estimate: 40m
+  - id: DECK-015
+    title: "Create Components Index + Feature Index"
+    parallel_group: 4
+    description: |
+      Create barrel exports for components and the main feature.
+
+      File 1: src/features/deck-generator/components/index.ts
+      - Export DeckGeneratorModal
+      - Export DeckTemplateSelector
+      - Export DeckCustomizer
+      - Export DeckPreview
+
+      File 2: src/features/deck-generator/utils/index.ts
+      - Export from brandingConfig
+      - Export from dataAggregator
+
+      File 3: src/features/deck-generator/index.ts (MAIN FEATURE EXPORT)
+      - Export components from './components'
+      - Export hooks from './hooks'
+      - Export templates and helpers from './templates'
+      - Export types from './types/deck.types'
+      - Export utils from './utils'
+
+      Reference: docs/DECK_GENERATOR_IMPLEMENTATION_GUIDE.md "Feature Index"
+    files:
+      - src/features/deck-generator/components/index.ts
+      - src/features/deck-generator/utils/index.ts
+      - src/features/deck-generator/index.ts
+    estimate: 15m
+    # =============================================================================
+    # PARALLEL GROUP 5: INTEGRATION + POLISH
+    # Depends on: Everything above
+    # =============================================================================
+  - id: DECK-016
+    title: "Integrate Deck Generator into Customer Card"
+    parallel_group: 5
+    description: |
+      Add "Generate Prep Deck" button to the customer intel card.
+
+      File to modify: src/components/customer-intel-card.tsx
+
+      Changes:
+      1. Import DeckGeneratorModal from '@/features/deck-generator'
+      2. Add state: const [showDeckGenerator, setShowDeckGenerator] = useState(false)
+      3. Add button in card actions area:
+         <button onClick={() => setShowDeckGenerator(true)}>
+           <Presentation /> Generate Prep Deck
+         </button>
+      4. Add modal at end of component:
+         <DeckGeneratorModal
+           isOpen={showDeckGenerator}
+           onClose={() => setShowDeckGenerator(false)}
+           initialContext={{ customerId: customer.id, customerName: customer.name }}
+           initialTemplateId="customer-cheat-sheet"
+         />
+
+      Also verify build passes: npm run build
+    files:
+      - src/components/customer-intel-card.tsx
+    estimate: 20m
+# =============================================================================
+# METADATA
+# =============================================================================
+metadata:
+  total_tasks: 16
+  by_group:
+    group_0_foundation: 2
+    group_1_templates: 5
+    group_2_data_hooks: 3
+    group_3_components: 3
+    group_4_modal_integration: 2
+    group_5_final_integration: 1
+  estimated_total_time: "3-4 hours sequential, ~2 hours with parallelization"
+  recommended_command: |
+    ./ralphy.sh \
+      --yaml deck-generator-tasks.yaml \
+      --parallel \
+      --max-parallel 4 \
+      --branch-per-task \
+      --draft-pr
+  notes:
+    - Group 0 tasks have no dependencies and can run immediately
+    - Group 1 templates are independent files and run fully parallel
+    - Group 2 hooks need types but not templates
+    - Group 3 components need types and hooks
+    - Group 4 modal needs all components
+    - Group 5 integration needs everything
+    - Max parallel 4 recommended to avoid rate limits
