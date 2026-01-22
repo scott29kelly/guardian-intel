@@ -12,33 +12,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { z } from "zod";
-import { cuidSchema, formatZodErrors } from "@/lib/validations";
+import { cuidSchema, formatZodErrors, playbookUsageSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
-
-const usageContextSchema = z.enum([
-  "practice",
-  "customer_call",
-  "meeting",
-  "reference",
-  "roleplay",
-]);
-
-const usageOutcomeSchema = z.enum([
-  "closed_won",
-  "follow_up",
-  "no_result",
-  "objection_handled",
-]);
-
-const createUsageSchema = z.object({
-  customerId: cuidSchema.optional(),
-  context: usageContextSchema,
-  duration: z.number().int().min(0).optional(),
-  completed: z.boolean().optional().default(false),
-  outcome: usageOutcomeSchema.optional(),
-});
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -76,7 +52,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Parse and validate body
     const body = await request.json();
-    const validation = createUsageSchema.safeParse(body);
+    const validation = playbookUsageSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(

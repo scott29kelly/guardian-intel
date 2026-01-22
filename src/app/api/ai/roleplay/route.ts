@@ -13,48 +13,13 @@ import { authOptions } from "@/lib/auth";
 import { getAI } from "@/lib/services/ai";
 import type { Message } from "@/lib/services/ai";
 import { rateLimit } from "@/lib/rate-limit";
-import { z } from "zod";
-import { formatZodErrors } from "@/lib/validations";
+import { formatZodErrors, roleplayRequestSchema, type RoleplayPersona } from "@/lib/validations";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Persona types for roleplay
-const personaSchema = z.enum([
-  "skeptical_homeowner",
-  "price_conscious",
-  "insurance_hesitant",
-  "busy_professional",
-  "comparison_shopper",
-  "storm_victim",
-  "elderly_homeowner",
-  "aggressive_negotiator",
-]);
-
-type Persona = z.infer<typeof personaSchema>;
-
-// Roleplay request schema
-const roleplayRequestSchema = z.object({
-  // Session management
-  action: z.enum(["start", "continue", "end", "coach"]),
-  
-  // For "start" action
-  persona: personaSchema.optional(),
-  scenario: z.string().max(500).optional(),
-  playbookId: z.string().cuid().optional(),
-  customerId: z.string().cuid().optional(),
-  
-  // For "continue" action
-  sessionId: z.string().optional(),
-  userMessage: z.string().max(2000).optional(),
-  
-  // Conversation history (for stateless mode)
-  messages: z.array(z.object({
-    role: z.enum(["user", "assistant", "system"]),
-    content: z.string(),
-  })).optional(),
-});
+type Persona = RoleplayPersona;
 
 // Persona definitions with prompts
 const PERSONA_PROMPTS: Record<Persona, {

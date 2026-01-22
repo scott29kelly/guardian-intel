@@ -10,27 +10,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-
-// =============================================================================
-// VALIDATION SCHEMAS
-// =============================================================================
-
-const claimCreateSchema = z.object({
-  customerId: z.string().min(1, "Customer is required"),
-  carrier: z.string().min(1, "Insurance carrier is required"),
-  dateOfLoss: z.string().transform((s) => new Date(s)),
-  claimType: z.enum(["roof", "siding", "gutters", "full-exterior", "interior"]),
-  claimNumber: z.string().optional(),
-  status: z.enum(["pending", "filed", "adjuster-assigned", "inspection-scheduled", "approved", "denied", "supplement", "paid", "closed"]).default("pending"),
-  initialEstimate: z.number().optional(),
-  deductible: z.number().optional(),
-  adjusterName: z.string().optional(),
-  adjusterPhone: z.string().optional(),
-  adjusterEmail: z.string().optional(),
-  adjusterCompany: z.string().optional(),
-  inspectionDate: z.string().transform((s) => new Date(s)).optional(),
-  notes: z.string().optional(),
-});
+import { claimCreateSchema } from "@/lib/validations";
 
 // =============================================================================
 // GET - List Claims
