@@ -1,0 +1,162 @@
+# Guardian Intel Refactor Tasks
+# Generated: 2025-01-21
+# Updated: 2025-01-21 (Groups 0-5 COMPLETE)
+# Format: Flat Ralphy YAML with parallel_group integers (0-6)
+
+project: guardian-intel
+version: 1.0.0
+
+# ===========================================================================
+# PARALLEL GROUP 0: SECURITY FOUNDATIONS - COMPLETE ✓
+# ===========================================================================
+# SEC-001: Manual key rotation (MANUAL_REQUIRED)
+# SEC-002: NEXTAUTH_SECRET validation ✓
+# SEC-003: API authentication ✓
+# SEC-004: Authorization checks ✓
+# SEC-005: XSS sanitization ✓
+# SEC-006: Webhook signature fix ✓
+# SEC-007: CSRF protection ✓
+# SEC-008: Rate limiting ✓
+
+# ===========================================================================
+# PARALLEL GROUP 1: TYPE SYSTEM FOUNDATIONS - COMPLETE ✓
+# ===========================================================================
+# TYPE-001: Centralized Customer type ✓
+# TYPE-002: Replace :any types ✓
+# TYPE-003: API response types ✓
+
+# ===========================================================================
+# PARALLEL GROUP 2: ERROR HANDLING INFRASTRUCTURE - COMPLETE ✓
+# ===========================================================================
+# ERR-001: Fix empty catch block ✓
+# ERR-002: API response helper ✓
+# ERR-003: Route error boundaries ✓
+# ERR-004: SendGrid JSON parse fix ✓
+# ERR-005: NOAA null checks ✓
+# ERR-006: ErrorBoundary components ✓
+
+# ===========================================================================
+# PARALLEL GROUP 3: DATABASE OPTIMIZATIONS - COMPLETE ✓
+# ===========================================================================
+# DB-001: Composite indexes ✓
+# DB-002: Heatmap aggregation ✓
+
+# ===========================================================================
+# PARALLEL GROUP 4: ARCHITECTURE REFACTORS - COMPLETE ✓
+# ===========================================================================
+# ARCH-001: Customer filtering hook ✓
+# ARCH-002: Bulk operations hook ✓
+# ARCH-003: Customers view components ✓ (MERGED TO MAIN)
+# ARCH-004: Modal components ✓ (MERGED TO MAIN)
+# ARCH-005: Extract constants ✓
+# ARCH-006: React Query for TerrainDashboard ✓
+
+# ===========================================================================
+# PARALLEL GROUP 5: PERFORMANCE OPTIMIZATIONS - COMPLETE ✓
+# ===========================================================================
+# PERF-001: Leaflet CSS import ✓
+# PERF-002: Memoize filtered customers ✓
+# PERF-003: React.memo list items ✓
+# PERF-004: useCallback handlers ✓
+# PERF-005: Consolidate marker rendering ✓
+# PERF-006: Suspense boundaries ✓
+# PERF-007: Leaflet.heat import ✓
+# PERF-008: Remove unused dependency ✓
+
+# ===========================================================================
+# PARALLEL GROUP 6: CODE ORGANIZATION CLEANUP - PENDING
+# ===========================================================================
+tasks:
+  - id: ORG-001
+    title: Consolidate validation schemas
+    parallel_group: 6
+    severity: MED
+    files:
+      - src/lib/validations.ts
+      - src/app/api/claims/route.ts
+    description: Import schemas from central location, remove duplicates in API routes
+    action: |
+      // In API routes, replace inline schemas with imports:
+      import { claimCreateSchema, customerCreateSchema } from "@/lib/validations";
+    estimate: 1h
+    status: PENDING
+
+  - id: ORG-002
+    title: Add barrel exports for services
+    parallel_group: 6
+    severity: MED
+    files:
+      - src/lib/services/index.ts
+    description: Create barrel exports for cleaner imports
+    action: |
+      // src/lib/services/index.ts
+      export * from "./ai";
+      export * from "./weather";
+      export * from "./carriers";
+      export * from "./outreach";
+      export * from "./analytics";
+    estimate: 30m
+    status: PENDING
+
+  - id: ORG-003
+    title: Standardize file naming convention
+    parallel_group: 6
+    severity: LOW
+    files:
+      - src/components/terrain/TerrainDashboard.tsx
+      - src/components/briefs/BriefViewer.tsx
+      - src/components/briefs/InsightCard.tsx
+    description: Rename PascalCase files to kebab-case, update all imports
+    action: |
+      # Rename files:
+      mv TerrainDashboard.tsx terrain-dashboard.tsx
+      mv BriefViewer.tsx brief-viewer.tsx
+      mv InsightCard.tsx insight-card.tsx
+      # Update all imports throughout codebase
+    estimate: 1h
+    status: PENDING
+
+  - id: ORG-004
+    title: Make gamification API flag configurable
+    parallel_group: 6
+    severity: LOW
+    files:
+      - src/lib/gamification/context.tsx
+    description: Use environment variable instead of hardcoded flag
+    action: |
+      // Line 16 - Replace:
+      const USE_API = false;
+      // With:
+      const USE_API = process.env.NEXT_PUBLIC_GAMIFICATION_ENABLED === 'true';
+    estimate: 15m
+    status: PENDING
+
+# =============================================================================
+# METADATA
+# =============================================================================
+metadata:
+  total_tasks: 37
+  completed: 33
+  pending: 4
+  percent_complete: 89
+
+  by_severity:
+    HIGH: 14 (all complete)
+    MED: 18 (16 complete, 2 pending)
+    LOW: 5 (3 complete, 2 pending)
+
+  groups_status:
+    0_security: COMPLETE
+    1_types: COMPLETE
+    2_error_handling: COMPLETE
+    3_database: COMPLETE
+    4_architecture: COMPLETE
+    5_performance: COMPLETE
+    6_organization: PENDING (4 tasks)
+
+  merged_to_main:
+    - ARCH-003 (customers view components)
+    - ARCH-004 (modal components)
+    - PERF-001 through PERF-008 (performance optimizations)
+
+  latest_commit: 1dc282e

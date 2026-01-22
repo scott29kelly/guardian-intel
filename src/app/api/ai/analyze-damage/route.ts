@@ -10,22 +10,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { damageAnalyzer, type DamageAnalysisResult } from "@/lib/services/ai/damage-analyzer";
 import { z } from "zod";
-
-const analyzeSchema = z.object({
-  // One of these is required
-  photoId: z.string().optional(),
-  photoIds: z.array(z.string()).optional(),
-  photoUrl: z.string().url().optional(),
-  photoBase64: z.string().optional(),
-  
-  // Optional context
-  customerId: z.string().optional(),
-  claimId: z.string().optional(),
-  additionalContext: z.string().optional(),
-  
-  // Options
-  saveResults: z.boolean().default(true),
-});
+import { damageAnalysisSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validated = analyzeSchema.parse(body);
+    const validated = damageAnalysisSchema.parse(body);
 
     // Determine which analysis to perform
     let results: DamageAnalysisResult[] = [];

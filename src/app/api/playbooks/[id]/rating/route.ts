@@ -10,15 +10,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { z } from "zod";
-import { cuidSchema, formatZodErrors } from "@/lib/validations";
+import { cuidSchema, formatZodErrors, playbookRatingSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
-
-const ratingSchema = z.object({
-  rating: z.number().int().min(1).max(5),
-  feedback: z.string().max(1000).optional(),
-});
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -53,7 +47,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const validation = ratingSchema.safeParse(body);
+    const validation = playbookRatingSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(

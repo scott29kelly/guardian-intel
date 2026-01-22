@@ -253,6 +253,203 @@ export type BulkUpdateCustomersInput = z.infer<typeof bulkUpdateCustomersSchema>
 export type BulkDeleteCustomersInput = z.infer<typeof bulkDeleteCustomersSchema>;
 
 // =============================================================================
+// CLAIM SCHEMAS
+// =============================================================================
+
+export const claimTypeSchema = z.enum([
+  "roof",
+  "siding",
+  "gutters",
+  "full-exterior",
+  "interior",
+]);
+
+export const claimStatusSchema = z.enum([
+  "pending",
+  "filed",
+  "adjuster-assigned",
+  "inspection-scheduled",
+  "approved",
+  "denied",
+  "supplement",
+  "paid",
+  "closed",
+]);
+
+export const causeOfLossSchema = z.enum([
+  "hail",
+  "wind",
+  "tornado",
+  "hurricane",
+  "fire",
+  "water",
+  "lightning",
+  "fallen-tree",
+  "vandalism",
+  "theft",
+  "other",
+]);
+
+export const damageAreaSchema = z.object({
+  type: z.string(),
+  severity: z.enum(["minor", "moderate", "severe"]),
+  description: z.string().optional(),
+});
+
+export const claimCreateSchema = z.object({
+  customerId: z.string().min(1, "Customer is required"),
+  carrier: z.string().min(1, "Insurance carrier is required"),
+  dateOfLoss: z.string().transform((s) => new Date(s)),
+  claimType: claimTypeSchema,
+  claimNumber: z.string().optional(),
+  status: claimStatusSchema.default("pending"),
+  initialEstimate: z.number().optional(),
+  deductible: z.number().optional(),
+  adjusterName: z.string().optional(),
+  adjusterPhone: z.string().optional(),
+  adjusterEmail: z.string().optional(),
+  adjusterCompany: z.string().optional(),
+  inspectionDate: z.string().transform((s) => new Date(s)).optional(),
+  notes: z.string().optional(),
+});
+
+export const claimUpdateSchema = z.object({
+  claimNumber: z.string().optional(),
+  carrier: z.string().optional(),
+  dateOfLoss: z.string().transform((s) => new Date(s)).optional(),
+  claimType: claimTypeSchema.optional(),
+  status: claimStatusSchema.optional(),
+
+  // Financials
+  initialEstimate: z.number().nullable().optional(),
+  approvedValue: z.number().nullable().optional(),
+  supplementValue: z.number().nullable().optional(),
+  totalPaid: z.number().nullable().optional(),
+  deductible: z.number().nullable().optional(),
+  acv: z.number().nullable().optional(),
+  rcv: z.number().nullable().optional(),
+  depreciation: z.number().nullable().optional(),
+
+  // Adjuster
+  adjusterName: z.string().nullable().optional(),
+  adjusterPhone: z.string().nullable().optional(),
+  adjusterEmail: z.string().nullable().optional(),
+  adjusterCompany: z.string().nullable().optional(),
+  inspectionDate: z.string().transform((s) => new Date(s)).nullable().optional(),
+  reinspectionDate: z.string().transform((s) => new Date(s)).nullable().optional(),
+
+  // Documents
+  scopeOfWork: z.string().nullable().optional(),
+  photos: z.string().nullable().optional(),
+
+  // Notes
+  notes: z.string().nullable().optional(),
+
+  // Supplements
+  supplementCount: z.number().optional(),
+  lastSupplementDate: z.string().transform((s) => new Date(s)).nullable().optional(),
+});
+
+export const fileClaimSchema = z.object({
+  claimId: z.string(),
+  policyNumber: z.string().min(1),
+  lossDescription: z.string().min(10),
+  causeOfLoss: causeOfLossSchema,
+  damageAreas: z.array(damageAreaSchema),
+  emergencyRepairsNeeded: z.boolean().default(false),
+  temporaryRepairsCost: z.number().optional(),
+  photoIds: z.array(z.string()).optional(),
+});
+
+export type ClaimCreateInput = z.infer<typeof claimCreateSchema>;
+export type ClaimUpdateInput = z.infer<typeof claimUpdateSchema>;
+export type FileClaimInput = z.infer<typeof fileClaimSchema>;
+
+// =============================================================================
+// AI DAMAGE ANALYSIS SCHEMAS
+// =============================================================================
+
+export const damageAnalysisSchema = z.object({
+  photoId: z.string().optional(),
+  photoIds: z.array(z.string()).optional(),
+  photoUrl: z.string().url().optional(),
+  photoBase64: z.string().optional(),
+  customerId: z.string().optional(),
+  claimId: z.string().optional(),
+  additionalContext: z.string().optional(),
+  saveResults: z.boolean().default(true),
+});
+
+export type DamageAnalysisInput = z.infer<typeof damageAnalysisSchema>;
+
+// =============================================================================
+// AI ROLEPLAY SCHEMAS
+// =============================================================================
+
+export const roleplayPersonaSchema = z.enum([
+  "skeptical_homeowner",
+  "price_conscious",
+  "insurance_hesitant",
+  "busy_professional",
+  "comparison_shopper",
+  "storm_victim",
+  "elderly_homeowner",
+  "aggressive_negotiator",
+]);
+
+export const roleplayRequestSchema = z.object({
+  action: z.enum(["start", "continue", "end", "coach"]),
+  persona: roleplayPersonaSchema.optional(),
+  scenario: z.string().max(500).optional(),
+  playbookId: cuidSchema.optional(),
+  customerId: cuidSchema.optional(),
+  sessionId: z.string().optional(),
+  userMessage: z.string().max(2000).optional(),
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string(),
+  })).optional(),
+});
+
+export type RoleplayPersona = z.infer<typeof roleplayPersonaSchema>;
+export type RoleplayRequestInput = z.infer<typeof roleplayRequestSchema>;
+
+// =============================================================================
+// PLAYBOOK RATING/USAGE SCHEMAS
+// =============================================================================
+
+export const playbookRatingSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  feedback: z.string().max(1000).optional(),
+});
+
+export const playbookUsageContextSchema = z.enum([
+  "practice",
+  "customer_call",
+  "meeting",
+  "reference",
+  "roleplay",
+]);
+
+export const playbookUsageOutcomeSchema = z.enum([
+  "closed_won",
+  "follow_up",
+  "no_result",
+  "objection_handled",
+]);
+
+export const playbookUsageSchema = z.object({
+  customerId: cuidSchema.optional(),
+  context: playbookUsageContextSchema,
+  duration: z.number().int().min(0).optional(),
+  completed: z.boolean().optional().default(false),
+  outcome: playbookUsageOutcomeSchema.optional(),
+});
+
+export type PlaybookRatingInput = z.infer<typeof playbookRatingSchema>;
+export type PlaybookUsageInput = z.infer<typeof playbookUsageSchema>;
+
+// =============================================================================
 // PLAYBOOK SCHEMAS
 // =============================================================================
 

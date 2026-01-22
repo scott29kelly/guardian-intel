@@ -11,47 +11,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-
-// =============================================================================
-// VALIDATION SCHEMA
-// =============================================================================
-
-const claimUpdateSchema = z.object({
-  claimNumber: z.string().optional(),
-  carrier: z.string().optional(),
-  dateOfLoss: z.string().transform((s) => new Date(s)).optional(),
-  claimType: z.enum(["roof", "siding", "gutters", "full-exterior", "interior"]).optional(),
-  status: z.enum(["pending", "filed", "adjuster-assigned", "inspection-scheduled", "approved", "denied", "supplement", "paid", "closed"]).optional(),
-  
-  // Financials
-  initialEstimate: z.number().nullable().optional(),
-  approvedValue: z.number().nullable().optional(),
-  supplementValue: z.number().nullable().optional(),
-  totalPaid: z.number().nullable().optional(),
-  deductible: z.number().nullable().optional(),
-  acv: z.number().nullable().optional(),
-  rcv: z.number().nullable().optional(),
-  depreciation: z.number().nullable().optional(),
-  
-  // Adjuster
-  adjusterName: z.string().nullable().optional(),
-  adjusterPhone: z.string().nullable().optional(),
-  adjusterEmail: z.string().nullable().optional(),
-  adjusterCompany: z.string().nullable().optional(),
-  inspectionDate: z.string().transform((s) => new Date(s)).nullable().optional(),
-  reinspectionDate: z.string().transform((s) => new Date(s)).nullable().optional(),
-  
-  // Documents
-  scopeOfWork: z.string().nullable().optional(),
-  photos: z.string().nullable().optional(),
-  
-  // Notes
-  notes: z.string().nullable().optional(),
-  
-  // Supplements
-  supplementCount: z.number().optional(),
-  lastSupplementDate: z.string().transform((s) => new Date(s)).nullable().optional(),
-});
+import { claimUpdateSchema } from "@/lib/validations";
 
 // =============================================================================
 // GET - Get Claim Details

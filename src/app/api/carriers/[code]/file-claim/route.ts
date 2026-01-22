@@ -12,34 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { carrierService } from "@/lib/services/carriers";
 import type { ClaimSubmission, DamageArea } from "@/lib/services/carriers/types";
 import { z } from "zod";
-
-const fileClaimSchema = z.object({
-  claimId: z.string(),
-  
-  // Policy info
-  policyNumber: z.string().min(1),
-  
-  // Loss details
-  lossDescription: z.string().min(10),
-  causeOfLoss: z.enum([
-    "hail", "wind", "tornado", "hurricane", "fire", "water",
-    "lightning", "fallen-tree", "vandalism", "theft", "other"
-  ]),
-  
-  // Damage areas
-  damageAreas: z.array(z.object({
-    type: z.string(),
-    severity: z.enum(["minor", "moderate", "severe"]),
-    description: z.string().optional(),
-  })),
-  
-  // Additional info
-  emergencyRepairsNeeded: z.boolean().default(false),
-  temporaryRepairsCost: z.number().optional(),
-  
-  // Photos to include
-  photoIds: z.array(z.string()).optional(),
-});
+import { fileClaimSchema } from "@/lib/validations";
 
 export async function POST(
   request: NextRequest,
