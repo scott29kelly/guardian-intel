@@ -12,8 +12,8 @@ import {
   calculateLevel,
 } from "./types";
 
-// API integration flag - set to true when backend is ready
-const USE_API = false;
+// API integration flag - controlled via NEXT_PUBLIC_GAMIFICATION_ENABLED env var
+const USE_API = process.env.NEXT_PUBLIC_GAMIFICATION_ENABLED === "true";
 
 interface GamificationContextType {
   // User stats
