@@ -172,6 +172,41 @@ export interface ComparisonSlideContent extends SlideContent {
   }>;
 }
 
+export interface MapSlideContent extends SlideContent {
+  title: string;
+  center: {
+    lat: number;
+    lng: number;
+  };
+  zoom: number;
+  markers: Array<{
+    lat: number;
+    lng: number;
+    label?: string;
+    color?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+    icon?: string;
+  }>;
+  regions?: Array<{
+    coordinates: Array<{ lat: number; lng: number }>;
+    color?: string;
+    label?: string;
+  }>;
+  footnote?: string;
+}
+
+export interface QuoteSlideContent extends SlideContent {
+  title: string;
+  quote: string;
+  author: string;
+  role?: string;
+  company?: string;
+  imageUrl?: string;
+}
+
+// -----------------------------------------------------------------------------
+// Generated Deck Types
+// -----------------------------------------------------------------------------
+
 export interface GeneratedSlide {
   id: string;
   type: SlideType;
