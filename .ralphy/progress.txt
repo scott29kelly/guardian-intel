@@ -1,0 +1,65 @@
+# Task Progress Log
+
+## DECK-006: Create Insurance Prep & Team Performance Templates
+**Status:** Verified Complete
+**Date:** 2026-01-21
+
+### Summary
+Verified that both Insurance Prep and Team Performance templates are fully implemented and integrated into the deck generator feature.
+
+### Files Verified/Implemented
+
+#### Template Files
+1. `src/features/deck-generator/templates/insurance-prep.ts`
+   - Template ID: `insurance-prep`
+   - Name: "Insurance Adjuster Prep Pack"
+   - Audience: Sales representatives
+   - 6 sections: title, claim-overview, damage-documentation, carrier-intel, negotiation-points, documentation-checklist
+   - Includes AI-enhanced sections for carrier intel and negotiation points
+   - Uses guardianBrandConfig branding
+
+2. `src/features/deck-generator/templates/team-performance.ts`
+   - Template ID: `team-performance`
+   - Name: "Team Performance Report"
+   - Audience: Leadership
+   - 7 sections: title, kpi-summary, revenue-trend, leaderboard, coaching-opportunities, pipeline-health, insights
+   - Includes AI-enhanced sections for coaching opportunities and insights
+   - Uses guardianBrandConfig branding
+
+#### Registration
+- Both templates are imported and exported in `src/features/deck-generator/templates/index.ts`
+- Templates are included in the `deckTemplates` array
+- Helper functions (getTemplateById, getTemplatesByAudience, etc.) support both templates
+
+#### Data Aggregator Functions
+All data source functions implemented in `src/features/deck-generator/utils/dataAggregator.ts`:
+
+**Insurance Prep:**
+- `getInsurancePrepTitleData(customerId)` - Fetches customer/carrier info for title slide
+- `getClaimOverviewStats(customerId)` - Returns claim number, date, value, deductible
+- `getDamageDocumentation()` - Lists itemized damage with icons
+- `getCarrierIntel(customerId)` - Shows approval rates, processing times
+- `generateNegotiationPoints()` - AI-generated negotiation talking points
+- `getDocumentationChecklist()` - Pre-meeting preparation checklist
+
+**Team Performance:**
+- `getTeamReportTitleData()` - Report title and metadata
+- `getTeamKPIStats(teamId?, dateRange?)` - Key performance metrics
+- `getLeaderboardData(teamId?)` - Top performers list
+- `getRevenueTrendData(teamId?, dateRange?)` - Weekly revenue chart
+- `getCoachingOpportunities()` - AI-identified improvement areas
+- `getPipelineHealthData()` - Pipeline stage breakdown
+- `generatePerformanceInsights()` - AI strategic recommendations
+
+All functions are registered in `dataSourceRegistry` for dynamic calling via `fetchDataForSlide()`.
+
+### Type Safety
+Both templates use proper TypeScript types:
+- `DeckTemplate` interface for template definitions
+- `SlideSection` interface for each section
+- Proper content types: `TitleSlideContent`, `StatsSlideContent`, `ListSlideContent`, `ChartSlideContent`, `TalkingPointsSlideContent`
+
+### Notes
+- The task was found to be already complete upon investigation
+- Both templates follow the established patterns from other templates (customer-cheat-sheet, storm-deployment, etc.)
+- No modifications were needed - verified existing implementation meets requirements
