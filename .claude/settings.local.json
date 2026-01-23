@@ -5,7 +5,17 @@
       "Bash(npm run dev:*)",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: DECK-016 Customer card deck generator integration\n\nAdd \"PREP DECK\" button to customer intel card that opens the deck\ngenerator modal with customer context pre-filled and customer-cheat-sheet\ntemplate pre-selected.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nperf: AI chat latency optimization with streaming, caching, and parallel ops\n\n- Enable SSE streaming in chat panel for word-by-word response display\n- Add Redis caching for customer context \\(5-min TTL\\)\n- Parallelize context loading with AI initialization\n- Fix chat panel overflow by adding overflow-hidden\n- Update context builder to use Prisma instead of mock data\n\nReduces perceived latency from 3-5s to <1s for first response.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git restore:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: DECK-018 AI slide generation with Gemini Flash\n\n- Add /api/ai/generate-slide endpoint calling Gemini Flash\n- Create aiSlideGenerator service with prompts for 5 slide types:\n  - customer-overview: Strategic insight stats\n  - talking-points: Personalized conversation scripts\n  - objection-handlers: Customer-specific responses\n  - storm-history: Risk-analyzed timeline\n  - next-steps: Stage-based action plans\n- Integrate AI generation into useDeckGeneration hook\n- Add fetchCustomerContext helper for weather/customer data\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)"
     ]
   }
 }
