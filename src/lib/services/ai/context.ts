@@ -8,6 +8,8 @@
 import { CustomerContext, RepActivity } from "./types";
 import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
 import { calculateCustomerScores } from "@/lib/services/scoring";
+import { prisma } from "@/lib/prisma";
+import { cacheGetOrSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 // =============================================================================
 // CONTEXT BUILDER
@@ -28,27 +30,106 @@ export class CustomerContextBuilder {
    * Load all data for the customer
    */
   async load(): Promise<CustomerContextBuilder> {
-    // Load customer data
-    // In production, this would query the database
+    // First try to load from database
+    const dbCustomer = await prisma.customer.findUnique({
+      where: { id: this.customerId },
+      include: {
+        assignedRep: { select: { id: true, name: true } },
+        weatherEvents: { take: 5, orderBy: { eventDate: 'desc' } },
+        intelItems: { where: { isDismissed: false }, orderBy: { priority: 'asc' } },
+        interactions: { take: 10, orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    if (dbCustomer) {
+      // Map database customer to expected format
+      this.customer = {
+        id: dbCustomer.id,
+        firstName: dbCustomer.firstName,
+        lastName: dbCustomer.lastName,
+        email: dbCustomer.email || '',
+        phone: dbCustomer.phone || '',
+        address: dbCustomer.address,
+        city: dbCustomer.city,
+        state: dbCustomer.state,
+        zipCode: dbCustomer.zipCode,
+        propertyType: dbCustomer.propertyType,
+        yearBuilt: dbCustomer.yearBuilt || 0,
+        squareFootage: dbCustomer.squareFootage || 0,
+        roofType: dbCustomer.roofType || 'Unknown',
+        roofAge: dbCustomer.roofAge || 0,
+        propertyValue: dbCustomer.propertyValue || 0,
+        insuranceCarrier: dbCustomer.insuranceCarrier || 'Unknown',
+        policyType: dbCustomer.policyType || 'Unknown',
+        deductible: dbCustomer.deductible || 0,
+        status: dbCustomer.status as Customer['status'],
+        stage: dbCustomer.stage as Customer['stage'],
+        leadScore: dbCustomer.leadScore,
+        urgencyScore: dbCustomer.urgencyScore,
+        profitPotential: dbCustomer.profitPotential || 0,
+        churnRisk: dbCustomer.churnRisk || 0,
+        lastContact: dbCustomer.lastContact || new Date(),
+        nextAction: dbCustomer.nextAction || 'No action scheduled',
+        nextActionDate: dbCustomer.nextActionDate || null,
+        assignedRep: dbCustomer.assignedRep?.name || 'Unassigned',
+        updatedAt: dbCustomer.updatedAt,
+      } as Customer;
+
+      // Map weather events
+      this.weatherEvents = dbCustomer.weatherEvents.map(e => ({
+        id: e.id,
+        customerId: e.customerId || this.customerId,
+        eventType: e.eventType as WeatherEvent['eventType'],
+        eventDate: e.eventDate,
+        severity: e.severity as WeatherEvent['severity'],
+        hailSize: e.hailSize || undefined,
+        windSpeed: e.windSpeed || undefined,
+        damageReported: e.damageReported,
+        claimFiled: e.claimFiled,
+      }));
+
+      // Map intel items
+      this.intelItems = dbCustomer.intelItems.map(i => ({
+        id: i.id,
+        customerId: i.customerId,
+        category: i.category as IntelItem['category'],
+        title: i.title,
+        content: i.content,
+        priority: i.priority as IntelItem['priority'],
+        actionable: i.actionable,
+        isActive: !i.isDismissed,
+        createdAt: i.createdAt,
+      }));
+
+      // Map interactions to RepActivity format
+      this.interactions = dbCustomer.interactions.map(i => ({
+        customerId: i.customerId,
+        repId: i.userId || 'unknown',
+        type: i.type as RepActivity['type'],
+        outcome: i.outcome as RepActivity['outcome'],
+        notes: i.content || '',
+        sentiment: (i.sentiment as RepActivity['sentiment']) || undefined,
+        objections: [],
+        createdAt: i.createdAt,
+      }));
+
+      return this;
+    }
+
+    // Fall back to mock data for development
     this.customer = mockCustomers.find(c => c.id === this.customerId) || null;
-    
+
     if (!this.customer) {
       throw new Error(`Customer not found: ${this.customerId}`);
     }
 
-    // Load related intel items
+    // Load related intel items from mock
     this.intelItems = mockIntelItems.filter(i => i.customerId === this.customerId);
-    
-    // Load weather events (in production, filter by location proximity)
-    // For mock data, just get recent events
-    this.weatherEvents = mockWeatherEvents.filter(e => {
-      // Check if event is in the same state as customer
-      // This is simplified - in production, use lat/lon proximity
-      return true; // Include all for now
-    }).slice(0, 5);
+
+    // Load weather events from mock
+    this.weatherEvents = mockWeatherEvents.slice(0, 5);
 
     // Load interaction history
-    // In production, this would query the CRM or local database
     this.interactions = this.generateMockInteractions();
 
     return this;
@@ -208,9 +289,13 @@ export class CustomerContextBuilder {
  * Get a customer context quickly
  */
 export async function getCustomerContext(customerId: string): Promise<CustomerContext> {
-  const builder = new CustomerContextBuilder(customerId);
-  await builder.load();
-  return builder.build();
+  const cacheKey = buildCacheKey("context", customerId);
+
+  return cacheGetOrSet(cacheKey, async () => {
+    const builder = new CustomerContextBuilder(customerId);
+    await builder.load();
+    return builder.build();
+  }, CACHE_TTL.context);
 }
 
 /**

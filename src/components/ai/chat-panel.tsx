@@ -398,7 +398,8 @@ export function AIChatPanel({
           })),
           customerId,
           task: "chat",
-          enableTools: true,
+          enableTools: false,
+          stream: true,
         }),
       });
 
@@ -406,29 +407,64 @@ export function AIChatPanel({
         throw new Error(`API error: ${response.status}`);
       }
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to get response");
+      // Handle streaming response
+      if (!response.body) {
+        throw new Error("No response body");
       }
 
-      const assistantContent = data.message.content;
-      const toolCalls = data.toolResults?.map((tr: { name: string; result: unknown }) => ({
-        name: tr.name,
-        status: "complete" as const,
-        result: tr.result,
-      }));
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullContent = "";
+      let modelName = "";
 
-      // Update assistant message with response
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              break;
+            }
+
+            try {
+              const chunk = JSON.parse(data);
+              if (chunk.delta) {
+                fullContent += chunk.delta;
+                // Update message content incrementally
+                setMessages(prev =>
+                  prev.map(m =>
+                    m.id === assistantId
+                      ? { ...m, content: fullContent }
+                      : m
+                  )
+                );
+              }
+              if (chunk.model) {
+                modelName = chunk.model;
+              }
+            } catch {
+              // Skip malformed chunks
+            }
+          }
+        }
+      }
+
+      // Finalize the message
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
             ? {
                 ...m,
-                content: assistantContent,
+                content: fullContent,
                 isStreaming: false,
-                model: data.model,
-                toolCalls,
+                model: modelName,
               }
             : m
         )
@@ -436,15 +472,11 @@ export function AIChatPanel({
 
       // Save assistant message
       if (convId) {
-        saveMessage(convId, "assistant", assistantContent, data.model, toolCalls);
+        saveMessage(convId, "assistant", fullContent, modelName);
       }
 
       // Refresh conversation list
       loadConversations();
-
-      if (data.warning) {
-        console.warn("[AI Chat]", data.warning);
-      }
     } catch (err) {
       console.error("Chat error:", err);
       setError(err instanceof Error ? err.message : "Failed to send message");
@@ -596,7 +628,7 @@ export function AIChatPanel({
             </AnimatePresence>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
               {/* Header with iOS-style handle in panel mode */}
               <div className={cn(
                 "border-b border-border/50",

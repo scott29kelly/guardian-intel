@@ -48,7 +48,9 @@ export async function POST(request: Request) {
 
     const { messages, customerId, task = "chat", enableTools = false, stream = false } = validation.data;
 
+    // Initialize AI service and load context in parallel
     const ai = getAI();
+    const contextPromise = customerId ? getCustomerContext(customerId) : null;
 
     // Check if any adapters are available
     if (!ai.hasAdapters()) {
@@ -67,8 +69,8 @@ export async function POST(request: Request) {
 
     // Build context if customer ID is provided
     let systemPrompt: string;
-    if (customerId) {
-      const context = await getCustomerContext(customerId);
+    if (contextPromise) {
+      const context = await contextPromise;
       systemPrompt = buildCustomerSystemPrompt(context);
     } else {
       // Default system prompt for general chat

@@ -16,6 +16,7 @@ export const CACHE_NAMESPACES = {
   streetView: "guardian:cache:streetview",
   weather: "guardian:cache:weather",
   analytics: "guardian:cache:analytics",
+  context: "guardian:cache:context",
 } as const;
 
 export type CacheNamespace = keyof typeof CACHE_NAMESPACES;
@@ -26,6 +27,7 @@ export const CACHE_TTL = {
   streetView: 3600,     // 1 hour - static image URLs
   weather: 300,         // 5 minutes - weather data
   analytics: 60,        // 1 minute - analytics aggregations
+  context: 300,         // 5 minutes - AI customer context
 } as const;
 
 // In-memory cache for development
