@@ -261,9 +261,11 @@ export async function cacheGetOrSet<T>(
   // Try to get from cache first
   const cached = await cacheGet<T>(key);
   if (cached !== null) {
+    console.log(`[Cache] HIT: ${key}`);
     return cached;
   }
-  
+
+  console.log(`[Cache] MISS: ${key}`);
   // Compute the value
   const value = await fetcher();
   
