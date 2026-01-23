@@ -42,4 +42,4 @@
 
 ## Group 5: Final Integration
 
-- [ ] **DECK-016: Customer Card Integration** - Add "Generate Prep Deck" button to `src/components/customer-intel-card.tsx`. Import DeckGeneratorModal, add showDeckGenerator state, add button with Presentation icon, add modal with initialContext and initialTemplateId="customer-cheat-sheet". Run npm run build to verify
+- [x] **DECK-016: Customer Card Integration** - Add "Generate Prep Deck" button to `src/components/customer-intel-card.tsx`. Import DeckGeneratorModal, add showDeckGenerator state, add button with Presentation icon, add modal with initialContext and initialTemplateId="customer-cheat-sheet". Run npm run build to verify

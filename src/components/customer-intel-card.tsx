@@ -15,6 +15,7 @@ import {
   Clock,
   Target,
   Zap,
+  Presentation,
   ArrowUpRight,
   Calendar,
   DollarSign,
@@ -28,6 +29,7 @@ import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
+import { DeckGeneratorModal } from "@/features/deck-generator";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -61,6 +63,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const [showAIChat, setShowAIChat] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
+  const [showDeckGenerator, setShowDeckGenerator] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const handleActivitySaved = (activity: ActivityLog) => {
@@ -427,7 +430,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <ClipboardList className="w-3 h-3" />
                       LOG
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowAIChat(true);
@@ -437,7 +440,17 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <Bot className="w-3 h-3" />
                       ASK AI
                     </button>
-                    <button 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeckGenerator(true);
+                      }}
+                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
+                    >
+                      <Presentation className="w-3 h-3" />
+                      PREP DECK
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowProfileModal(true);
@@ -510,6 +523,19 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         state={customer.state}
         zipCode={customer.zipCode}
       />
+
+      {/* Deck Generator Modal */}
+      {showDeckGenerator && (
+        <DeckGeneratorModal
+          isOpen={showDeckGenerator}
+          onClose={() => setShowDeckGenerator(false)}
+          initialContext={{
+            customerId: customer.id,
+            customerName: `${customer.firstName} ${customer.lastName}`,
+          }}
+          initialTemplateId="customer-cheat-sheet"
+        />
+      )}
     </>
   );
 });
