@@ -568,3 +568,100 @@ select option {
     scroll-behavior: auto !important;
   }
 }
+
+/* =============================================
+   DECK GENERATOR - PRESENTATION STYLES
+   ============================================= */
+
+/* Slide container typography enhancements */
+[data-slide-preview] {
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hero stat number glow effect */
+.stat-hero-glow {
+  --stat-glow-color: rgba(212, 166, 86, 0.3);
+  text-shadow:
+    0 0 20px var(--stat-glow-color),
+    0 0 40px var(--stat-glow-color),
+    0 0 60px var(--stat-glow-color);
+}
+
+/* Timeline node pulse animation for critical events */
+@keyframes timeline-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.timeline-node-critical {
+  animation: timeline-pulse 2s ease-in-out infinite;
+}
+
+/* Gradient text utility for presentation */
+.gradient-text {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card effect for premium feel */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Slide fade-in animation */
+@keyframes slide-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-slide-preview] {
+  animation: slide-fade-in 0.4s ease-out;
+}
+
+/* Progress bar animation */
+@keyframes progress-fill {
+  from { width: 0; }
+}
+
+.progress-bar-animated {
+  animation: progress-fill 1s ease-out forwards;
+}
+
+/* Line clamp utilities for truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
