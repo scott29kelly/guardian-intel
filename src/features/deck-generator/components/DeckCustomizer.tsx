@@ -71,14 +71,14 @@ export function DeckCustomizer({
     <div className="p-6 space-y-6">
       {/* Context Selection */}
       <div>
-        <h3 className="text-sm font-medium text-surface-300 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
           <Settings className="w-4 h-4" />
           Context
         </h3>
         <div className="space-y-3">
           {template.requiredContext.map(ctx => (
             <div key={ctx.type}>
-              <label className="block text-sm text-surface-400 mb-1">
+              <label className="block text-sm text-text-muted mb-1">
                 {ctx.label}
                 {ctx.required && <span className="text-rose-400 ml-1">*</span>}
               </label>
@@ -94,7 +94,7 @@ export function DeckCustomizer({
                       customerName: customer ? `${customer.firstName} ${customer.lastName}` : undefined,
                     });
                   }}
-                  className="w-full px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                   disabled={isLoadingCustomers}
                 >
                   <option value="">{isLoadingCustomers ? 'Loading...' : ctx.placeholder}</option>
@@ -108,7 +108,7 @@ export function DeckCustomizer({
                 <select
                   value={(context.regionId as string) || ''}
                   onChange={e => onContextChange({ ...context, regionId: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                 >
                   <option value="">{ctx.placeholder || 'All regions'}</option>
                   <option value="pa">Pennsylvania</option>
@@ -122,7 +122,7 @@ export function DeckCustomizer({
                 <select
                   value={(context.teamId as string) || ''}
                   onChange={e => onContextChange({ ...context, teamId: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                 >
                   <option value="">{ctx.placeholder || 'All teams'}</option>
                   <option value="team-a">Team A - Northeast</option>
@@ -141,9 +141,9 @@ export function DeckCustomizer({
                         start: e.target.value 
                       } 
                     })}
-                    className="flex-1 px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                    className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                   />
-                  <span className="flex items-center text-surface-500">to</span>
+                  <span className="flex items-center text-text-muted">to</span>
                   <input
                     type="date"
                     value={(context.dateRange as { start?: string; end?: string })?.end || ''}
@@ -154,7 +154,7 @@ export function DeckCustomizer({
                         end: e.target.value 
                       } 
                     })}
-                    className="flex-1 px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                    className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                   />
                 </div>
               ) : (
@@ -163,7 +163,7 @@ export function DeckCustomizer({
                   value={(context[`${ctx.type}Id`] as string) || ''}
                   onChange={e => onContextChange({ ...context, [`${ctx.type}Id`]: e.target.value })}
                   placeholder={ctx.placeholder}
-                  className="w-full px-3 py-2 bg-surface-800 border border-surface-700 rounded-lg text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-guardian-500/50 focus:border-guardian-500"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                 />
               )}
             </div>
@@ -173,7 +173,7 @@ export function DeckCustomizer({
 
       {/* Section Selection */}
       <div>
-        <h3 className="text-sm font-medium text-surface-300 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
           <Layers className="w-4 h-4" />
           Slides to Include
         </h3>
@@ -190,8 +190,8 @@ export function DeckCustomizer({
                 transition={{ delay: index * 0.03 }}
                 className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                   isEnabled
-                    ? 'bg-surface-800/80 border-accent-500/30'
-                    : 'bg-surface-800/30 border-surface-700'
+                    ? 'bg-surface-secondary/80 border-intel-500/30'
+                    : 'bg-surface-secondary/30 border-border'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -200,29 +200,29 @@ export function DeckCustomizer({
                     disabled={isRequired}
                     className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
                       isEnabled
-                        ? 'bg-accent-500 text-surface-900'
-                        : 'bg-surface-700 text-surface-500'
-                    } ${isRequired ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-accent-400'}`}
+                        ? 'bg-intel-500 text-void-900'
+                        : 'bg-surface-hover text-text-muted'
+                    } ${isRequired ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-intel-400'}`}
                   >
                     {isEnabled && <Check className="w-3 h-3" />}
                   </button>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`font-medium ${isEnabled ? 'text-white' : 'text-surface-400'}`}>
+                      <span className={`font-medium ${isEnabled ? 'text-text-primary' : 'text-text-muted'}`}>
                         {section.title}
                       </span>
                       {section.aiEnhanced && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-accent-500/20 text-accent-400 text-xs rounded">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-intel-500/20 text-intel-300 text-xs rounded">
                           <Sparkles className="w-3 h-3" />
                           AI
                         </span>
                       )}
                       {isRequired && (
-                        <span className="text-xs text-surface-500">(required)</span>
+                        <span className="text-xs text-text-muted">(required)</span>
                       )}
                     </div>
                     {section.description && (
-                      <p className="text-xs text-surface-500 mt-0.5">{section.description}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{section.description}</p>
                     )}
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export function DeckCustomizer({
 
       {/* Export Format */}
       <div>
-        <h3 className="text-sm font-medium text-surface-300 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
           <Download className="w-4 h-4" />
           Export Format
         </h3>
@@ -249,8 +249,8 @@ export function DeckCustomizer({
               onClick={() => onExportFormatChange(format)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 exportFormat === format
-                  ? 'bg-accent-500 text-surface-900'
-                  : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
+                  ? 'bg-intel-500 text-void-900'
+                  : 'bg-surface-secondary text-text-secondary hover:bg-[hsl(var(--bg-hover))]'
               }`}
             >
               <Icon className="w-4 h-4" />

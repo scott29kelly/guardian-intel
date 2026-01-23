@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -16,7 +16,8 @@ import { useDeckGeneration } from '../hooks/useDeckGeneration';
 import { useDeckTemplates } from '../hooks/useDeckTemplates';
 import { DeckTemplateSelector } from './DeckTemplateSelector';
 import { DeckCustomizer } from './DeckCustomizer';
-import { DeckPreview } from './DeckPreview';
+import { DeckPreview, type DeckPreviewRef } from './DeckPreview';
+import { exportDeckAsZip, type ExportProgress } from '../utils/zipExport';
 
 interface DeckGeneratorModalProps {
   isOpen: boolean;
@@ -60,6 +61,11 @@ export function DeckGeneratorModal({
   );
   const [enabledSections, setEnabledSections] = useState<string[]>([]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Ref for slide export
+  const deckPreviewRef = useRef<DeckPreviewRef>(null);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -135,6 +141,44 @@ export function DeckGeneratorModal({
     }
   }, [step, resetGeneration]);
 
+  // Handle share - copy link to clipboard
+  const handleShare = useCallback(() => {
+    if (!generatedDeck) return;
+    const shareUrl = `${window.location.origin}/decks/${generatedDeck.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert('Share link copied to clipboard!');
+  }, [generatedDeck]);
+
+  // Handle download - export as ZIP with PNG slides
+  const handleDownload = useCallback(async () => {
+    if (!generatedDeck || !deckPreviewRef.current) return;
+
+    setIsExporting(true);
+    setExportProgress(null);
+
+    try {
+      // Capture all slides as PNG blobs
+      const slideBlobs = await deckPreviewRef.current.captureAllSlides((progress) => {
+        setExportProgress(progress);
+      });
+
+      if (slideBlobs.length === 0) {
+        throw new Error('No slides captured for export');
+      }
+
+      // Create and download the ZIP
+      await exportDeckAsZip(generatedDeck, slideBlobs, (progress) => {
+        setExportProgress(progress);
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export deck. Please try again.');
+    } finally {
+      setIsExporting(false);
+      setExportProgress(null);
+    }
+  }, [generatedDeck]);
+
   // Check if generation can proceed
   const canGenerate = useCallback(() => {
     if (!selectedTemplate || enabledSections.length === 0) return false;
@@ -170,21 +214,21 @@ export function DeckGeneratorModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-4xl max-h-[90vh] bg-surface-900 rounded-xl shadow-2xl border border-surface-700 overflow-hidden"
+          className="relative w-full max-w-4xl max-h-[90vh] bg-surface-primary rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-surface-700">
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-surface-secondary">
             <div className="flex items-center gap-3">
               {step !== 'select-template' && step !== 'generating' && (
                 <button
                   onClick={handleBack}
-                  className="p-1 rounded-lg hover:bg-surface-800 transition-colors"
+                  className="p-1 rounded-lg hover:bg-surface-hover transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-surface-400" />
+                  <ChevronLeft className="w-5 h-5 text-text-muted" />
                 </button>
               )}
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-text-primary">
                 {step === 'select-template' && 'Generate Slide Deck'}
                 {step === 'customize' && selectedTemplate?.name}
                 {step === 'generating' && 'Generating Deck...'}
@@ -193,14 +237,14 @@ export function DeckGeneratorModal({
             </div>
             <button
               onClick={handleClose}
-              className="p-2 rounded-lg hover:bg-surface-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
             >
-              <X className="w-5 h-5 text-surface-400" />
+              <X className="w-5 h-5 text-text-muted" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {/* Step 1: Template Selection */}
             {step === 'select-template' && (
               <DeckTemplateSelector
@@ -226,26 +270,27 @@ export function DeckGeneratorModal({
             {step === 'generating' && progress && (
               <div className="flex flex-col items-center justify-center py-16 px-8">
                 <div className="relative mb-6">
-                  <Loader2 className="w-16 h-16 text-accent-500 animate-spin" />
+                  <Loader2 className="w-16 h-16 text-intel-400 animate-spin" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-text-primary mb-2">
                   {progress.message}
                 </h3>
                 {progress.currentSlide && (
-                  <p className="text-surface-400 mb-4">
+                  <p className="text-text-muted mb-4">
                     Processing: {progress.currentSlide}
                   </p>
                 )}
                 {/* Progress bar */}
-                <div className="w-full max-w-md h-2 bg-surface-700 rounded-full overflow-hidden">
+                <div className="w-full max-w-md h-2 bg-surface-secondary rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-accent-500 to-accent-400"
+                    className="h-full"
+                    style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
                     initial={{ width: 0 }}
                     animate={{ width: `${progress.progress}%` }}
                     transition={{ duration: 0.3 }}
                   />
                 </div>
-                <p className="text-sm text-surface-500 mt-2">
+                <p className="text-sm text-text-muted mt-2">
                   Step {progress.currentStep} of {progress.totalSteps}
                 </p>
               </div>
@@ -254,16 +299,16 @@ export function DeckGeneratorModal({
             {/* Error State */}
             {error && (
               <div className="flex flex-col items-center justify-center py-16 px-8">
-                <AlertCircle className="w-16 h-16 text-rose-500 mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <AlertCircle className="w-16 h-16 text-damage-500 mb-4" />
+                <h3 className="text-xl font-semibold text-text-primary mb-2">
                   Generation Failed
                 </h3>
-                <p className="text-surface-400 mb-6 text-center max-w-md">
+                <p className="text-text-muted mb-6 text-center max-w-md">
                   {error}
                 </p>
                 <button
                   onClick={() => setStep('customize')}
-                  className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
                 >
                   Try Again
                 </button>
@@ -272,13 +317,13 @@ export function DeckGeneratorModal({
 
             {/* Step 4: Preview */}
             {step === 'preview' && generatedDeck && (
-              <DeckPreview deck={generatedDeck} />
+              <DeckPreview ref={deckPreviewRef} deck={generatedDeck} />
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-surface-700 bg-surface-900/50">
-            <div className="text-sm text-surface-400">
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-t border-border bg-surface-secondary">
+            <div className="text-sm text-text-muted">
               {step === 'customize' && selectedTemplate && (
                 <>
                   ~{enabledSections.length} slides • Est. {selectedTemplate.estimatedGenerationTime}s
@@ -286,7 +331,7 @@ export function DeckGeneratorModal({
               )}
               {step === 'preview' && generatedDeck && (
                 <>
-                  {generatedDeck.metadata.totalSlides} slides • 
+                  {generatedDeck.metadata.totalSlides} slides •
                   Generated in {(generatedDeck.metadata.generationTimeMs / 1000).toFixed(1)}s
                 </>
               )}
@@ -296,7 +341,8 @@ export function DeckGeneratorModal({
                 <button
                   onClick={handleGenerate}
                   disabled={!canGenerate() || isGenerating}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-400 disabled:bg-surface-600 disabled:cursor-not-allowed text-surface-900 font-medium rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                  style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
                 >
                   Generate
                   <ChevronRight className="w-4 h-4" />
@@ -305,16 +351,27 @@ export function DeckGeneratorModal({
               {step === 'preview' && (
                 <>
                   <button
-                    className="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-lg transition-colors"
+                    onClick={handleShare}
+                    className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
                   >
                     <Share2 className="w-4 h-4" />
                     Share
                   </button>
                   <button
-                    className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-400 text-surface-900 font-medium rounded-lg transition-colors"
+                    onClick={handleDownload}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors text-white disabled:opacity-50"
+                    style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
                   >
-                    <Download className="w-4 h-4" />
-                    Download {exportFormat.toUpperCase()}
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    {isExporting
+                      ? (exportProgress ? `${exportProgress.current}/${exportProgress.total}` : 'Exporting...')
+                      : 'Download ZIP'
+                    }
                   </button>
                 </>
               )}
