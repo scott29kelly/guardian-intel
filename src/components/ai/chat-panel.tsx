@@ -35,6 +35,7 @@ import {
   Trash2,
   Search,
   ChevronLeft,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -234,10 +235,93 @@ export function AIChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Scroll to bottom on new messages
+  // Auto-scroll state and refs
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const scrollThrottleRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Constants for scroll detection
+  const SCROLL_BOTTOM_THRESHOLD = 50;
+  const SCROLL_THROTTLE_MS = 100;
+
+  // Check if scroll position is at bottom
+  const isAtBottom = useCallback((container: HTMLDivElement): boolean => {
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollHeight - scrollTop - clientHeight <= SCROLL_BOTTOM_THRESHOLD;
+  }, []);
+
+  // Handle scroll events - detect user scroll intent
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+
+    // Skip programmatic scrolls
+    if (isProgrammaticScrollRef.current) {
+      isProgrammaticScrollRef.current = false;
+      lastScrollTopRef.current = container.scrollTop;
+      return;
+    }
+
+    // Throttle scroll events
+    if (scrollThrottleRef.current) return;
+
+    scrollThrottleRef.current = setTimeout(() => {
+      scrollThrottleRef.current = null;
+
+      const currentScrollTop = container.scrollTop;
+      const scrolledUp = currentScrollTop < lastScrollTopRef.current;
+      const atBottom = isAtBottom(container);
+
+      // User scrolled up - pause auto-scroll
+      if (scrolledUp && !atBottom) {
+        setIsAutoScrollEnabled(false);
+      }
+
+      // User scrolled to bottom - resume auto-scroll
+      if (atBottom) {
+        setIsAutoScrollEnabled(true);
+      }
+
+      lastScrollTopRef.current = currentScrollTop;
+    }, SCROLL_THROTTLE_MS);
+  }, [isAtBottom]);
+
+  // Scroll to bottom handler
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      isProgrammaticScrollRef.current = true;
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      setIsAutoScrollEnabled(true);
+      setHasUnreadMessages(false);
+    }
+  }, []);
+
+  // Smart scroll to bottom - respects user scroll position
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!isAutoScrollEnabled) return;
+
+    if (messagesEndRef.current) {
+      isProgrammaticScrollRef.current = true;
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isAutoScrollEnabled]);
+
+  // Track unread messages while scrolled up
+  useEffect(() => {
+    if (!isAutoScrollEnabled && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && !lastMessage.isStreaming) {
+        setHasUnreadMessages(true);
+      }
+    }
+  }, [messages, isAutoScrollEnabled]);
+
+  // Clear unread flag when auto-scroll is re-enabled
+  useEffect(() => {
+    if (isAutoScrollEnabled) setHasUnreadMessages(false);
+  }, [isAutoScrollEnabled]);
 
   // Reset state and focus input when panel opens
   useEffect(() => {
@@ -732,20 +816,36 @@ export function AIChatPanel({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                {messages.length === 0 ? (
-                  <EmptyState onSuggestedPrompt={handleSuggestedPrompt} />
-                ) : (
-                  messages.map(message => (
-                    <ChatMessage key={message.id} message={message} />
-                  ))
-                )}
-                {error && (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-sm">
-                    {error}
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+              <div className="relative flex-1">
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleScroll}
+                  className="h-full overflow-y-auto p-4 space-y-4 custom-scrollbar"
+                >
+                  {messages.length === 0 ? (
+                    <EmptyState onSuggestedPrompt={handleSuggestedPrompt} />
+                  ) : (
+                    messages.map(message => (
+                      <ChatMessage key={message.id} message={message} />
+                    ))
+                  )}
+                  {error && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-sm">
+                      {error}
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Scroll to bottom button - shows when user scrolls up */}
+                <AnimatePresence>
+                  {!isAutoScrollEnabled && (
+                    <ScrollToBottomButton
+                      onClick={scrollToBottom}
+                      hasNewMessages={hasUnreadMessages}
+                    />
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Input - iOS style frosted glass */}
@@ -827,6 +927,28 @@ function EmptyState({ onSuggestedPrompt }: { onSuggestedPrompt: (prompt: string)
 
 function cleanDisplayMessage(content: string): string {
   return content.replace(/^\[(NEXT_STEPS|WEATHER_INTEL|CALL_SCRIPT|OBJECTION_HANDLER)\]\s*/i, '');
+}
+
+function ScrollToBottomButton({ onClick, hasNewMessages }: { onClick: () => void; hasNewMessages: boolean }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      onClick={onClick}
+      className={cn(
+        "absolute bottom-4 left-1/2 -translate-x-1/2",
+        "flex items-center gap-2 px-3 py-2",
+        "bg-surface-secondary/95 backdrop-blur-sm",
+        "border border-border rounded-full shadow-lg",
+        "text-sm text-text-primary hover:bg-surface-hover",
+        "transition-colors cursor-pointer z-10"
+      )}
+    >
+      <ChevronDown className="w-4 h-4" />
+      {hasNewMessages ? "New messages" : "Scroll to bottom"}
+    </motion.button>
+  );
 }
 
 function ChatMessage({ message }: { message: Message }) {
