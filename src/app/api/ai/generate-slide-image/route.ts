@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SlideType, SlideContent, BrandingConfig } from "@/features/deck-generator/types/deck.types";
 
+// Ensure route stability during hot reload and prevent caching
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Timeout for Gemini API requests (60 seconds)
+const GEMINI_TIMEOUT_MS = 60000;
+
 // =============================================================================
 // NANO BANANA PRO (GEMINI 3 PRO IMAGE) SLIDE GENERATOR
 // =============================================================================
@@ -310,7 +317,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Google AI API key not configured" },
+        { error: "Google AI API key not configured", code: "API_KEY_MISSING", retryable: false },
         { status: 500 }
       );
     }
@@ -320,30 +327,56 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Nano Banana Pro] Generating slide ${slideNumber}/${totalSlides}: ${slide.sectionId}`);
 
-    // Call Gemini 3 Pro Image (Nano Banana Pro) API
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
+    // Set up timeout with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      // Call Gemini 3 Pro Image (Nano Banana Pro) API
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }],
+              },
+            ],
+            generationConfig: {
+              responseModalities: ["TEXT", "IMAGE"],
             },
-          ],
-          generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
-          },
-        }),
+          }),
+        }
+      );
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        console.error(`[Nano Banana Pro] Request timeout after ${GEMINI_TIMEOUT_MS}ms for slide ${slideNumber}`);
+        return NextResponse.json(
+          { error: `Image generation timed out after ${GEMINI_TIMEOUT_MS / 1000} seconds`, code: "TIMEOUT", retryable: true },
+          { status: 504 }
+        );
       }
-    );
+      throw fetchError;
+    }
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[Nano Banana Pro] API Error:", errorText);
+      // 5xx and 429 errors are retryable
+      const retryable = response.status >= 500 || response.status === 429;
       return NextResponse.json(
-        { error: `Gemini API error: ${response.status}` },
+        {
+          error: `Gemini API error: ${response.status}`,
+          code: "GEMINI_API_ERROR",
+          details: errorText.substring(0, 200),
+          retryable
+        },
         { status: response.status }
       );
     }
@@ -357,7 +390,7 @@ export async function POST(request: NextRequest) {
     if (!imagePart?.inlineData?.data) {
       console.error("[Nano Banana Pro] No image in response:", JSON.stringify(data, null, 2));
       return NextResponse.json(
-        { error: "No image generated" },
+        { error: "Gemini returned no image data", code: "NO_IMAGE_GENERATED", retryable: true },
         { status: 500 }
       );
     }
@@ -373,7 +406,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Nano Banana Pro] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { error: error instanceof Error ? error.message : "Unknown error", code: "UNKNOWN", retryable: true },
       { status: 500 }
     );
   }

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, memo } from "react";
+import { useState, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -84,6 +84,13 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const urgencyTooltip = `Priority score based on: ${getUrgencyExplanation(scores.factors.urgency)}`;
   const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
   const profitTooltip = `Estimated profit based on ${(customer.squareFootage ?? 0).toLocaleString()} sqft, ${customer.roofType ?? 'unknown roof type'}, and $${(customer.propertyValue ?? 0).toLocaleString()} property value`;
+
+  // Memoize deck generator context to prevent creating new object on every render
+  // This prevents the modal's useEffect from re-triggering during generation
+  const deckGeneratorContext = useMemo(() => ({
+    customerId: customer.id,
+    customerName: `${customer.firstName} ${customer.lastName}`,
+  }), [customer.id, customer.firstName, customer.lastName]);
 
   return (
     <>
@@ -529,10 +536,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         <DeckGeneratorModal
           isOpen={showDeckGenerator}
           onClose={() => setShowDeckGenerator(false)}
-          initialContext={{
-            customerId: customer.id,
-            customerName: `${customer.firstName} ${customer.lastName}`,
-          }}
+          initialContext={deckGeneratorContext}
           initialTemplateId="customer-cheat-sheet"
         />
       )}

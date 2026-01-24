@@ -2,14 +2,16 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  ChevronRight, 
+import {
+  X,
+  ChevronRight,
   ChevronLeft,
   Loader2,
   Download,
   Share2,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Check
 } from 'lucide-react';
 import type { DeckTemplate, DeckGenerationRequest, ExportFormat } from '../types/deck.types';
 import { useDeckGeneration } from '../hooks/useDeckGeneration';
@@ -63,17 +65,28 @@ export function DeckGeneratorModal({
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
 
+  // Scheduling state (overnight batch processing)
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
+  const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
+
   // Ref for slide export
   const deckPreviewRef = useRef<DeckPreviewRef>(null);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 
-  // Reset state when modal opens/closes
+  // Track if modal has been initialized to prevent re-running reset effect while open
+  const hasInitialized = useRef(false);
+
+  // Reset state when modal OPENS (not while already open)
+  // This prevents re-renders from resetting state during async generation
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitialized.current) {
+      // Only initialize once per modal open
+      hasInitialized.current = true;
       setStep(initialTemplateId ? 'customize' : 'select-template');
       setSelectedTemplate(initialTemplateId ? getTemplate(initialTemplateId) || null : null);
       setContext(initialContext || {});
-      
+
       // Initialize enabled sections from template
       if (initialTemplateId) {
         const template = getTemplate(initialTemplateId);
@@ -85,6 +98,11 @@ export function DeckGeneratorModal({
           );
         }
       }
+    }
+
+    // Reset the flag when modal closes so next open will reinitialize
+    if (!isOpen) {
+      hasInitialized.current = false;
     }
   }, [isOpen, initialTemplateId, initialContext, getTemplate]);
 
@@ -121,6 +139,46 @@ export function DeckGeneratorModal({
       setStep('preview');
     }
   }, [selectedTemplate, context, enabledSections, exportFormat, generateDeck]);
+
+  // Handle scheduling for overnight batch processing
+  const handleSchedule = useCallback(async () => {
+    if (!selectedTemplate || !context.customerId) return;
+
+    setIsScheduling(true);
+    setScheduleSuccess(null);
+
+    try {
+      const response = await fetch('/api/decks/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: context.customerId,
+          customerName: context.customerName || 'Customer',
+          templateId: selectedTemplate.id,
+          templateName: selectedTemplate.name,
+          options: {
+            enabledSections,
+            includeAiContent: true,
+            exportFormat,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setScheduleSuccess(data.message);
+        setShowScheduleConfirm(false);
+      } else {
+        throw new Error(data.error || 'Failed to schedule deck');
+      }
+    } catch (error) {
+      console.error('Schedule failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to schedule deck');
+    } finally {
+      setIsScheduling(false);
+    }
+  }, [selectedTemplate, context, enabledSections, exportFormat]);
 
   // Handle close
   const handleClose = useCallback(() => {
@@ -350,15 +408,64 @@ export function DeckGeneratorModal({
             </div>
             <div className="flex items-center gap-3">
               {step === 'customize' && (
-                <button
-                  onClick={handleGenerate}
-                  disabled={!canGenerate() || isGenerating}
-                  className="flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
-                  style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
-                >
-                  Generate
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                <>
+                  {/* Schedule Success Message */}
+                  {scheduleSuccess && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                      <Check className="w-4 h-4" />
+                      <span>Scheduled!</span>
+                    </div>
+                  )}
+
+                  {/* Schedule Confirmation */}
+                  {showScheduleConfirm ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-text-muted">Ready by 6 AM tomorrow</span>
+                      <button
+                        onClick={() => setShowScheduleConfirm(false)}
+                        className="px-3 py-1.5 text-sm text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSchedule}
+                        disabled={isScheduling}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {isScheduling ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        Confirm
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Schedule Button */}
+                      <button
+                        onClick={() => setShowScheduleConfirm(true)}
+                        disabled={!canGenerate() || isGenerating || !!scheduleSuccess}
+                        className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Schedule for overnight processing"
+                      >
+                        <Clock className="w-4 h-4" />
+                        Schedule
+                      </button>
+
+                      {/* Generate Button */}
+                      <button
+                        onClick={handleGenerate}
+                        disabled={!canGenerate() || isGenerating}
+                        className="flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
+                      >
+                        Generate
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </>
               )}
               {step === 'preview' && (
                 <>

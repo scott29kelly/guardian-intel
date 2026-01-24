@@ -271,17 +271,37 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
           progress: Math.round(((i + 1) / slides.length) * 45) + 45,
         });
 
+        const slideName = slide.sectionId
+          .split('-')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+
         try {
-          const imageData = await generateSlideImage({
-            slide: {
-              type: slide.type,
-              sectionId: slide.sectionId,
-              content: slide.content,
+          const imageData = await generateSlideImage(
+            {
+              slide: {
+                type: slide.type,
+                sectionId: slide.sectionId,
+                content: slide.content,
+              },
+              branding,
+              slideNumber: i + 1,
+              totalSlides: slides.length,
             },
-            branding,
-            slideNumber: i + 1,
-            totalSlides: slides.length,
-          });
+            {
+              // Retry callback for progress updates
+              onRetry: (attempt, error, delay) => {
+                setProgress((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        message: `🔄 Retrying ${slideName} (attempt ${attempt + 1}/4)...`,
+                      }
+                    : null
+                );
+              },
+            }
+          );
 
           // Update slide with image data
           slides[i] = {
@@ -289,12 +309,29 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
             imageData,
           };
         } catch (imageError) {
-          console.error(`Error generating image for slide ${slide.sectionId}:`, imageError);
-          // Store error but continue - will fall back to React rendering
+          // After all retries exhausted, fall back to HTML rendering
+          const errorMessage =
+            imageError instanceof Error
+              ? imageError.message
+              : 'Image generation failed after multiple attempts';
+
+          console.error(`[DeckGeneration] Image generation failed for ${slide.sectionId}:`, errorMessage);
+
+          // Store detailed error for debugging
           slides[i] = {
             ...slide,
-            imageError: imageError instanceof Error ? imageError.message : 'Image generation failed',
+            imageError: errorMessage,
           };
+
+          // Update progress to show fallback mode
+          setProgress((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  message: `⚠️ Using fallback for ${slideName}`,
+                }
+              : null
+          );
         }
       }
 

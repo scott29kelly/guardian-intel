@@ -93,6 +93,10 @@ model User {
   playbookUsages    PlaybookUsage[]
   playbookFavorites PlaybookFavorite[]
   playbookRatings   PlaybookRating[]
+
+  // Scheduled Decks (batch processing)
+  scheduledDecksRequested ScheduledDeck[] @relation("ScheduledDecksRequested")
+  scheduledDecksAssigned  ScheduledDeck[] @relation("ScheduledDecksAssigned")
 }
 
 model Customer {
@@ -683,6 +687,55 @@ model Message {
   toolCalls       String?      // JSON array of tool calls
   
   @@index([conversationId])
+}
+
+// ============================================
+// SCHEDULED DECKS (Batch Processing Queue)
+// ============================================
+
+model ScheduledDeck {
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Customer context
+  customerId      String
+  customerName    String
+
+  // Template info
+  templateId      String
+  templateName    String
+
+  // User tracking
+  requestedById   String              // User who scheduled
+  requestedBy     User                @relation("ScheduledDecksRequested", fields: [requestedById], references: [id])
+  assignedToId    String?             // Rep who will use it (for manager bulk scheduling)
+  assignedTo      User?               @relation("ScheduledDecksAssigned", fields: [assignedToId], references: [id])
+
+  // Status tracking
+  status          String    @default("pending") // pending, processing, completed, failed
+
+  // Request/Response payloads (JSON)
+  requestPayload  String              // Full DeckGenerationRequest as JSON
+  resultPayload   String?             // Generated deck data as JSON (when completed)
+
+  // Timing
+  scheduledFor    DateTime  @default(now())  // When batch should process this
+  completedAt     DateTime?
+
+  // Error handling
+  errorMessage    String?
+  retryCount      Int       @default(0)
+
+  // Metadata
+  estimatedSlides Int       @default(0)
+  actualSlides    Int?
+  processingTimeMs Int?
+
+  @@index([requestedById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([scheduledFor])
 }
 
 // ============================================

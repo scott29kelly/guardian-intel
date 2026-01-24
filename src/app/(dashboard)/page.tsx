@@ -25,6 +25,7 @@ import {
 import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
+import { ReadyDecksWidget } from "@/components/dashboard/ready-decks-widget";
 import dynamic from "next/dynamic";
 
 // Time-based greeting helper
@@ -629,9 +630,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Ready Decks - Batch processed decks ready for viewing */}
+          <ReadyDecksWidget />
+
           {/* Action Buttons */}
           <div className="space-y-2">
-            <button 
+            <button
               onClick={handleStormCanvass}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded text-sm font-medium text-white transition-colors hover:opacity-90"
               style={{ background: `linear-gradient(90deg, var(--gradient-start), var(--gradient-end))` }}
