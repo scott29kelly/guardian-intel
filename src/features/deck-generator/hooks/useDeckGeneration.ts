@@ -15,6 +15,7 @@ import {
   fetchCustomerContext,
   type SlideGenerationContext,
 } from '../services/aiSlideGenerator';
+import { generateSlideImage } from '../services/slideImageGenerator';
 
 // Simple UUID generator (no external dependency needed)
 function generateId(): string {
@@ -186,7 +187,8 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
       s => request.options.enabledSections.includes(s.id)
     );
 
-    const totalSteps = enabledSections.length + 2; // +2 for init and finalize
+    // +2 for init and finalize, +enabledSections.length for image generation
+    const totalSteps = enabledSections.length * 2 + 2;
 
     try {
       // Step 1: Initialize and fetch customer context for AI
@@ -215,7 +217,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
 
       await new Promise(resolve => setTimeout(resolve, 200)); // Small delay for UX
 
-      // Step 2: Generate each slide
+      // Step 2: Generate content for each slide
       const slides: GeneratedSlide[] = [];
 
       for (let i = 0; i < enabledSections.length; i++) {
@@ -230,7 +232,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
           message: isAISection
             ? `🤖 AI generating ${section.title}...`
             : `Fetching ${section.title}...`,
-          progress: Math.round(((i + 1) / enabledSections.length) * 80) + 10,
+          progress: Math.round(((i + 1) / enabledSections.length) * 40) + 5,
         });
 
         try {
@@ -252,7 +254,51 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         }
       }
 
-      // Step 3: Finalize
+      // Step 3: Generate images for each slide using Nano Banana Pro
+      const branding = request.options.customBranding
+        ? { ...template.branding, ...request.options.customBranding }
+        : template.branding;
+
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+
+        setProgress({
+          status: 'generating-slides',
+          currentStep: enabledSections.length + i + 2,
+          totalSteps,
+          currentSlide: slide.sectionId,
+          message: `🎨 Creating visual for ${slide.sectionId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}...`,
+          progress: Math.round(((i + 1) / slides.length) * 45) + 45,
+        });
+
+        try {
+          const imageData = await generateSlideImage({
+            slide: {
+              type: slide.type,
+              sectionId: slide.sectionId,
+              content: slide.content,
+            },
+            branding,
+            slideNumber: i + 1,
+            totalSlides: slides.length,
+          });
+
+          // Update slide with image data
+          slides[i] = {
+            ...slide,
+            imageData,
+          };
+        } catch (imageError) {
+          console.error(`Error generating image for slide ${slide.sectionId}:`, imageError);
+          // Store error but continue - will fall back to React rendering
+          slides[i] = {
+            ...slide,
+            imageError: imageError instanceof Error ? imageError.message : 'Image generation failed',
+          };
+        }
+      }
+
+      // Step 4: Finalize
       updateProgress({
         status: 'rendering',
         currentStep: totalSteps,
@@ -261,6 +307,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
       });
 
       const generationTimeMs = Date.now() - startTime;
+      const imageSlidesCount = slides.filter(s => s.imageData).length;
 
       const deck: GeneratedDeck = {
         id: generateId(),
@@ -270,9 +317,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         generatedBy: 'current-user', // Would be populated from auth context
         context: request.context,
         slides,
-        branding: request.options.customBranding
-          ? { ...template.branding, ...request.options.customBranding }
-          : template.branding,
+        branding,
         metadata: {
           totalSlides: slides.length,
           aiSlidesCount: slides.filter(s => s.aiGenerated).length,
@@ -286,7 +331,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         status: 'complete',
         currentStep: totalSteps,
         totalSteps,
-        message: `✨ Generated ${slides.length} slides with ${deck.metadata.aiSlidesCount} AI-enhanced!`,
+        message: `✨ Generated ${slides.length} slides with ${imageSlidesCount} Nano Banana Pro visuals!`,
         progress: 100,
       });
 

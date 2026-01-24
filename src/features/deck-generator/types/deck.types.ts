@@ -214,6 +214,8 @@ export interface GeneratedSlide {
   content: SlideContent;
   aiGenerated: boolean;
   generatedAt: string;
+  imageData?: string; // Base64 PNG from Nano Banana Pro (Gemini 3 Pro Image)
+  imageError?: string; // Error message if image generation failed
 }
 
 export interface GeneratedDeck {

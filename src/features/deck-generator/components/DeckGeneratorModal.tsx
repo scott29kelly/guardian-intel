@@ -17,7 +17,7 @@ import { useDeckTemplates } from '../hooks/useDeckTemplates';
 import { DeckTemplateSelector } from './DeckTemplateSelector';
 import { DeckCustomizer } from './DeckCustomizer';
 import { DeckPreview, type DeckPreviewRef } from './DeckPreview';
-import { exportDeckAsZip, type ExportProgress } from '../utils/zipExport';
+import { exportDeckAsZip, exportDeckWithImages, type ExportProgress } from '../utils/zipExport';
 
 interface DeckGeneratorModalProps {
   isOpen: boolean;
@@ -150,26 +150,38 @@ export function DeckGeneratorModal({
   }, [generatedDeck]);
 
   // Handle download - export as ZIP with PNG slides
+  // Uses pre-generated Nano Banana Pro images when available
   const handleDownload = useCallback(async () => {
-    if (!generatedDeck || !deckPreviewRef.current) return;
+    if (!generatedDeck) return;
 
     setIsExporting(true);
     setExportProgress(null);
 
     try {
-      // Capture all slides as PNG blobs
-      const slideBlobs = await deckPreviewRef.current.captureAllSlides((progress) => {
-        setExportProgress(progress);
-      });
+      // Check if all slides have pre-generated images
+      const allSlidesHaveImages = generatedDeck.slides.every(s => s.imageData);
 
-      if (slideBlobs.length === 0) {
-        throw new Error('No slides captured for export');
+      if (allSlidesHaveImages) {
+        // Fast path: Use pre-generated Nano Banana Pro images directly
+        await exportDeckWithImages(generatedDeck, undefined, (progress) => {
+          setExportProgress(progress);
+        });
+      } else if (deckPreviewRef.current) {
+        // Some slides need capturing - capture fallback slides first
+        const slideBlobs = await deckPreviewRef.current.captureAllSlides((progress) => {
+          setExportProgress({
+            ...progress,
+            status: `Capturing fallback for ${progress.status}`
+          });
+        });
+
+        // Use hybrid export - pre-generated images + captured fallbacks
+        await exportDeckWithImages(generatedDeck, slideBlobs, (progress) => {
+          setExportProgress(progress);
+        });
+      } else {
+        throw new Error('No preview ref available for fallback capture');
       }
-
-      // Create and download the ZIP
-      await exportDeckAsZip(generatedDeck, slideBlobs, (progress) => {
-        setExportProgress(progress);
-      });
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export deck. Please try again.');

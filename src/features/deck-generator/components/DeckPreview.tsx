@@ -156,7 +156,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
                 {deck.slides.length} slides generated
               </span>
               <span className="text-xs text-text-muted ml-2">
-                ({deck.metadata.aiSlidesCount} AI-enhanced)
+                ({deck.slides.filter(s => s.imageData).length} Nano Banana Pro)
               </span>
             </div>
           </div>
@@ -172,25 +172,51 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
             data-slide-preview
             className="relative w-full rounded-xl overflow-hidden border-2 border-border/50 shadow-xl transition-all hover:border-intel-500/30"
             style={{
-              backgroundColor: deck.branding.colors.background,
+              backgroundColor: slide.imageData ? 'transparent' : deck.branding.colors.background,
               aspectRatio: '16 / 9',
             }}
           >
-            {/* Slide content with professional padding */}
-            <div className="absolute inset-0 p-8 md:p-12 flex flex-col">
-              <SlideRenderer slide={slide} branding={deck.branding} />
-            </div>
+            {/* Slide content - AI image or React fallback */}
+            {slide.imageData ? (
+              // Nano Banana Pro generated image
+              <img
+                src={`data:image/png;base64,${slide.imageData}`}
+                alt={`Slide ${index + 1}: ${slide.sectionId}`}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              // Fallback to React component rendering
+              <div className="absolute inset-0 p-8 md:p-12 flex flex-col">
+                <SlideRenderer slide={slide} branding={deck.branding} />
+              </div>
+            )}
 
             {/* Slide number badge */}
             <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/70 backdrop-blur-sm rounded-full text-sm text-white font-medium">
               {index + 1} / {deck.slides.length}
             </div>
 
-            {/* AI badge */}
-            {slide.aiGenerated && (
+            {/* Nano Banana Pro badge (for AI-generated images) */}
+            {slide.imageData && (
+              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 backdrop-blur-sm rounded-full text-xs text-purple-300 font-medium">
+                <Sparkles className="w-3.5 h-3.5" />
+                Nano Banana Pro
+              </div>
+            )}
+
+            {/* Fallback badge (for React-rendered slides) */}
+            {!slide.imageData && slide.aiGenerated && (
               <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-intel-500/20 backdrop-blur-sm rounded-full text-xs text-intel-300 font-medium">
                 <Sparkles className="w-3.5 h-3.5" />
                 AI Generated
+              </div>
+            )}
+
+            {/* Error indicator */}
+            {slide.imageError && (
+              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 backdrop-blur-sm rounded-full text-xs text-amber-300 font-medium">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Fallback Mode
               </div>
             )}
 
