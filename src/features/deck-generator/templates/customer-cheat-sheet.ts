@@ -23,7 +23,7 @@ export const customerCheatSheetTemplate: DeckTemplate = {
       title: 'Cover Slide',
       type: 'title',
       dataSource: 'getCustomerTitleData',
-      optional: false,
+      optional: true,
       aiEnhanced: false,
       defaultEnabled: true,
       description: 'Customer name, address, and prep date'
@@ -33,7 +33,7 @@ export const customerCheatSheetTemplate: DeckTemplate = {
       title: 'Customer At-A-Glance',
       type: 'stats',
       dataSource: 'getCustomerOverviewStats',
-      optional: false,
+      optional: true,
       aiEnhanced: false,
       defaultEnabled: true,
       description: 'Lead score, property value, roof age, storm exposure'
@@ -43,7 +43,7 @@ export const customerCheatSheetTemplate: DeckTemplate = {
       title: 'Property Intelligence',
       type: 'image',
       dataSource: 'getPropertyIntelData',
-      optional: false,
+      optional: true,
       aiEnhanced: false,
       defaultEnabled: true,
       description: 'Street view image with property details'
@@ -63,7 +63,7 @@ export const customerCheatSheetTemplate: DeckTemplate = {
       title: 'Recommended Talking Points',
       type: 'talking-points',
       dataSource: 'generateCustomerTalkingPoints',
-      optional: false,
+      optional: true,
       aiEnhanced: true,
       defaultEnabled: true,
       description: 'AI-generated conversation starters and value props'
@@ -73,7 +73,7 @@ export const customerCheatSheetTemplate: DeckTemplate = {
       title: 'Objection Handlers',
       type: 'list',
       dataSource: 'generateObjectionHandlers',
-      optional: false,
+      optional: true,
       aiEnhanced: true,
       defaultEnabled: true,
       description: 'Common objections with proven responses'

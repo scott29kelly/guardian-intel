@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import type { SlideType, SlideContent, BrandingConfig } from "@/features/deck-generator/types/deck.types";
 
 // Ensure route stability during hot reload and prevent caching
@@ -7,6 +8,123 @@ export const dynamic = "force-dynamic";
 
 // Timeout for Gemini API requests (60 seconds)
 const GEMINI_TIMEOUT_MS = 60000;
+
+// =============================================================================
+// STREET VIEW COMPOSITING HELPER
+// =============================================================================
+
+async function compositeStreetViewOntoSlide(
+  baseImageB64: string,
+  streetViewUrl: string,
+  position: { x: number; y: number; width: number; height: number }
+): Promise<string | null> {
+  try {
+    console.log('[Composite] Starting Street View composite', {
+      position,
+      urlPreview: streetViewUrl.substring(0, 80) + '...'
+    });
+
+    // Handle relative URLs
+    const fullUrl = streetViewUrl.startsWith('/')
+      ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${streetViewUrl}`
+      : streetViewUrl;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(fullUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.error('[Composite] Street View fetch failed', {
+        status: response.status,
+        statusText: response.statusText
+      });
+      return null;
+    }
+
+    const streetViewBuffer = Buffer.from(await response.arrayBuffer());
+    console.log('[Composite] Street View image fetched', { size: streetViewBuffer.length });
+
+    // Frame configuration
+    const frameThickness = 6;
+    const frameColor = '#D4A656'; // Gold
+    const cornerAccentSize = 20;
+
+    // Resize Street View to fit inside frame (accounting for border)
+    const innerWidth = position.width - (frameThickness * 2);
+    const innerHeight = position.height - (frameThickness * 2);
+
+    const resizedStreetView = await sharp(streetViewBuffer)
+      .resize(innerWidth, innerHeight, { fit: 'cover' })
+      .toBuffer();
+
+    // Create elegant gold frame with corner accents using SVG
+    const frameSvg = Buffer.from(`
+      <svg width="${position.width}" height="${position.height}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#E8C875"/>
+            <stop offset="50%" style="stop-color:#D4A656"/>
+            <stop offset="100%" style="stop-color:#B8934A"/>
+          </linearGradient>
+          <filter id="innerGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- Main frame border -->
+        <rect x="${frameThickness/2}" y="${frameThickness/2}"
+              width="${position.width - frameThickness}" height="${position.height - frameThickness}"
+              fill="none" stroke="url(#goldGradient)" stroke-width="${frameThickness}"
+              filter="url(#innerGlow)"/>
+
+        <!-- Corner accents - top left -->
+        <line x1="0" y1="${cornerAccentSize}" x2="0" y2="0" stroke="${frameColor}" stroke-width="3"/>
+        <line x1="0" y1="0" x2="${cornerAccentSize}" y2="0" stroke="${frameColor}" stroke-width="3"/>
+
+        <!-- Corner accents - top right -->
+        <line x1="${position.width}" y1="${cornerAccentSize}" x2="${position.width}" y2="0" stroke="${frameColor}" stroke-width="3"/>
+        <line x1="${position.width}" y1="0" x2="${position.width - cornerAccentSize}" y2="0" stroke="${frameColor}" stroke-width="3"/>
+
+        <!-- Corner accents - bottom left -->
+        <line x1="0" y1="${position.height - cornerAccentSize}" x2="0" y2="${position.height}" stroke="${frameColor}" stroke-width="3"/>
+        <line x1="0" y1="${position.height}" x2="${cornerAccentSize}" y2="${position.height}" stroke="${frameColor}" stroke-width="3"/>
+
+        <!-- Corner accents - bottom right -->
+        <line x1="${position.width}" y1="${position.height - cornerAccentSize}" x2="${position.width}" y2="${position.height}" stroke="${frameColor}" stroke-width="3"/>
+        <line x1="${position.width}" y1="${position.height}" x2="${position.width - cornerAccentSize}" y2="${position.height}" stroke="${frameColor}" stroke-width="3"/>
+      </svg>
+    `);
+
+    // Composite: base → street view → frame
+    const baseBuffer = Buffer.from(baseImageB64, 'base64');
+    const composited = await sharp(baseBuffer)
+      .composite([
+        // Street View image (inside the frame area)
+        {
+          input: resizedStreetView,
+          left: position.x + frameThickness,
+          top: position.y + frameThickness
+        },
+        // Gold frame on top
+        {
+          input: frameSvg,
+          left: position.x,
+          top: position.y
+        }
+      ])
+      .png()
+      .toBuffer();
+
+    console.log('[Composite] Successfully composited Street View with gold frame');
+    return composited.toString('base64');
+  } catch (error) {
+    console.error('[Composite] Error:', error);
+    return null;
+  }
+}
 
 // =============================================================================
 // NANO BANANA PRO (GEMINI 3 PRO IMAGE) SLIDE GENERATOR
@@ -202,11 +320,28 @@ IMAGE SLIDE CONTENT:
 ${data.caption ? `- Caption: "${data.caption}"` : ""}
 
 DESIGN REQUIREMENTS:
-- Create a slide with a large image placeholder area (16:9 ratio)
-- Add a subtle frame/border around the image area
-- Include the title at the top
-- Leave space for caption at the bottom
-- Use a "photo placeholder" style indicator
+- Create a slide with dimensions 1280x720 pixels
+- Solid dark navy background (#0F1419) - uniform color across entire slide
+
+LAYOUT:
+- Title "${data.title || "Property View"}" at TOP CENTER:
+  - Large, bold, white text
+  - Position around y: 60 pixels from top
+  - Use elegant sans-serif font
+
+- Caption "${data.caption || ""}" at BOTTOM CENTER:
+  - Smaller, light gray text (#9CA3AF)
+  - Position around y: 670 pixels from top
+  - Centered horizontally
+
+- The center of the slide should remain empty (just the dark background)
+  - An image will be added programmatically later
+
+STYLE:
+- Premium, minimalist corporate aesthetic
+- Subtle gold (#D4A656) decorative accents ONLY in the corners
+- Professional, clean look
+- No placeholder boxes, frames, or rectangles in the center
 `;
 }
 
@@ -396,6 +531,27 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Nano Banana Pro] Successfully generated slide ${slideNumber}`);
+
+    // Composite Street View for image-type slides
+    if (slide.type === 'image') {
+      const imageUrl = (slide.content as { imageUrl?: string }).imageUrl;
+      if (imageUrl) {
+        // Position matches explicit coordinates in buildImagePrompt()
+        const position = { x: 140, y: 150, width: 1000, height: 460 };
+        const composited = await compositeStreetViewOntoSlide(
+          imagePart.inlineData.data,
+          imageUrl,
+          position
+        );
+        if (composited) {
+          return NextResponse.json({
+            success: true,
+            imageData: composited,
+            mimeType: "image/png",
+          });
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

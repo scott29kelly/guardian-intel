@@ -17,6 +17,162 @@ import type {
 } from '../types/deck.types';
 
 // =============================================================================
+// STREET VIEW HELPERS
+// =============================================================================
+
+const LOG_PREFIX = '[StreetView]';
+function logStreetView(message: string, data?: Record<string, unknown>) {
+  console.log(`${LOG_PREFIX} ${message}`, data ? JSON.stringify(data, null, 2) : '');
+}
+
+/**
+ * Calculate bearing (heading) from point 1 to point 2
+ * Used to determine which direction the Street View camera should face
+ */
+function calculateBearing(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  const toDeg = (rad: number) => rad * 180 / Math.PI;
+
+  const dLng = toRad(lng2 - lng1);
+  const lat1Rad = toRad(lat1);
+  const lat2Rad = toRad(lat2);
+
+  const y = Math.sin(dLng) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+            Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+
+  let bearing = toDeg(Math.atan2(y, x));
+  return (bearing + 360) % 360; // Normalize to 0-360
+}
+
+/**
+ * Calculate distance between two points in meters (for logging/debugging)
+ */
+function haversineDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6371000; // Earth's radius in meters
+  const toRad = (deg: number) => deg * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) ** 2;
+
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Get optimal Street View URL with calculated heading toward the house
+ * Uses Street View Metadata API to calculate the best camera angle
+ *
+ * CRITICAL: Uses pano_id to ensure consistent panorama selection
+ *
+ * @param address - Full address string (used for fallback)
+ * @param apiKey - Google Maps API key
+ * @param coordinates - Optional pre-known coordinates (skips geocoding if provided)
+ */
+async function getStreetViewUrl(
+  address: string,
+  apiKey: string,
+  coordinates?: { lat: number; lng: number }
+): Promise<string> {
+  try {
+    // 1. Get house coordinates (use provided or geocode)
+    let houseLat: number;
+    let houseLng: number;
+
+    if (coordinates) {
+      // Use provided coordinates - skip geocoding entirely
+      logStreetView('Using provided coordinates (skipping geocode)', coordinates);
+      houseLat = coordinates.lat;
+      houseLng = coordinates.lng;
+    } else {
+      // Fallback: Geocode address to get house coordinates
+      logStreetView('Geocoding address', { address });
+
+      const geoResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
+      );
+      const geoData = await geoResponse.json();
+
+      if (geoData.status !== 'OK') {
+        logStreetView('Geocode failed', { status: geoData.status, address });
+        throw new Error(`Geocode failed: ${geoData.status}`);
+      }
+
+      houseLat = geoData.results[0].geometry.location.lat;
+      houseLng = geoData.results[0].geometry.location.lng;
+      logStreetView('House coordinates from geocode', { houseLat, houseLng });
+    }
+
+    // 2. Get Street View panorama metadata
+    const metaResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/streetview/metadata?location=${houseLat},${houseLng}&key=${apiKey}`
+    );
+    const metaData = await metaResponse.json();
+
+    if (metaData.status !== 'OK') {
+      logStreetView('No Street View available', { status: metaData.status, houseLat, houseLng });
+      throw new Error(`No Street View: ${metaData.status}`);
+    }
+
+    const panoId = metaData.pano_id;
+    const panoLat = metaData.location.lat;
+    const panoLng = metaData.location.lng;
+
+    const distanceMeters = Math.round(haversineDistance(houseLat, houseLng, panoLat, panoLng));
+    logStreetView('Panorama found', { panoId, panoLat, panoLng, distanceFromHouse: `${distanceMeters}m` });
+
+    // 3. Calculate heading FROM panorama TO house
+    const heading = calculateBearing(panoLat, panoLng, houseLat, houseLng);
+
+    logStreetView('Calculated heading', {
+      heading: heading.toFixed(1),
+      from: { lat: panoLat, lng: panoLng },
+      to: { lat: houseLat, lng: houseLng }
+    });
+
+    // 4. Build URL using pano_id (NOT location) for consistent results
+    // Using pano_id ensures we get the EXACT panorama we calculated heading for
+    const params = new URLSearchParams({
+      size: '960x420',
+      pano: panoId,
+      heading: heading.toFixed(1),
+      pitch: '10',
+      fov: '90',
+      key: apiKey,
+    });
+
+    const url = `https://maps.googleapis.com/maps/api/streetview?${params.toString()}`;
+    logStreetView('Generated Street View URL', { url: url.replace(apiKey, 'REDACTED') });
+
+    return url;
+  } catch (error) {
+    logStreetView('Error, falling back to basic URL', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      address
+    });
+
+    // Fallback to basic URL without heading (let Google auto-detect)
+    const params = new URLSearchParams({
+      size: '960x420',
+      location: address,
+      pitch: '10',
+      fov: '90',
+      key: apiKey,
+    });
+    return `https://maps.googleapis.com/maps/api/streetview?${params.toString()}`;
+  }
+}
+
+// =============================================================================
 // CUSTOMER CHEAT SHEET DATA FUNCTIONS
 // =============================================================================
 
@@ -108,10 +264,19 @@ export async function getPropertyIntelData(customerId: string): Promise<ImageSli
     const customer = data.customer;
     
     const address = `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode}`;
-    
-    // Use property service for street view if available
-    const streetViewUrl = `/api/property/street-view?address=${encodeURIComponent(address)}`;
-    
+
+    // Get Street View URL with calculated heading toward the house
+    // Use customer's stored coordinates if available (avoids geocoding API call)
+    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    let streetViewUrl = '/placeholder-property.svg';
+
+    if (mapsApiKey) {
+      const coordinates = customer.latitude && customer.longitude
+        ? { lat: customer.latitude, lng: customer.longitude }
+        : undefined;
+      streetViewUrl = await getStreetViewUrl(address, mapsApiKey, coordinates);
+    }
+
     const notes: string[] = [];
     if (customer.roofAge) notes.push(`Roof installed ~${customer.roofAge} years ago`);
     if (customer.roofType) notes.push(`Roof type: ${customer.roofType}`);

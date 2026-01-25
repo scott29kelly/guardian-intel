@@ -1,192 +1,279 @@
 /**
- * Scheduled Decks API
- *
- * POST /api/decks/schedule - Schedule a deck for overnight batch processing
- * GET /api/decks/schedule - Get scheduled decks for current user
- *
- * Batch processing runs at 2 AM daily, decks ready by 6 AM.
+ * POST /api/decks/schedule
+ * 
+ * Queue a deck generation job for a customer.
+ * The worker script will pick this up and process it.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-export const dynamic = "force-dynamic";
-
-// Validation schema for scheduling a deck
-const scheduleDeckSchema = z.object({
+// Request validation schema
+const scheduleRequestSchema = z.object({
   customerId: z.string().min(1, "Customer ID is required"),
-  customerName: z.string().min(1, "Customer name is required"),
-  templateId: z.string().min(1, "Template ID is required"),
-  templateName: z.string().min(1, "Template name is required"),
-  options: z.object({
-    enabledSections: z.array(z.string()),
-    includeAiContent: z.boolean().optional().default(true),
-    exportFormat: z.enum(["pdf", "pptx", "zip"]).optional().default("zip"),
-    customBranding: z.record(z.unknown()).optional(),
-  }),
+  templateId: z.string().default("sales-deck"), // Default template
+  templateName: z.string().default("Sales Presentation"),
   assignedToId: z.string().optional(), // For manager bulk scheduling
+  scheduledFor: z.string().datetime().optional(), // Schedule for later
 });
 
-/**
- * POST /api/decks/schedule
- *
- * Schedule a deck for batch processing
- */
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const rateLimitResponse = await rateLimit(request, "api");
-    if (rateLimitResponse) return rateLimitResponse;
-
-    // Auth check
+    // Verify authentication
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, error: "Authentication required" },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const userId = (session.user as { id: string }).id;
-
-    // Parse and validate body
+    // Parse and validate request body
     const body = await request.json();
-    const validation = scheduleDeckSchema.safeParse(body);
-
-    if (!validation.success) {
+    const validationResult = scheduleRequestSchema.safeParse(body);
+    
+    if (!validationResult.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request data",
-          details: validation.error.flatten().fieldErrors,
-        },
+        { error: "Invalid request", details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
 
-    const data = validation.data;
+    const { customerId, templateId, templateName, assignedToId, scheduledFor } = validationResult.data;
 
-    // Calculate next batch window (2 AM tomorrow)
-    const now = new Date();
-    const scheduledFor = new Date(now);
-    scheduledFor.setDate(scheduledFor.getDate() + 1);
-    scheduledFor.setHours(2, 0, 0, 0);
-
-    // Estimate ready time (6 AM)
-    const estimatedReady = new Date(scheduledFor);
-    estimatedReady.setHours(6, 0, 0, 0);
-
-    // Create scheduled deck record
-    const scheduledDeck = await prisma.scheduledDeck.create({
-      data: {
-        customerId: data.customerId,
-        customerName: data.customerName,
-        templateId: data.templateId,
-        templateName: data.templateName,
-        requestedById: userId,
-        assignedToId: data.assignedToId || userId,
-        status: "pending",
-        requestPayload: JSON.stringify(data),
-        scheduledFor,
-        estimatedSlides: data.options.enabledSections.length,
+    // Fetch customer to validate existence and get data for the deck
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: {
+        assignedRep: {
+          select: { id: true, name: true, email: true }
+        },
+        claims: {
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
+        weatherEvents: {
+          orderBy: { eventDate: "desc" },
+          take: 5,
+        },
+        intelItems: {
+          where: { isDismissed: false },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
     });
 
-    console.log(`[Scheduled Deck] Created ${scheduledDeck.id} for ${data.customerName}, batch at ${scheduledFor.toISOString()}`);
+    if (!customer) {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check for existing pending/processing deck for this customer
+    const existingJob = await prisma.scheduledDeck.findFirst({
+      where: {
+        customerId,
+        status: { in: ["pending", "processing"] },
+      },
+    });
+
+    if (existingJob) {
+      return NextResponse.json(
+        { 
+          error: "A deck is already being generated for this customer",
+          existingJobId: existingJob.id,
+          status: existingJob.status,
+        },
+        { status: 409 } // Conflict
+      );
+    }
+
+    // Build the request payload with all customer context
+    const requestPayload = {
+      customer: {
+        id: customer.id,
+        name: `${customer.firstName} ${customer.lastName}`,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        address: {
+          street: customer.address,
+          city: customer.city,
+          state: customer.state,
+          zipCode: customer.zipCode,
+          county: customer.county,
+        },
+        property: {
+          type: customer.propertyType,
+          yearBuilt: customer.yearBuilt,
+          squareFootage: customer.squareFootage,
+          lotSize: customer.lotSize,
+          stories: customer.stories,
+          bedrooms: customer.bedrooms,
+          bathrooms: customer.bathrooms,
+          value: customer.propertyValue,
+        },
+        roof: {
+          type: customer.roofType,
+          age: customer.roofAge,
+          squares: customer.roofSquares,
+          pitch: customer.roofPitch,
+          condition: customer.roofCondition,
+          lastWork: customer.lastRoofWork,
+        },
+        insurance: {
+          carrier: customer.insuranceCarrier,
+          policyNumber: customer.policyNumber,
+          policyType: customer.policyType,
+          deductible: customer.deductible,
+          claimHistory: customer.claimHistory,
+        },
+        scores: {
+          lead: customer.leadScore,
+          urgency: customer.urgencyScore,
+          profitPotential: customer.profitPotential,
+          churnRisk: customer.churnRisk,
+          engagement: customer.engagementScore,
+        },
+        pipeline: {
+          status: customer.status,
+          stage: customer.stage,
+          leadSource: customer.leadSource,
+          estimatedJobValue: customer.estimatedJobValue,
+        },
+        assignedRep: customer.assignedRep,
+      },
+      recentClaims: customer.claims.map(claim => ({
+        id: claim.id,
+        carrier: claim.carrier,
+        dateOfLoss: claim.dateOfLoss,
+        claimType: claim.claimType,
+        status: claim.status,
+        approvedValue: claim.approvedValue,
+      })),
+      weatherEvents: customer.weatherEvents.map(event => ({
+        id: event.id,
+        type: event.eventType,
+        date: event.eventDate,
+        severity: event.severity,
+        hailSize: event.hailSize,
+        windSpeed: event.windSpeed,
+      })),
+      intelItems: customer.intelItems.map(item => ({
+        id: item.id,
+        category: item.category,
+        title: item.title,
+        content: item.content,
+        priority: item.priority,
+        confidence: item.confidence,
+      })),
+      generatedAt: new Date().toISOString(),
+      templateId,
+    };
+
+    // Create the scheduled deck job
+    const scheduledDeck = await prisma.scheduledDeck.create({
+      data: {
+        customerId: customer.id,
+        customerName: `${customer.firstName} ${customer.lastName}`,
+        templateId,
+        templateName,
+        requestedById: session.user.id,
+        assignedToId: assignedToId || customer.assignedRepId || session.user.id,
+        status: "pending",
+        requestPayload: JSON.stringify(requestPayload),
+        scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(),
+        estimatedSlides: 8, // Default estimate for sales deck
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      scheduledDeck: {
+      job: {
         id: scheduledDeck.id,
+        status: scheduledDeck.status,
         customerId: scheduledDeck.customerId,
         customerName: scheduledDeck.customerName,
         templateName: scheduledDeck.templateName,
-        status: scheduledDeck.status,
-        scheduledFor: scheduledDeck.scheduledFor.toISOString(),
-        estimatedReady: estimatedReady.toISOString(),
-        estimatedSlides: scheduledDeck.estimatedSlides,
+        scheduledFor: scheduledDeck.scheduledFor,
+        createdAt: scheduledDeck.createdAt,
       },
-      message: `Deck scheduled for batch processing. Will be ready by ${estimatedReady.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} tomorrow.`,
+      message: "Deck generation queued successfully",
     });
+
   } catch (error) {
-    console.error("[API] POST /api/decks/schedule error:", error);
+    console.error("[API] Error scheduling deck:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to schedule deck" },
+      { error: "Failed to schedule deck generation" },
       { status: 500 }
     );
   }
 }
 
-/**
- * GET /api/decks/schedule
- *
- * Get all scheduled decks for the current user
- */
+// GET - List scheduled decks for current user
 export async function GET(request: NextRequest) {
   try {
-    // Rate limiting
-    const rateLimitResponse = await rateLimit(request, "api");
-    if (rateLimitResponse) return rateLimitResponse;
-
-    // Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, error: "Authentication required" },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const userId = (session.user as { id: string }).id;
-
-    // Parse query params
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status"); // pending, completed, all
+    const status = searchParams.get("status"); // Filter by status
+    const customerId = searchParams.get("customerId"); // Filter by customer
+    const limit = parseInt(searchParams.get("limit") || "20");
 
-    // Build where clause
-    const whereClause: {
-      OR: Array<{ requestedById: string } | { assignedToId: string }>;
-      status?: string;
-    } = {
-      OR: [{ requestedById: userId }, { assignedToId: userId }],
+    const where: Record<string, unknown> = {
+      OR: [
+        { requestedById: session.user.id },
+        { assignedToId: session.user.id },
+      ],
     };
 
-    if (status && status !== "all") {
-      whereClause.status = status;
+    if (status) {
+      where.status = status;
     }
 
-    // Fetch scheduled decks
-    const scheduledDecks = await prisma.scheduledDeck.findMany({
-      where: whereClause,
+    if (customerId) {
+      where.customerId = customerId;
+    }
+
+    const decks = await prisma.scheduledDeck.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take: limit,
+      select: {
+        id: true,
+        customerId: true,
+        customerName: true,
+        templateName: true,
+        status: true,
+        scheduledFor: true,
+        completedAt: true,
+        createdAt: true,
+        errorMessage: true,
+        // pdfUrl: true, // Uncomment after migration
+      },
     });
 
     return NextResponse.json({
-      success: true,
-      scheduledDecks: scheduledDecks.map((deck) => ({
-        id: deck.id,
-        customerId: deck.customerId,
-        customerName: deck.customerName,
-        templateId: deck.templateId,
-        templateName: deck.templateName,
-        status: deck.status,
-        scheduledFor: deck.scheduledFor.toISOString(),
-        completedAt: deck.completedAt?.toISOString() || null,
-        estimatedSlides: deck.estimatedSlides,
-        actualSlides: deck.actualSlides,
-        errorMessage: deck.errorMessage,
-        createdAt: deck.createdAt.toISOString(),
-      })),
+      decks,
+      count: decks.length,
     });
+
   } catch (error) {
-    console.error("[API] GET /api/decks/schedule error:", error);
+    console.error("[API] Error fetching decks:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch scheduled decks" },
+      { error: "Failed to fetch decks" },
       { status: 500 }
     );
   }
