@@ -69,7 +69,7 @@ export function DeckTemplateSelector({ templates, onSelect }: DeckTemplateSelect
           placeholder="Search templates..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
+          className="w-full pl-10 pr-4 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
         />
       </div>
 
@@ -80,7 +80,7 @@ export function DeckTemplateSelector({ templates, onSelect }: DeckTemplateSelect
           className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             selectedCategory === null
               ? 'bg-intel-500 text-void-900'
-              : 'bg-surface-secondary text-text-secondary hover:bg-[hsl(var(--bg-hover))]'
+              : 'bg-surface-secondary text-text-secondary hover:bg-page-hover'
           }`}
         >
           All
@@ -94,7 +94,7 @@ export function DeckTemplateSelector({ templates, onSelect }: DeckTemplateSelect
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 selectedCategory === category.id
                   ? 'bg-intel-500 text-void-900'
-                  : 'bg-surface-secondary text-text-secondary hover:bg-[hsl(var(--bg-hover))]'
+                  : 'bg-surface-secondary text-text-secondary hover:bg-page-hover'
               }`}
             >
               <CategoryIcon className="w-3.5 h-3.5" />

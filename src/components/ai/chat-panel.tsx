@@ -617,7 +617,7 @@ export function AIChatPanel({
             exit={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "fixed bg-[hsl(var(--surface-primary))] z-50 flex flex-col overflow-hidden",
+              "fixed bg-surface-primary z-50 flex flex-col overflow-hidden",
               viewMode === "panel" && "right-0 top-2 bottom-2 w-full max-w-lg border border-border/50 border-r-0 rounded-l-3xl",
               viewMode === "expanded" && "inset-0 m-auto w-[90vw] max-w-4xl h-[80vh] max-h-[800px] rounded-2xl border border-border",
               viewMode === "fullscreen" && "inset-3 rounded-2xl border border-border"
@@ -718,7 +718,7 @@ export function AIChatPanel({
                 "border-b border-border/50",
                 viewMode === "panel" 
                   ? "bg-gradient-to-b from-surface-secondary/50 to-transparent" 
-                  : "bg-[hsl(var(--surface-secondary))]",
+                  : "bg-surface-secondary",
                 viewMode !== "panel" && !showHistory && "rounded-t-2xl"
               )}>
                 {/* iOS-style drag indicator - only in panel mode */}
@@ -742,7 +742,7 @@ export function AIChatPanel({
                   >
                     <MessageSquare className="w-5 h-5" />
                   </button>
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-intel-500 to-guardian-500 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-intel-500 to-accent-primary flex items-center justify-center">
                     <Bot className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -853,7 +853,7 @@ export function AIChatPanel({
                 "p-4 border-t border-border/50",
                 viewMode === "panel"
                   ? "bg-surface-secondary/80 backdrop-blur-sm"
-                  : "bg-[hsl(var(--surface-secondary))]"
+                  : "bg-surface-secondary"
               )}>
                 <div className="relative">
                   <textarea
@@ -862,7 +862,7 @@ export function AIChatPanel({
                     onChange={e => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask me anything about this customer..."
-                    className="w-full px-4 py-3 pr-12 bg-[hsl(var(--surface-primary))] border border-border rounded-lg text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-intel-500/50"
+                    className="w-full px-4 py-3 pr-12 bg-surface-primary border border-border rounded-lg text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-intel-500/50"
                     rows={2}
                     disabled={isLoading}
                   />
@@ -898,7 +898,7 @@ export function AIChatPanel({
 function EmptyState({ onSuggestedPrompt }: { onSuggestedPrompt: (prompt: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-4">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-intel-500/20 to-guardian-500/20 flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-intel-500/20 to-accent-primary/20 flex items-center justify-center mb-4">
         <Sparkles className="w-8 h-8 text-intel-400" />
       </div>
       <h3 className="font-display text-lg font-bold text-text-primary mb-2">
@@ -912,7 +912,7 @@ function EmptyState({ onSuggestedPrompt }: { onSuggestedPrompt: (prompt: string)
           <button
             key={index}
             onClick={() => onSuggestedPrompt(item.prompt)}
-            className="flex items-center gap-2 p-3 bg-[hsl(var(--surface-secondary))] hover:bg-[hsl(var(--surface-hover))] border border-border rounded-lg text-left transition-colors group"
+            className="flex items-center gap-2 p-3 bg-surface-secondary hover:bg-surface-hover border border-border rounded-lg text-left transition-colors group"
           >
             <item.icon className="w-4 h-4 text-intel-400 group-hover:text-intel-300" />
             <span className="text-sm text-text-secondary group-hover:text-text-primary">
@@ -971,7 +971,7 @@ function ChatMessage({ message }: { message: Message }) {
         className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
           isAssistant
-            ? "bg-gradient-to-br from-intel-500 to-guardian-500"
+            ? "bg-gradient-to-br from-intel-500 to-accent-primary"
             : "bg-surface-700"
         )}
       >
@@ -985,7 +985,7 @@ function ChatMessage({ message }: { message: Message }) {
         className={cn(
           "flex-1 rounded-lg p-3",
           isAssistant
-            ? "bg-[hsl(var(--surface-secondary))] border border-border"
+            ? "bg-surface-secondary border border-border"
             : "bg-intel-500/10 border border-intel-500/30"
         )}
       >

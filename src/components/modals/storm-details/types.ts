@@ -67,14 +67,14 @@ export const stormTypeIcons: Record<string, typeof CloudLightning> = {
 };
 
 export const severityColors: Record<string, string> = {
-  minor: "bg-guardian-500/20 text-guardian-400 border-guardian-500/30",
+  minor: "bg-accent-primary/20 text-accent-primary border-accent-primary/30",
   moderate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   severe: "bg-rose-500/20 text-rose-400 border-rose-500/30",
   catastrophic: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
 export const statusLabels: Record<string, { label: string; color: string }> = {
-  not_contacted: { label: "Not Contacted", color: "bg-surface-500/20 text-surface-400" },
+  not_contacted: { label: "Not Contacted", color: "bg-text-muted/10 text-text-muted" },
   contacted: { label: "Contacted", color: "bg-blue-500/20 text-blue-400" },
   pending_inspection: { label: "Pending Inspection", color: "bg-amber-500/20 text-amber-400" },
   claim_filed: { label: "Claim Filed", color: "bg-emerald-500/20 text-emerald-400" },

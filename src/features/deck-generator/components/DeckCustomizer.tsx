@@ -163,7 +163,7 @@ export function DeckCustomizer({
                   value={(context[`${ctx.type}Id`] as string) || ''}
                   onChange={e => onContextChange({ ...context, [`${ctx.type}Id`]: e.target.value })}
                   placeholder={ctx.placeholder}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
+                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-intel-500/50 focus:border-intel-500"
                 />
               )}
             </div>
@@ -250,7 +250,7 @@ export function DeckCustomizer({
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 exportFormat === format
                   ? 'bg-intel-500 text-void-900'
-                  : 'bg-surface-secondary text-text-secondary hover:bg-[hsl(var(--bg-hover))]'
+                  : 'bg-surface-secondary text-text-secondary hover:bg-page-hover'
               }`}
             >
               <Icon className="w-4 h-4" />
