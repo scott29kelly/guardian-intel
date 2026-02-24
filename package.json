@@ -74,6 +74,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.4",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
@@ -87,6 +88,8 @@
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.3",
+    "eslint-config-next": "^15.5.12",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
     "prisma": "^6.1.0",
