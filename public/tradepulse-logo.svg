@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
+  <path d="M8 8l8 4v16l-8 4-8-4V12l8-4z" fill="#1E3A5F"/>
+  <path d="M8 12l4 2v8l-4 2-4-2v-8l4-2z" fill="#D4A656"/>
+  <path d="M6 16l2-1 2 1v4l-2 1-2-1v-4z" fill="#4A90A4"/>
+  <text x="28" y="26" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">TradePulse</text>
+  <text x="152" y="26" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="400" fill="#D4A656">Intel</text>
+</svg>
