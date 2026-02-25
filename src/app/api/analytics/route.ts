@@ -96,7 +96,7 @@ export async function GET(request: Request) {
     });
 
     // Get weekly activity (last 7 days)
-    const weeklyActivity = [];
+    const weeklyActivity: { day: string; calls: number; appointments: number; closures: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);

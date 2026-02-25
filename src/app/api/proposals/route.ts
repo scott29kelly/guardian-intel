@@ -1,20 +1,198 @@
 /**
- * Proposals API - Stub (Proposal model not in schema)
+ * Proposals API
+ *
+ * GET  /api/proposals - List proposals with pagination and filtering
+ * POST /api/proposals - Generate and save a new proposal
  */
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { generateProposal, saveProposal } from "@/lib/services/proposals/generator";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ success: true, data: [], message: "Proposals feature coming soon" });
+/**
+ * GET /api/proposals
+ *
+ * Query params:
+ * - page: number (default 1)
+ * - limit: number (default 20, max 100)
+ * - status: ProposalStatus filter
+ * - customerId: filter by customer
+ */
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+    const status = searchParams.get("status");
+    const customerId = searchParams.get("customerId");
+
+    // Build where clause
+    const where: Prisma.ProposalWhereInput = {};
+
+    if (status) {
+      // Validate status against known enum values
+      const validStatuses = ["draft", "sent", "viewed", "accepted", "rejected", "expired", "revised"];
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json(
+          { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      where.status = status as Prisma.ProposalWhereInput["status"];
+    }
+
+    if (customerId) {
+      where.customerId = customerId;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [proposals, total] = await Promise.all([
+      prisma.proposal.findMany({
+        where,
+        include: {
+          customer: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.proposal.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      proposals,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("[API] GET /api/proposals error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch proposals" },
+      { status: 500 }
+    );
+  }
 }
 
-export async function POST() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ error: "Proposals feature not yet implemented" }, { status: 501 });
+/**
+ * POST /api/proposals
+ *
+ * Body:
+ * - customerId: string (required)
+ * - createdById?: string (defaults to session.user.id)
+ * - materialGrade?: "economy" | "standard" | "premium" | "luxury"
+ * - customDiscount?: { amount: number; reason: string }
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { customerId, createdById, materialGrade, customDiscount } = body;
+
+    if (!customerId || typeof customerId !== "string") {
+      return NextResponse.json(
+        { error: "customerId is required and must be a string" },
+        { status: 400 }
+      );
+    }
+
+    const userId = createdById || (session.user as unknown as { id: string }).id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Could not determine user ID. Provide createdById or ensure session has user.id" },
+        { status: 400 }
+      );
+    }
+
+    // Validate materialGrade if provided
+    if (materialGrade) {
+      const validGrades = ["economy", "standard", "premium", "luxury"];
+      if (!validGrades.includes(materialGrade)) {
+        return NextResponse.json(
+          { error: `Invalid materialGrade. Must be one of: ${validGrades.join(", ")}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate customDiscount if provided
+    if (customDiscount) {
+      if (typeof customDiscount.amount !== "number" || customDiscount.amount < 0) {
+        return NextResponse.json(
+          { error: "customDiscount.amount must be a non-negative number" },
+          { status: 400 }
+        );
+      }
+      if (!customDiscount.reason || typeof customDiscount.reason !== "string") {
+        return NextResponse.json(
+          { error: "customDiscount.reason is required when providing a discount" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate proposal
+    const result = await generateProposal({
+      customerId,
+      createdById: userId,
+      materialGrade,
+      customDiscount,
+    });
+
+    if (!result.success || !result.proposal) {
+      return NextResponse.json(
+        { error: result.error || "Failed to generate proposal" },
+        { status: 422 }
+      );
+    }
+
+    // Save to database
+    const saved = await saveProposal(result.proposal, userId);
+
+    return NextResponse.json(
+      {
+        proposal: {
+          id: saved.id,
+          proposalNumber: saved.proposalNumber,
+          customerId,
+          status: "draft",
+          title: result.proposal.aiContent.scopeOfWork
+            ? `Roof Replacement Proposal - ${result.proposal.customer.firstName} ${result.proposal.customer.lastName}`
+            : "New Proposal",
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("[API] POST /api/proposals error:", error);
+    return NextResponse.json(
+      { error: "Failed to create proposal" },
+      { status: 500 }
+    );
+  }
 }

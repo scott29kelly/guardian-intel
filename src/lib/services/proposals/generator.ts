@@ -579,13 +579,41 @@ export async function generateProposal(
 }
 
 // =============================================================================
-// PROPOSAL PERSISTENCE (STUBBED - pending Proposal model)
+// PROPOSAL PERSISTENCE
 // =============================================================================
 
+function generateProposalNumber(): string {
+  const prefix = "GP";
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}-${timestamp}-${random}`;
+}
+
 export async function saveProposal(
-  _proposal: GeneratedProposal,
-  _createdById: string
+  proposal: GeneratedProposal,
+  createdById: string
 ): Promise<{ id: string; proposalNumber: string }> {
-  // TODO: Implement when Proposal model exists
-  throw new Error("Proposal saving coming soon");
+  const proposalNumber = generateProposalNumber();
+
+  const saved = await prisma.proposal.create({
+    data: {
+      customerId: proposal.customer.id,
+      createdById,
+      status: "draft",
+      title: `Roof Replacement Proposal - ${proposal.customer.firstName} ${proposal.customer.lastName}`,
+      proposalNumber,
+      customerSnapshot: JSON.stringify(proposal.customer),
+      propertySnapshot: JSON.stringify(proposal.property),
+      weatherEvents: JSON.stringify(proposal.weatherEvents),
+      damageAssessment: JSON.stringify(proposal.damageAssessment),
+      pricingOptions: JSON.stringify(proposal.pricingOptions),
+      recommendedOptionId: proposal.recommendedOption.id,
+      lineItems: JSON.stringify(proposal.lineItems),
+      aiContent: JSON.stringify(proposal.aiContent),
+      sourceDataSnapshot: JSON.stringify(proposal.sourceDataSnapshot),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
+  });
+
+  return { id: saved.id, proposalNumber: saved.proposalNumber };
 }

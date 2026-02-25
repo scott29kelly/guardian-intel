@@ -61,7 +61,20 @@ export async function GET(request: Request) {
 
     // Deduplicate by playbook ID, keeping most recent
     const seen = new Set<string>();
-    const uniquePlaybooks = [];
+    const uniquePlaybooks: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      category: string;
+      type: string;
+      stage: string | null;
+      usageCount: number;
+      rating: number | null;
+      tags: string[];
+      isPublished: boolean;
+      lastUsedAt: Date;
+      lastContext: string;
+    }> = [];
 
     for (const usage of recentUsages) {
       if (!seen.has(usage.playbookId) && usage.playbook.isPublished) {

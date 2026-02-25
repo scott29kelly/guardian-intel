@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       systemPrompt = buildCustomerSystemPrompt(context);
     } else {
       // Default system prompt for general chat
-      systemPrompt = `You are Guardian Intel, an AI assistant for Guardian Roofing & Siding, a storm damage restoration company serving PA, NJ, DE, MD, VA, and NY.
+      systemPrompt = `You are TradePulse Intel, an AI sales assistant for home service professionals. You help with storm damage restoration sales across PA, NJ, DE, MD, VA, and NY.
 
 You help sales reps with:
 - Customer research and property analysis
@@ -309,7 +309,7 @@ Would you like talking points for discussing storm damage with ${customer.firstN
       const stageActions: Record<string, string[]> = {
         "new": [
           `Make initial contact with ${customer.firstName}`,
-          `Introduce Guardian's services and storm damage expertise`,
+          `Introduce your company's services and storm damage expertise`,
           `Schedule a free roof inspection`
         ],
         "contacted": [
@@ -379,7 +379,7 @@ Would you like me to draft a script or email for ${customer.firstName}?`;
       return `## Call Script for ${customerName}
 
 ### Opening
-*"Hi ${customer.firstName}, this is [Your Name] from Guardian Roofing & Siding. How are you today?"*
+*"Hi ${customer.firstName}, this is [Your Name] from your company. How are you today?"*
 
 ### Bridge to Purpose
 *"${weatherTalkingPoint}"*
@@ -442,8 +442,8 @@ Would you have 15 minutes this week for a quick inspection? I can work around yo
 
 Best regards,
 [Your Name]
-Guardian Roofing & Siding
-1-855-424-5911
+[Your Company Name]
+[Company Phone]
 
 ---
 
@@ -541,7 +541,7 @@ ${recentWeather.eventType.toUpperCase()} on ${new Date(recentWeather.eventDate).
 - ⚡ Handle objections`;
   }
 
-  return `I'm Guardian Intel, your AI assistant for storm damage sales. Here's what I can help with:
+  return `I'm TradePulse Intel, your AI sales assistant for home service professionals. Here's what I can help with:
 
 🔍 **Customer Research** - Look up property details, insurance info, weather history
 📊 **Pipeline Analysis** - Get recommendations based on lead score and stage  

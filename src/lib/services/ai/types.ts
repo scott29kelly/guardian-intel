@@ -1,5 +1,5 @@
 /**
- * Guardian Intel AI Service Types
+ * TradePulse Intel AI Service Types
  * 
  * Simplified architecture using Gemini for all tasks.
  * Additional models can be added for specialized use cases.
