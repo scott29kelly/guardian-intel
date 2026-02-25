@@ -155,7 +155,7 @@ export default function PlaybooksAnalyticsPage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-accent-primary/10 to-accent-primary/5 border-accent-primary/30">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">

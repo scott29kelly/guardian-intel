@@ -232,10 +232,10 @@ export function QuickLogModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-2xl bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="w-full max-w-2xl bg-surface-primary border border-border rounded-lg shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border bg-[hsl(var(--surface-secondary))]">
+          <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary">
             <div>
               <h2 className="font-display font-bold text-lg text-text-primary">
                 Log Activity
@@ -585,7 +585,7 @@ export function QuickLogModal({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border bg-[hsl(var(--surface-secondary))] flex justify-end gap-3">
+          <div className="p-4 border-t border-border bg-surface-secondary flex justify-end gap-3">
             <Button variant="outline" onClick={onClose} disabled={isProcessing}>
               {activeTab === "history" ? "Close" : "Cancel"}
             </Button>

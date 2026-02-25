@@ -48,10 +48,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         initial={false}
         animate={{ marginLeft: isMobile ? 0 : sidebarWidth }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="flex-1 min-h-screen"
+        className="flex-1 min-h-screen min-w-0 overflow-x-hidden"
       >
         {/* Main content with mobile padding adjustments */}
-        <div className="p-4 md:p-6 pt-18 md:pt-6 pb-24 md:pb-6">
+        <div className="p-4 md:p-8 pt-18 md:pt-8 pb-24 md:pb-8">
           <SectionErrorBoundary sectionName="Page content">
             {children}
           </SectionErrorBoundary>

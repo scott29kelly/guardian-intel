@@ -34,7 +34,7 @@ export function ActionTypeSelector({ selectedAction, onSelect }: ActionTypeSelec
               className={`
                 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all
                 ${isSelected
-                  ? "bg-[hsl(var(--accent-primary)/0.1)] border-accent-primary text-accent-primary"
+                  ? "bg-accent-primary/10 border-accent-primary text-accent-primary"
                   : "bg-surface-secondary border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-hover"
                 }
               `}

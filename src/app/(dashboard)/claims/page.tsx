@@ -210,7 +210,7 @@ export default function ClaimsPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">

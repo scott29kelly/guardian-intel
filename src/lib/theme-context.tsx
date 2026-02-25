@@ -12,13 +12,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const storedTheme = localStorage.getItem("guardian-theme");
-    
+    // Migrate from old storage key
+    const oldTheme = localStorage.getItem("guardian-theme");
+    if (oldTheme) {
+      localStorage.removeItem("guardian-theme");
+      localStorage.setItem("tradepulse-theme", oldTheme);
+    }
+
+    const storedTheme = localStorage.getItem("tradepulse-theme");
+
     if (storedTheme && ["dark", "slate", "light"].includes(storedTheme)) {
       setTheme(storedTheme as Theme);
     } else if (storedTheme === "gray" || storedTheme === "light-gray") {
@@ -29,7 +36,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem("guardian-theme", theme);
+      localStorage.setItem("tradepulse-theme", theme);
       document.documentElement.setAttribute("data-theme", theme);
     }
   }, [theme, mounted]);

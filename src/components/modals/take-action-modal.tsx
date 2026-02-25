@@ -80,7 +80,7 @@ export function TakeActionModal({ customer, isOpen, onClose }: TakeActionModalPr
             exit={{ opacity: 0, x: viewMode === "panel" ? "100%" : 0, scale: viewMode !== "panel" ? 0.95 : 1 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "fixed bg-[hsl(var(--surface-primary))] z-[10001] flex flex-col overflow-hidden",
+              "fixed bg-surface-primary z-[10001] flex flex-col overflow-hidden",
               viewMode === "panel" && "right-0 top-2 bottom-2 w-full max-w-[420px] border border-border/50 border-r-0 rounded-l-3xl",
               viewMode === "expanded" && "inset-0 m-auto w-[90vw] max-w-2xl h-[80vh] max-h-[700px] rounded-2xl border border-border",
               viewMode === "fullscreen" && "inset-3 rounded-2xl border border-border"
@@ -89,7 +89,7 @@ export function TakeActionModal({ customer, isOpen, onClose }: TakeActionModalPr
           >
             {isSuccess ? (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 rounded-full bg-[hsl(var(--accent-success)/0.15)] flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-accent-success/[0.15] flex items-center justify-center mb-6">
                   <CheckCircle className="w-10 h-10 text-accent-success" />
                 </div>
                 <h3 className="font-display font-bold text-2xl text-text-primary mb-2">Action Logged</h3>
@@ -98,7 +98,7 @@ export function TakeActionModal({ customer, isOpen, onClose }: TakeActionModalPr
             ) : (
               <>
                 {/* Header */}
-                <div className={cn("border-b border-border/50", viewMode === "panel" ? "bg-gradient-to-b from-surface-secondary/50 to-transparent" : "bg-[hsl(var(--surface-secondary))]", viewMode !== "panel" && "rounded-t-2xl")}>
+                <div className={cn("border-b border-border/50", viewMode === "panel" ? "bg-gradient-to-b from-surface-secondary/50 to-transparent" : "bg-surface-secondary", viewMode !== "panel" && "rounded-t-2xl")}>
                   {viewMode === "panel" && <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 rounded-full bg-border/60" /></div>}
                   <div className={cn("flex items-center justify-between", viewMode === "panel" ? "px-5 pb-4 pt-2" : "p-4")}>
                     <div className="flex items-center gap-3">
@@ -137,14 +137,14 @@ export function TakeActionModal({ customer, isOpen, onClose }: TakeActionModalPr
 
                   {/* Quick Actions */}
                   {selectedAction === "call" && customer.phone && (
-                    <a href={`tel:${customer.phone}`} className="flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-[hsl(var(--accent-primary)/0.15)] to-[hsl(var(--accent-primary)/0.05)] border border-[hsl(var(--accent-primary)/0.3)] rounded-xl text-accent-primary font-mono text-sm hover:from-[hsl(var(--accent-primary)/0.2)] hover:to-[hsl(var(--accent-primary)/0.1)] transition-all group">
+                    <a href={`tel:${customer.phone}`} className="flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-accent-primary/[0.15] to-accent-primary/5 border border-accent-primary/30 rounded-xl text-accent-primary font-mono text-sm hover:from-accent-primary/20 hover:to-accent-primary/10 transition-all group">
                       <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform"><Phone className="w-5 h-5" /></div>
                       <span className="font-medium">Call {customer.phone}</span>
                     </a>
                   )}
 
                   {selectedAction === "email" && customer.email && (
-                    <a href={`mailto:${customer.email}?subject=Following up on your roof assessment`} className="flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-[hsl(var(--accent-secondary)/0.15)] to-[hsl(var(--accent-secondary)/0.05)] border border-[hsl(var(--accent-secondary)/0.3)] rounded-xl text-accent-secondary font-mono text-sm hover:from-[hsl(var(--accent-secondary)/0.2)] hover:to-[hsl(var(--accent-secondary)/0.1)] transition-all group">
+                    <a href={`mailto:${customer.email}?subject=Following up on your roof assessment`} className="flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-accent-secondary/[0.15] to-accent-secondary/5 border border-accent-secondary/30 rounded-xl text-accent-secondary font-mono text-sm hover:from-accent-secondary/20 hover:to-accent-secondary/10 transition-all group">
                       <div className="w-10 h-10 rounded-full bg-accent-secondary/20 flex items-center justify-center group-hover:scale-110 transition-transform"><Mail className="w-5 h-5" /></div>
                       <span className="font-medium">Compose Email</span>
                     </a>
@@ -179,7 +179,7 @@ export function TakeActionModal({ customer, isOpen, onClose }: TakeActionModalPr
                 </div>
 
                 {/* Footer */}
-                <div className={cn("p-5 border-t border-border/50 flex items-center gap-3", viewMode === "panel" ? "bg-surface-secondary/80 backdrop-blur-sm" : "bg-[hsl(var(--surface-secondary))]")}>
+                <div className={cn("p-5 border-t border-border/50 flex items-center gap-3", viewMode === "panel" ? "bg-surface-secondary/80 backdrop-blur-sm" : "bg-surface-secondary")}>
                   <button onClick={onClose} className="flex-1 px-5 py-3.5 bg-surface-secondary border border-border/50 rounded-2xl font-mono text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all">Cancel</button>
                   <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 px-5 py-3.5 rounded-2xl font-mono text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 shadow-lg" style={{ background: `linear-gradient(135deg, var(--gradient-start), var(--gradient-end))` }}>
                     {isSubmitting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <><Send className="w-4 h-4" />Log Action</>}

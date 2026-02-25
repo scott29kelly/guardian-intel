@@ -237,7 +237,7 @@ export function CustomerCompareModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 m-auto w-[95vw] max-w-[1100px] h-[90vh] max-h-[85vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
+            className="fixed inset-0 m-auto w-[95vw] max-w-[1100px] h-[90vh] max-h-[85vh] bg-surface-primary border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary/50">

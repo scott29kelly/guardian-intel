@@ -13,7 +13,7 @@ import {
   BarChart3,
   BookOpen,
   Settings,
-  Shield,
+  Activity,
   Bot,
   Zap,
   Target,
@@ -39,14 +39,14 @@ export function MobileHeader() {
   return (
     <>
       {/* Mobile Header Bar */}
-      <header className="fixed top-0 left-0 right-0 h-14 bg-[hsl(var(--surface-primary))] border-b border-border z-40 md:hidden">
+      <header className="fixed top-0 left-0 right-0 h-14 bg-surface-primary border-b border-border z-40 md:hidden">
         <div className="flex items-center justify-between h-full px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-surface-secondary border border-border rounded flex items-center justify-center">
-              <Shield className="w-4 h-4 text-accent-primary" />
+            <div className="w-8 h-8 bg-surface-secondary border border-border rounded-lg flex items-center justify-center">
+              <Activity className="w-4 h-4 text-accent-primary" />
             </div>
-            <span className="font-semibold text-text-primary">Guardian</span>
+            <span className="font-semibold text-text-primary">TradePulse</span>
           </Link>
 
           {/* Quick Stats */}
@@ -91,7 +91,7 @@ export function MobileHeader() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-72 bg-[hsl(var(--surface-primary))] border-l border-border z-50 md:hidden"
+              className="fixed top-0 right-0 bottom-0 w-72 bg-surface-primary border-l border-border z-50 md:hidden"
             >
               {/* Drawer Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
@@ -133,9 +133,9 @@ export function MobileHeader() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={`
-                        flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors mb-1
+                        flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors duration-150 mb-1
                         ${isActive
-                          ? "bg-accent-primary/10 text-accent-primary"
+                          ? "bg-accent-primary/[0.08] text-accent-primary"
                           : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
                         }
                       `}
@@ -143,7 +143,7 @@ export function MobileHeader() {
                       <Icon className="w-5 h-5" />
                       <span className="flex-1">{item.name}</span>
                       {item.badge && (
-                        <span className="text-xs bg-surface-secondary px-2 py-0.5 rounded">
+                        <span className="text-xs bg-surface-secondary text-text-muted px-2 py-0.5 rounded-full">
                           {item.badge}
                         </span>
                       )}
@@ -157,7 +157,7 @@ export function MobileHeader() {
                 {/* AI Assistant */}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-secondary border border-border text-text-secondary hover:bg-surface-hover transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-secondary border border-border text-text-secondary hover:bg-surface-hover transition-colors duration-150"
                 >
                   <Bot className="w-5 h-5 text-accent-primary" />
                   <span className="text-sm">AI Assistant</span>
@@ -190,7 +190,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[hsl(var(--surface-primary))] border-t border-border z-40 md:hidden safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-surface-primary border-t border-border z-40 md:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16">
         {bottomNavItems.map((item) => {
           const isActive = pathname === item.href;
@@ -201,7 +201,7 @@ export function MobileBottomNav() {
               key={item.name}
               href={item.href}
               className={`
-                flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors
+                flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors duration-150
                 ${isActive ? "text-accent-primary" : "text-text-muted"}
               `}
             >

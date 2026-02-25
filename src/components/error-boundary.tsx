@@ -270,7 +270,7 @@ export class ErrorBoundary extends React.Component<
         <div className="min-h-[400px] flex items-center justify-center p-8">
           <div className="max-w-md w-full text-center">
             {/* Icon */}
-            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[hsl(var(--accent-danger)/0.1)] border border-[hsl(var(--accent-danger)/0.3)] flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-accent-danger/10 border border-accent-danger/30 flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-accent-danger" />
             </div>
 

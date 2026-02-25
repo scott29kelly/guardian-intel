@@ -87,7 +87,7 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-2xl bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl overflow-hidden"
+          className="w-full max-w-2xl bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -112,7 +112,7 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm transition-all ${
                   activeTab === tab.id
-                    ? "text-accent-primary border-b-2 border-accent-primary bg-[hsl(var(--accent-primary)/0.05)]"
+                    ? "text-accent-primary border-b-2 border-accent-primary bg-accent-primary/5"
                     : "text-text-muted hover:text-text-primary"
                 }`}
               >

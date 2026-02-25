@@ -75,7 +75,7 @@ export function CustomerProfileModal({ customer, isOpen, onClose, onAskAI }: Cus
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 m-auto w-[95vw] max-w-[800px] h-[90vh] max-h-[85vh] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
+              className="fixed inset-0 m-auto w-[95vw] max-w-[800px] h-[90vh] max-h-[85vh] bg-surface-primary border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary/50">
@@ -140,7 +140,7 @@ export function CustomerProfileModal({ customer, isOpen, onClose, onAskAI }: Cus
 
               {/* Footer */}
               <div className="p-4 border-t border-border bg-surface-secondary/30 flex items-center justify-between">
-                <button className="px-4 py-2 text-accent-danger font-mono text-xs uppercase tracking-wider hover:bg-[hsl(var(--accent-danger)/0.1)] rounded transition-all">
+                <button className="px-4 py-2 text-accent-danger font-mono text-xs uppercase tracking-wider hover:bg-accent-danger/10 rounded transition-all">
                   Delete Customer
                 </button>
                 <div className="flex items-center gap-2">
