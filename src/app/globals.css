@@ -47,24 +47,24 @@
   }
 
   /* =============================================
-     DARK THEME - Warm Professional Dark
+     DARK THEME - Soft Dark (~15% lightness base)
      ============================================= */
   [data-theme="dark"] {
-    --bg-primary: 25 10% 8%;
-    --bg-secondary: 25 10% 10%;
-    --bg-tertiary: 25 8% 13%;
-    --bg-hover: 25 8% 17%;
+    --bg-primary: 25 8% 15%;
+    --bg-secondary: 25 8% 17%;
+    --bg-tertiary: 25 7% 20%;
+    --bg-hover: 25 7% 24%;
 
-    --surface-primary: 25 10% 11%;
-    --surface-secondary: 25 8% 14%;
-    --surface-hover: 25 8% 18%;
+    --surface-primary: 25 8% 18%;
+    --surface-secondary: 25 7% 21%;
+    --surface-hover: 25 7% 25%;
 
     --text-primary: 30 17% 95%;
     --text-secondary: 25 12% 65%;
     --text-muted: 25 8% 45%;
 
-    --border: 25 8% 18%;
-    --border-hover: 25 8% 26%;
+    --border: 25 6% 25%;
+    --border-hover: 25 6% 33%;
 
     --accent-primary: 24 75% 55%;
     --accent-secondary: 175 55% 45%;
@@ -77,12 +77,12 @@
     --gradient-danger-start: #ef4444;
     --gradient-danger-end: #dc2626;
 
-    --shadow-color: 0 0% 0%;
+    --shadow-color: 25 10% 5%;
     --glow-primary: rgba(249, 115, 22, 0.06);
     --glow-danger: rgba(239, 68, 68, 0.06);
 
-    --sidebar-bg: 25 10% 7%;
-    --sidebar-border: 25 8% 15%;
+    --sidebar-bg: 25 8% 13%;
+    --sidebar-border: 25 6% 22%;
 
     --noise-opacity: 0;
     --scan-line-opacity: 0;
@@ -252,7 +252,7 @@ select option {
 /* Dark themes need explicit option styling */
 :root option,
 [data-theme="dark"] option {
-  background-color: #1a1714;
+  background-color: #262220;
   color: #f0f0f0;
 }
 
