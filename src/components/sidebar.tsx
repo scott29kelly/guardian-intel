@@ -10,7 +10,7 @@ import {
   BarChart3,
   BookOpen,
   Settings,
-  Shield,
+  Activity,
   ChevronLeft,
   Bot,
   LogOut,
@@ -26,7 +26,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { ShortcutsModal } from "./modals/shortcuts-modal";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useKeyboardShortcuts, useModifierKey } from "@/lib/hooks/use-keyboard-shortcuts";
-import { SidebarEngagementWidget } from "./gamification/sidebar-widget";
+
 
 // Exported constants for layout calculations
 export const SIDEBAR_WIDTH = 256; // 16rem = 256px
@@ -152,10 +152,10 @@ export function Sidebar() {
       initial={false}
       animate={{ width: sidebarWidth }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="fixed left-0 top-0 h-screen bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))] flex flex-col z-50 overflow-hidden">
+      className="fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50 overflow-hidden">
       
       {/* Logo Section */}
-      <div className={`p-4 border-b border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-3' : ''}`}>
+      <div className={`p-4 border-b border-sidebar-border ${isCollapsed ? 'px-3' : ''}`}>
         <div className="flex items-center justify-between">
           {isCollapsed ? (
             <button
@@ -163,18 +163,18 @@ export function Sidebar() {
               className="flex items-center group"
               title="Expand sidebar"
             >
-              <div className="w-9 h-9 bg-surface-secondary border border-border rounded flex items-center justify-center hover:bg-surface-hover transition-colors">
-                <Shield className="w-5 h-5 text-accent-primary" />
+              <div className="w-9 h-9 bg-accent-primary rounded-full flex items-center justify-center hover:opacity-90 transition-opacity">
+                <Activity className="w-5 h-5 text-white" />
               </div>
             </button>
           ) : (
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 bg-surface-secondary border border-border rounded flex items-center justify-center flex-shrink-0">
-                <Shield className="w-5 h-5 text-accent-primary" />
+              <div className="w-9 h-9 bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0">
+                <Activity className="w-5 h-5 text-white" />
               </div>
               <div className="overflow-hidden">
                 <div className="font-semibold text-text-primary group-hover:text-accent-primary transition-colors whitespace-nowrap">
-                  Guardian
+                  TradePulse
                 </div>
                 <div className="text-xs text-text-muted whitespace-nowrap">
                   Intel Platform
@@ -195,16 +195,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* System Status - minimal */}
-      <div className={`py-2 border-b border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-3' : 'px-4'}`}>
-        <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
-          <span className="w-1.5 h-1.5 bg-accent-success rounded-full flex-shrink-0" />
-          {!isCollapsed && (
-            <span className="text-xs text-text-muted">Online</span>
-          )}
-        </div>
-      </div>
-
       {/* Navigation */}
       <nav className={`flex-1 p-2 space-y-0.5 overflow-y-auto ${isCollapsed ? 'px-2' : ''}`}>
         {navigation.map((item) => {
@@ -217,10 +207,10 @@ export function Sidebar() {
               href={item.href}
               title={isCollapsed ? item.name : undefined}
               className={`
-                relative flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+                relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150
                 ${isCollapsed ? 'justify-center px-2' : ''}
-                ${isActive 
-                  ? "bg-[hsl(var(--accent-primary)/0.1)] text-accent-primary" 
+                ${isActive
+                  ? "bg-accent-primary/[0.08] text-accent-primary"
                   : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
                 }
               `}
@@ -231,7 +221,7 @@ export function Sidebar() {
                 <>
                   <span className="text-sm">{item.name}</span>
                   {item.badge && (
-                    <span className="ml-auto text-xs text-text-muted bg-surface-secondary px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-xs bg-surface-secondary text-text-muted px-1.5 py-0.5 rounded-full">
                       {item.badge}
                     </span>
                   )}
@@ -242,22 +232,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Engagement Widget */}
-      <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
-        <SidebarEngagementWidget 
-          isCollapsed={isCollapsed} 
-          onOpenAchievements={() => {
-            // Could open an achievements modal here
-          }}
-        />
-      </div>
-
       {/* AI Assistant Button */}
-      <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
+      <div className={`p-2 border-t border-sidebar-border ${isCollapsed ? 'px-2' : ''}`}>
         <button
           onClick={() => setShowAIChat(true)}
           title={isCollapsed ? `AI Assist (${modKey}+K)` : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors bg-surface-secondary border border-border hover:bg-surface-hover ${isCollapsed ? 'justify-center px-2' : ''}`}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150 bg-surface-secondary border border-border hover:bg-surface-hover ${isCollapsed ? 'justify-center px-2' : ''}`}
         >
           <Bot className="w-4 h-4 text-accent-primary flex-shrink-0" />
           {!isCollapsed && (
@@ -270,7 +250,7 @@ export function Sidebar() {
       </div>
 
       {/* Theme Toggle & Settings */}
-      <div className={`p-2 border-t border-[hsl(var(--sidebar-border))] space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
+      <div className={`p-2 border-t border-sidebar-border space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
         <div className={`${isCollapsed ? 'flex justify-center' : ''}`}>
           <ThemeToggle isCollapsed={isCollapsed} />
         </div>
@@ -278,10 +258,10 @@ export function Sidebar() {
           href="/settings"
           title={isCollapsed ? "Settings" : undefined}
           className={`
-            flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+            flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150
             ${isCollapsed ? 'justify-center px-2' : ''}
             ${pathname === "/settings"
-              ? "bg-surface-hover text-text-primary"
+              ? "bg-accent-primary/[0.08] text-accent-primary"
               : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
             }
           `}
@@ -292,10 +272,10 @@ export function Sidebar() {
       </div>
 
       {/* User */}
-      <div className={`p-3 border-t border-[hsl(var(--sidebar-border))] ${isCollapsed ? 'px-2' : ''}`}>
+      <div className={`p-3 border-t border-sidebar-border ${isCollapsed ? 'px-2' : ''}`}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div 
-            className="w-8 h-8 rounded bg-accent-primary/20 flex items-center justify-center text-accent-primary text-sm font-medium flex-shrink-0"
+            className="w-8 h-8 rounded-full bg-accent-primary/[0.15] flex items-center justify-center text-accent-primary text-sm font-medium flex-shrink-0"
             title={isCollapsed ? userName : undefined}
           >
             {userInitials}

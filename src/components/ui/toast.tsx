@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       case "warning":
         return "bg-gradient-to-r from-amber-900/80 to-yellow-900/80 border-amber-500/50";
       default:
-        return "bg-[hsl(var(--surface-primary))] border-border";
+        return "bg-surface-primary border-border";
     }
   };
 

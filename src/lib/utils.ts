@@ -60,17 +60,11 @@ export function formatPercentage(value: number): string {
 
 export function getScoreColor(score: number): string {
   if (score >= 80) return "text-emerald-400";
-  if (score >= 60) return "text-guardian-400";
+  if (score >= 60) return "text-accent-primary";
   if (score >= 40) return "text-amber-400";
   return "text-rose-400";
 }
 
-export function getScoreGradient(score: number): string {
-  if (score >= 80) return "from-emerald-500 to-emerald-400";
-  if (score >= 60) return "from-guardian-500 to-guardian-400";
-  if (score >= 40) return "from-amber-500 to-amber-400";
-  return "from-rose-500 to-rose-400";
-}
 
 export function getPriorityClass(priority: string): string {
   switch (priority) {

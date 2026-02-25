@@ -4,24 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-guardian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-page disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-guardian-500 to-guardian-600 text-white shadow-lg shadow-guardian-500/25 hover:shadow-guardian-500/40 hover:scale-[1.02] active:scale-[0.98]",
-        accent:
-          "bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40 hover:scale-[1.02] active:scale-[0.98]",
+          "bg-accent-primary text-white hover:opacity-90 transition-opacity",
         destructive:
-          "bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-[0.98]",
+          "bg-accent-danger text-white hover:opacity-90 transition-opacity",
         outline:
-          "border border-surface-600 bg-transparent hover:bg-surface-800 hover:border-guardian-500/50",
+          "border border-border bg-transparent hover:bg-surface-hover text-text-primary transition-colors",
         secondary:
-          "bg-surface-800 text-surface-100 hover:bg-surface-700",
+          "bg-surface-secondary text-text-primary hover:bg-surface-hover transition-colors",
         ghost:
-          "hover:bg-surface-800 hover:text-surface-100",
+          "hover:bg-surface-hover text-text-secondary transition-colors",
         link:
-          "text-guardian-400 underline-offset-4 hover:underline",
+          "text-accent-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -1,11 +1,11 @@
 {
-  "name": "Guardian Intel - Storm Command",
-  "short_name": "Guardian Intel",
-  "description": "Real-time storm intelligence and sales command center for roofing professionals",
+  "name": "TradePulse Intel - Sales Intelligence",
+  "short_name": "TradePulse Intel",
+  "description": "Sales intelligence and customer management platform for home service professionals",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0ea5e9",
+  "background_color": "#f8fafc",
+  "theme_color": "#0d9488",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [

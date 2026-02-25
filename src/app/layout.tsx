@@ -1,31 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/ui/toast";
 import { QueryProvider } from "@/lib/query-provider";
-
-// Display font - bold, distinctive
-const outfit = Outfit({ 
-  subsets: ["latin"], 
-  variable: "--font-display",
-  weight: ["400", "500", "600", "700", "800", "900"],
-});
-
-// Mono font for data/numbers
-const jetbrainsMono = JetBrains_Mono({ 
-  subsets: ["latin"], 
-  variable: "--font-mono",
-  weight: ["400", "500", "600", "700"],
-});
-
-// Sans font - clean, readable
-const sans = Outfit({ 
-  subsets: ["latin"], 
-  variable: "--font-sans",
-  weight: ["300", "400", "500", "600"],
-});
 
 // Viewport configuration (Next.js 15 - separate from metadata)
 export const viewport: Viewport = {
@@ -33,17 +13,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0ea5e9",
+  themeColor: "#0d9488",
 };
 
 export const metadata: Metadata = {
-  title: "GUARDIAN INTEL | Storm Damage Command",
-  description: "Real-time storm intelligence and sales command center for Guardian Roofing",
+  title: "TradePulse Intel | Sales Intelligence",
+  description: "Sales intelligence and customer management platform for home service professionals",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Guardian Intel",
+    title: "TradePulse Intel",
   },
   icons: {
     icon: [
@@ -67,9 +47,8 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen font-sans antialiased",
-          outfit.variable,
-          jetbrainsMono.variable,
-          sans.variable
+          GeistSans.variable,
+          GeistMono.variable
         )}
       >
         <QueryProvider>

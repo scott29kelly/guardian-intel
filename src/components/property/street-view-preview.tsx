@@ -329,7 +329,7 @@ export function StreetViewModal({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 m-auto w-[90vw] max-w-[900px] h-[70vh] max-h-[600px] bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl z-[10000] overflow-hidden flex flex-col"
+            className="fixed inset-0 m-auto w-[90vw] max-w-[900px] h-[70vh] max-h-[600px] bg-surface-primary border border-border rounded-lg shadow-2xl z-[10000] overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-secondary/50">

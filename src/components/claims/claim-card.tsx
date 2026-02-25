@@ -74,8 +74,8 @@ export const ClaimCard = memo(function ClaimCard({ claim, onClick, compact = fal
         exit={{ opacity: 0, scale: 0.95 }}
         whileHover={{ scale: 1.01 }}
         className={`
-          bg-[hsl(var(--surface-primary))] border border-border rounded-lg p-3
-          hover:border-[hsl(var(--border-hover))] cursor-pointer transition-all
+          bg-surface-primary border border-border rounded-lg p-3
+          hover:border-border-hover cursor-pointer transition-all
           ${draggable ? "cursor-grab active:cursor-grabbing" : ""}
         `}
         onClick={onClick}
@@ -117,8 +117,8 @@ export const ClaimCard = memo(function ClaimCard({ claim, onClick, compact = fal
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ scale: 1.005 }}
       className={`
-        bg-[hsl(var(--surface-primary))] border border-border rounded-lg p-4
-        hover:border-[hsl(var(--border-hover))] cursor-pointer transition-all group
+        bg-surface-primary border border-border rounded-lg p-4
+        hover:border-border-hover cursor-pointer transition-all group
         ${draggable ? "cursor-grab active:cursor-grabbing" : ""}
       `}
       onClick={onClick}

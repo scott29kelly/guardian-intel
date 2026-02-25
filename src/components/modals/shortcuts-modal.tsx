@@ -77,12 +77,12 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-[hsl(var(--surface-primary))] border border-border rounded-xl shadow-2xl overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-surface-primary border border-border rounded-xl shadow-2xl overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-[hsl(var(--surface-secondary))]">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-intel-500/20 to-guardian-500/20 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-intel-500/20 to-accent-primary/20 flex items-center justify-center">
                   <Keyboard className="w-5 h-5 text-intel-400" />
                 </div>
                 <div>
@@ -106,7 +106,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
                     {group.shortcuts.map((shortcut) => (
                       <div
                         key={shortcut.keys}
-                        className="flex items-center justify-between py-2 px-3 rounded-lg bg-[hsl(var(--surface-secondary))] hover:bg-[hsl(var(--surface-hover))] transition-colors"
+                        className="flex items-center justify-between py-2 px-3 rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors"
                       >
                         <span className="text-sm text-text-secondary">
                           {shortcut.description}
@@ -120,7 +120,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-border bg-[hsl(var(--surface-secondary))]">
+            <div className="p-4 border-t border-border bg-surface-secondary">
               <p className="text-xs text-text-muted text-center">
                 Press <kbd className="px-1.5 py-0.5 bg-surface-primary border border-border rounded text-text-secondary font-mono">Esc</kbd> to close
               </p>

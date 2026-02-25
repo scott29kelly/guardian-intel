@@ -3,13 +3,12 @@ import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { glow?: boolean }
->(({ className, glow, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
       "glass-panel rounded-xl",
-      glow && "glow-primary",
       className
     )}
     {...props}
@@ -36,7 +35,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "font-display text-lg font-semibold leading-none tracking-tight text-white",
+      "font-display text-lg font-semibold leading-none tracking-tight text-text-primary",
       className
     )}
     {...props}
@@ -50,7 +49,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-surface-400", className)}
+    className={cn("text-sm text-text-muted", className)}
     {...props}
   />
 ));

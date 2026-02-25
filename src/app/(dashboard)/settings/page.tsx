@@ -44,7 +44,7 @@ const crmIntegrations = [
   {
     id: "leap",
     name: "Leap CRM",
-    description: "Guardian's primary CRM - sync contacts, jobs, and appointments",
+    description: "Primary CRM - sync contacts, jobs, and appointments",
     status: "pending",
     logo: "🚀",
     url: "https://leaptodigital.com",
@@ -111,7 +111,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKey, setApiKey] = useState("gd_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6");
-  const [webhookUrl, setWebhookUrl] = useState("https://api.guardian-intel.com/webhooks/abc123xyz");
+  const [webhookUrl, setWebhookUrl] = useState("https://api.tradepulse-intel.com/webhooks/abc123xyz");
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [showConnectModal, setShowConnectModal] = useState<string | null>(null);
   
@@ -199,7 +199,7 @@ export default function SettingsPage() {
   };
 
   const handleRegenerateWebhook = async () => {
-    const newUrl = `https://api.guardian-intel.com/webhooks/${Math.random().toString(36).substring(7)}`;
+    const newUrl = `https://api.tradepulse-intel.com/webhooks/${Math.random().toString(36).substring(7)}`;
     setWebhookUrl(newUrl);
     showToast("success", "Webhook Regenerated", "New webhook URL has been generated");
   };
@@ -269,8 +269,8 @@ export default function SettingsPage() {
                   onClick={() => setActiveSection(section.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
                     activeSection === section.id
-                      ? "bg-accent-primary/20 text-accent-primary"
-                      : "text-text-muted hover:text-text-primary hover:bg-surface-secondary"
+                      ? "bg-accent-primary/[0.08] text-accent-primary"
+                      : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
                   }`}
                 >
                   <section.icon className="w-5 h-5" />
@@ -291,7 +291,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-primary to-accent-primary/50 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full bg-accent-primary text-white flex items-center justify-center">
                     <span className="text-2xl font-bold text-white">
                       {profile.firstName[0]}{profile.lastName[0]}
                     </span>
@@ -326,7 +326,7 @@ export default function SettingsPage() {
                       type="text"
                       value={profile.firstName}
                       onChange={(e) => setProfile(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary/50"
+                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                       type="text"
                       value={profile.lastName}
                       onChange={(e) => setProfile(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary/50"
+                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -344,7 +344,7 @@ export default function SettingsPage() {
                       type="email"
                       value={profile.email}
                       onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary/50"
+                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -353,7 +353,7 @@ export default function SettingsPage() {
                       type="tel"
                       value={profile.phone}
                       onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary/50"
+                      className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                     />
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                           value={passwordForm.currentPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                           placeholder="Enter current password"
-                          className="w-full px-4 py-2.5 pr-10 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50"
+                          className="w-full px-4 py-2.5 pr-10 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50"
                         />
                         <button
                           type="button"
@@ -410,7 +410,7 @@ export default function SettingsPage() {
                             value={passwordForm.newPassword}
                             onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                             placeholder="Enter new password"
-                            className="w-full px-4 py-2.5 pr-10 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50"
+                            className="w-full px-4 py-2.5 pr-10 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50"
                           />
                           <button
                             type="button"
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           placeholder="Confirm new password"
-                          className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50"
+                          className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50"
                         />
                       </div>
                     </div>
@@ -480,7 +480,7 @@ export default function SettingsPage() {
                   { id: "tasks" as const, label: "Task Reminders", desc: "Upcoming tasks and follow-ups" },
                   { id: "team" as const, label: "Team Activity", desc: "Updates from your team members" },
                 ].map((pref) => (
-                  <div key={pref.id} className="flex items-center justify-between p-4 bg-surface-secondary/50 rounded-lg border border-border">
+                  <div key={pref.id} className="flex items-center justify-between p-4 bg-surface-primary rounded-lg border border-border">
                     <div>
                       <h4 className="font-medium text-text-primary">{pref.label}</h4>
                       <p className="text-sm text-text-muted">{pref.desc}</p>
@@ -513,7 +513,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Master Toggle */}
-                <div className="p-4 bg-surface-secondary/50 rounded-lg border border-border">
+                <div className="p-4 bg-surface-primary rounded-lg border border-border">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium text-text-primary flex items-center gap-2">
@@ -577,7 +577,7 @@ export default function SettingsPage() {
                     ].map((pref) => (
                       <div 
                         key={pref.id} 
-                        className="flex items-center justify-between p-3 bg-surface-secondary/30 rounded-lg border border-border hover:border-border-hover transition-colors"
+                        className="flex items-center justify-between p-3 bg-surface-primary rounded-lg border border-border hover:border-border-hover transition-colors"
                       >
                         <div>
                           <h5 className="text-sm font-medium text-text-primary">{pref.label}</h5>
@@ -590,7 +590,7 @@ export default function SettingsPage() {
                             onChange={(e) => updatePreference(pref.id, e.target.checked)}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-surface-secondary peer-focus:ring-2 peer-focus:ring-accent-primary/25 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-success border border-border"></div>
+                          <div className="w-9 h-5 bg-surface-secondary peer-focus:ring-2 peer-focus:ring-accent-primary/25 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-primary border border-border"></div>
                         </label>
                       </div>
                     ))}
@@ -612,13 +612,13 @@ export default function SettingsPage() {
                 </div>
                 
                 {/* Info Box */}
-                <div className="p-4 bg-accent-primary/10 border border-accent-primary/20 rounded-lg">
+                <div className="p-4 bg-accent-primary/5 border border-accent-primary/[0.15] rounded-lg">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-accent-primary shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-medium text-text-primary mb-1">About Gamification</h4>
                       <p className="text-sm text-text-muted">
-                        Guardian uses gamification to make your work more engaging. Earn XP for calls, deals, and activities. 
+                        TradePulse uses gamification to make your work more engaging. Earn XP for calls, deals, and activities.
                         Build streaks, unlock achievements, and compete with your team. If you find these distracting, 
                         you can disable them here while keeping full app functionality.
                       </p>
@@ -653,9 +653,9 @@ export default function SettingsPage() {
                       <div
                         key={crm.id}
                         className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                          crm.id === "leap" 
-                            ? "bg-accent-primary/5 border-accent-primary/30" 
-                            : "bg-surface-secondary/30 border-border"
+                          crm.id === "leap"
+                            ? "bg-surface-primary border-accent-primary/30"
+                            : "bg-surface-primary border-border"
                         }`}
                       >
                         <div className="flex items-center gap-4">
@@ -666,7 +666,7 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium text-text-primary">{crm.name}</h4>
                               {crm.id === "leap" && (
-                                <Badge className="bg-accent-primary/20 text-accent-primary text-xs">Recommended</Badge>
+                                <Badge className="bg-accent-primary/[0.08] text-accent-primary text-xs">Recommended</Badge>
                               )}
                             </div>
                             <p className="text-sm text-text-muted">{crm.description}</p>
@@ -693,13 +693,13 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   
-                  <div className="mt-6 p-4 bg-accent-primary/10 border border-accent-primary/20 rounded-lg">
+                  <div className="mt-6 p-4 bg-accent-primary/5 border border-accent-primary/[0.15] rounded-lg">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-accent-primary shrink-0 mt-0.5" />
                       <div>
                         <h4 className="font-medium text-text-primary mb-1">Leap CRM Integration</h4>
                         <p className="text-sm text-text-muted">
-                          Guardian uses Leap as their primary CRM. The integration adapter is ready - contact support with your Leap API credentials to complete the connection.
+                          Connect your Leap CRM to sync contacts and jobs automatically. The integration adapter is ready - contact support with your Leap API credentials to complete the connection.
                         </p>
                       </div>
                     </div>
@@ -723,7 +723,7 @@ export default function SettingsPage() {
                     {dataIntegrations.map((integration) => (
                       <div
                         key={integration.id}
-                        className="flex items-center justify-between p-4 bg-surface-secondary/30 rounded-lg border border-border"
+                        className="flex items-center justify-between p-4 bg-surface-primary rounded-lg border border-border"
                       >
                         <div className="flex items-center gap-4">
                           <div className={`w-3 h-3 rounded-full ${
@@ -790,7 +790,7 @@ export default function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="p-4 bg-surface-secondary/30 rounded-lg border border-border">
+                  <div className="p-4 bg-surface-primary rounded-lg border border-border">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-text-primary">Webhook Endpoint</h4>
                       <div className="flex gap-2">
@@ -823,7 +823,7 @@ export default function SettingsPage() {
                 <CardDescription>Manage API access for integrations</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-surface-secondary/30 rounded-lg border border-border">
+                <div className="p-4 bg-surface-primary rounded-lg border border-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-text-primary">Production Key</span>
                     <Badge variant={apiKey ? "success" : "secondary"}>
@@ -865,7 +865,7 @@ export default function SettingsPage() {
                   {apiKey ? "Regenerate Key" : "Generate New Key"}
                 </Button>
                 
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-lg">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
@@ -900,8 +900,8 @@ export default function SettingsPage() {
                         key={t.id}
                         onClick={() => handleThemeChange(t.id)}
                         className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${
-                          theme === t.id 
-                            ? "border-accent-primary bg-accent-primary/10" 
+                          theme === t.id
+                            ? "border-accent-primary bg-accent-primary/5"
                             : "border-border hover:border-text-muted"
                         }`}
                       >
@@ -970,7 +970,7 @@ export default function SettingsPage() {
                             <input
                               type="password"
                               placeholder="Enter your Leap API Key"
-                              className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
+                              className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                             />
                           </div>
                           <div className="space-y-2">
@@ -978,7 +978,7 @@ export default function SettingsPage() {
                             <input
                               type="text"
                               placeholder="Enter your Leap Company ID"
-                              className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
+                              className="w-full px-4 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
                             />
                           </div>
                         </div>

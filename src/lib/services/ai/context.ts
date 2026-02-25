@@ -68,12 +68,12 @@ export class CustomerContextBuilder {
         urgencyScore: dbCustomer.urgencyScore,
         profitPotential: dbCustomer.profitPotential || 0,
         churnRisk: dbCustomer.churnRisk || 0,
-        lastContact: dbCustomer.lastContact || new Date(),
-        nextAction: dbCustomer.nextAction || 'No action scheduled',
-        nextActionDate: dbCustomer.nextActionDate || null,
+        lastContact: dbCustomer.updatedAt || new Date(),
+        nextAction: 'No action scheduled',
+        nextActionDate: undefined,
         assignedRep: dbCustomer.assignedRep?.name || 'Unassigned',
         updatedAt: dbCustomer.updatedAt,
-      } as Customer;
+      } as unknown as Customer;
 
       // Map weather events
       this.weatherEvents = dbCustomer.weatherEvents.map(e => ({
@@ -92,6 +92,8 @@ export class CustomerContextBuilder {
       this.intelItems = dbCustomer.intelItems.map(i => ({
         id: i.id,
         customerId: i.customerId,
+        source: i.source,
+        confidence: i.confidence,
         category: i.category as IntelItem['category'],
         title: i.title,
         content: i.content,
@@ -377,7 +379,7 @@ export function buildCustomerSystemPrompt(context: CustomerContext): string {
     ? keyFacts.join(', ') 
     : 'standard profile';
   
-  return `You are Guardian Intel, an AI assistant for Guardian Roofing & Siding, a storm damage restoration company serving PA, NJ, DE, MD, VA, and NY.
+  return `You are TradePulse Intel, an AI sales assistant for home service professionals. You help with storm damage restoration sales across PA, NJ, DE, MD, VA, and NY.
 
 CURRENT CUSTOMER:
 ${summary}

@@ -164,9 +164,9 @@ export function PushNotificationPrompt() {
         exit={{ opacity: 0, y: 50, scale: 0.9 }}
         className="fixed bottom-4 right-4 z-[100] max-w-sm"
       >
-        <div className="bg-[hsl(var(--surface-primary))] border border-border rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-surface-primary border border-border rounded-xl shadow-2xl overflow-hidden">
           {/* Header gradient */}
-          <div className="h-1 bg-gradient-to-r from-intel-500 via-guardian-500 to-intel-500" />
+          <div className="h-1 bg-gradient-to-r from-intel-500 via-accent-primary to-intel-500" />
           
           <div className="p-4">
             {/* Close button */}
@@ -179,7 +179,7 @@ export function PushNotificationPrompt() {
 
             {/* Icon and title */}
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-intel-500/20 to-guardian-500/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-intel-500/20 to-accent-primary/20 flex items-center justify-center flex-shrink-0">
                 <Bell className="w-5 h-5 text-intel-400" />
               </div>
               <div className="flex-1 min-w-0 pr-4">

@@ -23,13 +23,6 @@ function getScoreColor(score: number): string {
   return "#f43f5e"; // rose
 }
 
-function getScoreGlow(score: number): string {
-  if (score >= 80) return "drop-shadow(0 0 8px rgba(16, 185, 129, 0.5))";
-  if (score >= 60) return "drop-shadow(0 0 8px rgba(12, 165, 233, 0.5))";
-  if (score >= 40) return "drop-shadow(0 0 8px rgba(245, 158, 11, 0.5))";
-  return "drop-shadow(0 0 8px rgba(244, 63, 94, 0.5))";
-}
-
 export function ScoreRing({
   score,
   size = "md",
@@ -42,7 +35,6 @@ export function ScoreRing({
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (score / 100) * circumference;
   const color = getScoreColor(score);
-  const glow = getScoreGlow(score);
 
   return (
     <div className={cn("flex flex-col items-center gap-1", className)}>
@@ -51,7 +43,6 @@ export function ScoreRing({
           width={config.width}
           height={config.width}
           className="transform -rotate-90"
-          style={{ filter: glow }}
         >
           {/* Background circle */}
           <circle
@@ -61,7 +52,7 @@ export function ScoreRing({
             fill="none"
             stroke="currentColor"
             strokeWidth={config.stroke}
-            className="text-surface-800"
+            className="text-border"
           />
           {/* Progress circle */}
           <circle
@@ -88,7 +79,7 @@ export function ScoreRing({
         </div>
       </div>
       {showLabel && label && (
-        <span className="text-xs text-surface-400 font-medium">{label}</span>
+        <span className="text-xs text-text-muted font-medium">{label}</span>
       )}
     </div>
   );

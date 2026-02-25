@@ -97,6 +97,17 @@ model User {
   // Scheduled Decks (batch processing)
   scheduledDecksRequested ScheduledDeck[] @relation("ScheduledDecksRequested")
   scheduledDecksAssigned  ScheduledDeck[] @relation("ScheduledDecksAssigned")
+
+  // Contracts & Proposals
+  contractsCreated  Contract[]  @relation("ContractCreatedBy")
+  proposalsCreated  Proposal[]  @relation("ProposalCreatedBy")
+
+  // Outreach
+  campaignsCreated      OutreachCampaign[]   @relation("CampaignCreatedBy")
+  campaignExecutions    CampaignExecution[]  @relation("ExecutionTriggeredBy")
+
+  // Competitor Activity
+  competitorReports CompetitorActivity[] @relation("ActivityReportedBy")
 }
 
 model Customer {
@@ -183,6 +194,13 @@ model Customer {
   tasks             Task[]
   playbookUsages    PlaybookUsage[]
   canvassingPins    CanvassingPin[]
+
+  // New entity relations
+  photos               Photo[]
+  contracts            Contract[]
+  proposals            Proposal[]
+  competitorActivities CompetitorActivity[]
+  outreachMessages     OutreachMessage[]
 
   // Performance indexes
   @@index([assignedRepId])
@@ -719,6 +737,10 @@ model ScheduledDeck {
   requestPayload  String              // Full DeckGenerationRequest as JSON
   resultPayload   String?             // Generated deck data as JSON (when completed)
 
+  // PDF output
+  pdfUrl          String?             // Public URL to download the generated PDF
+  pdfStoragePath  String?             // Storage path for deletion/management
+
   // Timing
   scheduledFor    DateTime  @default(now())  // When batch should process this
   completedAt     DateTime?
@@ -850,5 +872,346 @@ model CanvassingSyncLog {
   rawPayload       String?
   @@index([createdAt])
   @@index([source])
+}
+
+// ============================================
+// PHOTOS
+// ============================================
+
+model Photo {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  userId        String   // Uploader
+
+  url           String
+  thumbnailUrl  String?
+  category      String   // before, after, damage, signature, inspection
+  description   String?
+  mimeType      String?
+  size          Int?     // bytes
+
+  metadata      String?  // JSON - EXIF data, etc.
+  latitude      Float?
+  longitude     Float?
+
+  aiAnalysis    String?  // JSON - AI damage analysis results
+
+  @@index([customerId])
+  @@index([category])
+}
+
+// ============================================
+// CONTRACTS & TEMPLATES
+// ============================================
+
+enum ContractStatus {
+  draft
+  sent
+  viewed
+  signed
+  completed
+  cancelled
+  expired
+}
+
+model Contract {
+  id              String         @id @default(cuid())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  customerId      String
+  customer        Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  claimId         String?
+
+  templateId      String?
+  template        ContractTemplate? @relation(fields: [templateId], references: [id])
+
+  createdById     String
+  createdBy       User           @relation("ContractCreatedBy", fields: [createdById], references: [id])
+
+  contractNumber  String         @unique
+  title           String
+  description     String?
+
+  status          ContractStatus @default(draft)
+
+  // Financial
+  totalAmount     Float
+  depositAmount   Float?
+  depositPercent  Float?
+  balanceDueOn    String?
+  paymentTerms    String?
+
+  // Scope
+  scopeOfWork     String?
+  materials       String?        // JSON array
+  laborDetails    String?
+
+  // Timeline
+  estimatedStartDate DateTime?
+  estimatedEndDate   DateTime?
+  warrantyTerms      String?
+  expirationDate     DateTime?
+
+  // Signatures
+  customerSignature    String?   // Base64
+  customerSignedAt     DateTime?
+  customerSignatureIp  String?
+  repSignature         String?   // Base64
+  repSignedAt          DateTime?
+
+  // Audit
+  auditTrail      String?        // JSON array of events
+
+  // Delivery
+  sentVia         String?        // email, sms, in-person
+  sentAt          DateTime?
+  viewedAt        DateTime?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model ContractTemplate {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  description String?
+  content     String   // HTML template
+  terms       String?
+  variables   String?  // JSON - available template variables
+
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+
+  contracts   Contract[]
+}
+
+// ============================================
+// PROPOSALS
+// ============================================
+
+enum ProposalStatus {
+  draft
+  sent
+  viewed
+  accepted
+  rejected
+  expired
+  revised
+}
+
+model Proposal {
+  id                String         @id @default(cuid())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  customerId        String
+  customer          Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdById       String
+  createdBy         User           @relation("ProposalCreatedBy", fields: [createdById], references: [id])
+
+  status            ProposalStatus @default(draft)
+  title             String
+  proposalNumber    String         @unique
+
+  // Snapshot data (frozen at generation time)
+  customerSnapshot  String?        // JSON
+  propertySnapshot  String?        // JSON
+  weatherEvents     String?        // JSON
+  damageAssessment  String?        // JSON
+
+  // Pricing
+  pricingOptions        String?    // JSON array of PricingOption
+  recommendedOptionId   String?
+  lineItems             String?    // JSON array of LineItem
+
+  // AI Content
+  aiContent         String?        // JSON - AIGeneratedContent
+
+  // Source metadata
+  sourceDataSnapshot String?       // JSON
+
+  // Tracking
+  sentAt            DateTime?
+  viewedAt          DateTime?
+  respondedAt       DateTime?
+  expiresAt         DateTime?
+
+  notes             String?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdById])
+}
+
+// ============================================
+// COMPETITORS
+// ============================================
+
+model Competitor {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  name            String
+  displayName     String?
+  website         String?
+  phone           String?
+  headquarters    String?
+  serviceAreas    String?  // JSON array
+  yearFounded     Int?
+  employeeCount   Int?
+  pricingTier     String?  // budget, mid, premium, luxury
+  specialties     String?  // JSON array
+  certifications  String?  // JSON array
+  strengths       String?
+  weaknesses      String?
+  salesTactics    String?
+  pricingNotes    String?
+  marketShare     Float?
+  reputation      Float?
+  avgReviewScore  Float?
+  reviewCount     Int?
+  isActive        Boolean  @default(true)
+
+  activities      CompetitorActivity[]
+}
+
+model CompetitorActivity {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+
+  competitorId    String
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  customerId      String?
+  customer        Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  reportedById    String
+  reportedBy      User       @relation("ActivityReportedBy", fields: [reportedById], references: [id])
+
+  activityType    String     // sighting, quote, won_deal, lost_deal, canvassing, marketing, price_intel
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  description     String?
+  quotedPrice     Float?
+  priceComparison String?    // lower, similar, higher
+  outcome         String?
+  outcomeReason   String?
+  dealValue       Float?
+  hasPhoto        Boolean    @default(false)
+  photoUrl        String?
+  isVerified      Boolean    @default(false)
+
+  @@index([competitorId])
+  @@index([customerId])
+  @@index([zipCode])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+// ============================================
+// OUTREACH CAMPAIGNS
+// ============================================
+
+model OutreachCampaign {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  name              String
+  createdById       String
+  createdBy         User     @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+
+  triggerType       String   // storm, manual, scheduled
+  stormTypes        String?  // JSON array
+  minSeverity       String?
+  targetZipCodes    String?  // JSON array
+  targetStates      String?  // JSON array
+  excludeRecentDays Int      @default(30)
+
+  enableSms         Boolean  @default(false)
+  enableEmail       Boolean  @default(false)
+  smsTemplate       String?
+  emailSubject      String?
+  emailTemplate     String?
+  delayMinutes      Int      @default(0)
+
+  isActive          Boolean  @default(true)
+
+  executions        CampaignExecution[]
+
+  @@index([createdById])
+}
+
+model CampaignExecution {
+  id                  String   @id @default(cuid())
+  createdAt           DateTime @default(now())
+
+  campaignId          String
+  campaign            OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  triggeredById       String
+  triggeredBy         User     @relation("ExecutionTriggeredBy", fields: [triggeredById], references: [id])
+
+  stormEventId        String?
+
+  status              String   @default("pending") // pending, processing, completed, failed, cancelled
+  targetedCustomers   Int      @default(0)
+  smsSent             Int      @default(0)
+  smsDelivered        Int      @default(0)
+  smsFailed           Int      @default(0)
+  emailSent           Int      @default(0)
+  emailDelivered      Int      @default(0)
+  emailFailed         Int      @default(0)
+  errors              String?  // JSON array
+
+  completedAt         DateTime?
+
+  messages            OutreachMessage[]
+
+  @@index([campaignId])
+  @@index([status])
+}
+
+model OutreachMessage {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now())
+
+  executionId       String
+  execution         CampaignExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  customerId        String
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  channel           String   // sms, email
+  status            String   @default("pending") // pending, queued, sent, delivered, opened, clicked, failed, bounced
+  to                String
+  subject           String?
+  body              String
+
+  externalMessageId String?  // Twilio/SendGrid message ID
+  error             String?
+
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+
+  @@index([executionId])
+  @@index([customerId])
+  @@index([status])
 }
 

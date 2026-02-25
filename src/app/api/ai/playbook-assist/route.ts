@@ -60,10 +60,10 @@ export type PlaybookAssistRequest = z.infer<typeof playbookAssistRequestSchema>;
 // SYSTEM PROMPTS
 // =============================================================================
 
-const PLAYBOOK_SYSTEM_PROMPT = `You are an expert sales trainer for Guardian Roofing & Siding, a storm damage restoration company. Your specialty is creating actionable, word-for-word sales playbooks that reps can use immediately.
+const PLAYBOOK_SYSTEM_PROMPT = `You are an expert sales trainer for home service professionals specializing in storm damage restoration. Your specialty is creating actionable, word-for-word sales playbooks that reps can use immediately.
 
 COMPANY CONTEXT:
-- Guardian serves PA, NJ, DE, MD, VA, and NY
+- Your company serves the Mid-Atlantic region (PA, NJ, DE, MD, VA, NY)
 - Focus on residential roofing, primarily storm damage claims
 - Works with all major insurance carriers
 - Offers free inspections and handles insurance claim process
@@ -370,7 +370,7 @@ Use this playbook when [scenario description based on category].
 - [ ] Prepare inspection tools if visiting
 
 ## Opening Script
-> "Hi [CUSTOMER NAME], this is [YOUR NAME] with Guardian Roofing & Siding. I'm reaching out because [reason for call]. Do you have a quick moment?"
+> "Hi [CUSTOMER NAME], this is [YOUR NAME] with [Your Company]. I'm reaching out because [reason for call]. Do you have a quick moment?"
 
 ## Discovery Questions
 1. "When was your roof last replaced or inspected?"

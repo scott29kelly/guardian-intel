@@ -1,6 +1,6 @@
 import type { BrandingConfig, DeckAudience } from '../types/deck.types';
 
-// Guardian Intel Brand Configuration (Dark Theme)
+// TradePulse Intel Brand Configuration (Dark Theme)
 export const guardianBrandConfig: BrandingConfig = {
   colors: {
     primary: '#1E3A5F',      // Navy - primary brand color
@@ -19,9 +19,9 @@ export const guardianBrandConfig: BrandingConfig = {
     body: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     mono: "'JetBrains Mono', 'Fira Code', monospace",
   },
-  logo: '/guardian-logo.svg',
-  logoAlt: '/guardian-logo-light.svg',
-  footer: 'Guardian Storm Repair | Confidential',
+  logo: '/tradepulse-logo.svg',
+  logoAlt: '/tradepulse-logo-light.svg',
+  footer: 'TradePulse Intel | Confidential',
   borderRadius: '8px',
 };
 

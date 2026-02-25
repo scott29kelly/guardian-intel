@@ -30,7 +30,7 @@ export function CustomersCardView({
           transition={{ delay: index * 0.05 }}
           className={`relative rounded-lg transition-all ${
             selectedIndex === index
-              ? "ring-2 ring-accent-primary ring-offset-2 ring-offset-[hsl(var(--surface-primary))]"
+              ? "ring-2 ring-accent-primary ring-offset-2 ring-offset-surface-primary"
               : ""
           } ${selectedIds.has(customer.id) ? "ring-2 ring-accent-primary/50" : ""}`}
           onClick={() => setSelectedIndex(index)}

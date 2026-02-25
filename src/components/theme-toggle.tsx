@@ -84,7 +84,7 @@ export function ThemeToggle({ isCollapsed = false }: ThemeToggleProps) {
       animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, x: isCollapsed ? -10 : 0, y: isCollapsed ? 0 : 10 }}
       transition={{ duration: 0.15 }}
-      className="w-48 rounded-lg border border-border bg-[hsl(var(--surface-primary))] shadow-2xl overflow-hidden"
+      className="w-48 rounded-lg border border-border bg-surface-primary shadow-2xl overflow-hidden"
     >
       <div className="p-1">
         {themes.map((t) => {

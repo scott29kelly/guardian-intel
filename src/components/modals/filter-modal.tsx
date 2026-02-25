@@ -77,7 +77,7 @@ export function FilterModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-lg bg-[hsl(var(--surface-primary))] border border-border rounded-lg shadow-2xl overflow-hidden"
+          className="w-full max-w-lg bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}

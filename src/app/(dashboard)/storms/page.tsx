@@ -506,7 +506,7 @@ export default function StormsPage() {
           changeLabel="vs previous quarter"
           trend="up"
           icon={TrendingUp}
-          glowColor="success"
+          variant="success"
         />
         <MetricCard
           title="Affected Customers"
@@ -515,19 +515,19 @@ export default function StormsPage() {
           changeLabel="new this month"
           trend="up"
           icon={Users}
-          glowColor="primary"
+          variant="primary"
         />
         <MetricCard
           title="Inspections Pending"
           value={totalPending}
           icon={Calendar}
-          glowColor="accent"
+          variant="accent"
         />
         <MetricCard
           title="Active Alerts"
           value={activeAlerts.length}
           icon={AlertTriangle}
-          glowColor="danger"
+          variant="danger"
         />
       </div>
 

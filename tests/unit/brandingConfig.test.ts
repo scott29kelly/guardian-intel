@@ -41,12 +41,12 @@ describe('guardianBrandConfig', () => {
   });
 
   it('should have logo paths configured', () => {
-    expect(guardianBrandConfig.logo).toBe('/guardian-logo.svg');
-    expect(guardianBrandConfig.logoAlt).toBe('/guardian-logo-light.svg');
+    expect(guardianBrandConfig.logo).toBe('/tradepulse-logo.svg');
+    expect(guardianBrandConfig.logoAlt).toBe('/tradepulse-logo-light.svg');
   });
 
   it('should have footer text', () => {
-    expect(guardianBrandConfig.footer).toBe('Guardian Storm Repair | Confidential');
+    expect(guardianBrandConfig.footer).toBe('TradePulse Intel | Confidential');
   });
 
   it('should have border radius defined', () => {

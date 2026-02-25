@@ -4,10 +4,12 @@
  * Central service for managing carrier integrations.
  * Provides adapter factory, claim filing, and status sync functionality.
  *
- * NOTE: This service is stubbed pending CarrierConfig and related Prisma models.
+ * NOTE: CarrierConfig is not a separate Prisma model. We manage carrier
+ * configuration in-memory and via environment variables. The InsuranceClaim
+ * model is used for claim tracking.
  */
 
-// import { prisma } from "@/lib/prisma"; // TODO: Re-enable when CarrierConfig model exists
+import { prisma } from "@/lib/prisma";
 import type { CarrierAdapter, CarrierConfig, ClaimSubmission, CarrierResponse, ClaimFilingResult, ClaimStatusResult } from "./types";
 import { MockCarrierAdapter } from "./adapters/mock-adapter";
 import { StateFarmAdapter } from "./adapters/state-farm-adapter";
@@ -22,17 +24,7 @@ export * from "./types";
 const adapterRegistry: Record<string, new () => CarrierAdapter> = {
   "mock": MockCarrierAdapter,
   "state-farm": StateFarmAdapter,
-  // Add more carriers as they're implemented:
-  // "allstate": AllstateAdapter,
-  // "usaa": USAAAdapter,
-  // "liberty-mutual": LibertyMutualAdapter,
-  // "farmers": FarmersAdapter,
-  // "nationwide": NationwideAdapter,
-  // "progressive": ProgressiveAdapter,
 };
-
-// Suppress unused variable warnings for stubbed code
-void adapterRegistry;
 
 // Carrier display names for UI
 export const carrierNames: Record<string, string> = {
@@ -58,57 +50,68 @@ export const carrierNames: Record<string, string> = {
 class CarrierService {
   private adapters: Map<string, CarrierAdapter> = new Map();
 
-  // Suppress unused variable warnings
-  constructor() {
-    void this.adapters;
-  }
-
   // ============================================================
-  // Adapter Management (STUBBED - pending CarrierConfig model)
+  // Adapter Management
   // ============================================================
 
   /**
    * Get an initialized adapter for a carrier
-   * STUBBED: Returns mock adapter in development, null otherwise
    */
   async getAdapter(carrierCode: string): Promise<CarrierAdapter | null> {
-    // TODO: Implement when CarrierConfig model exists
-    console.log(`[CarrierService] getAdapter called for ${carrierCode} - returning mock adapter`);
-
-    // Fall back to mock adapter for development
-    if (process.env.NODE_ENV === "development") {
-      const mockAdapter = new MockCarrierAdapter();
-      await mockAdapter.initialize({
-        carrierCode: "mock",
-        carrierName: "Mock Carrier",
-        isTestMode: true,
-      });
-      return mockAdapter;
+    // Check cache
+    if (this.adapters.has(carrierCode)) {
+      return this.adapters.get(carrierCode)!;
     }
-    return null;
+
+    // Look up adapter class
+    const AdapterClass = adapterRegistry[carrierCode];
+    if (!AdapterClass) {
+      // Fall back to mock adapter for development
+      if (process.env.NODE_ENV === "development") {
+        const mockAdapter = new MockCarrierAdapter();
+        await mockAdapter.initialize({
+          carrierCode: "mock",
+          carrierName: "Mock Carrier",
+          isTestMode: true,
+        });
+        return mockAdapter;
+      }
+      return null;
+    }
+
+    const adapter = new AdapterClass();
+    const config = await this.getCarrierConfig(carrierCode);
+    if (config) {
+      await adapter.initialize(config);
+      this.adapters.set(carrierCode, adapter);
+    }
+    return adapter;
   }
 
   /**
-   * Get carrier configuration from database
-   * STUBBED: Returns null pending CarrierConfig model
+   * Get carrier configuration
+   * Currently built from environment variables; could be DB-backed later
    */
-  private async getCarrierConfig(_carrierCode: string): Promise<CarrierConfig | null> {
-    // TODO: Implement when CarrierConfig model exists
-    return null;
+  private async getCarrierConfig(carrierCode: string): Promise<CarrierConfig | null> {
+    const name = carrierNames[carrierCode];
+    if (!name) return null;
+
+    return {
+      carrierCode,
+      carrierName: name,
+      isTestMode: process.env.NODE_ENV !== "production",
+    };
   }
 
   /**
    * Check if a carrier is configured and available
-   * STUBBED: Returns false pending CarrierConfig model
    */
-  async isCarrierAvailable(_carrierCode: string): Promise<boolean> {
-    // TODO: Implement when CarrierConfig model exists
-    return false;
+  async isCarrierAvailable(carrierCode: string): Promise<boolean> {
+    return carrierCode in adapterRegistry;
   }
 
   /**
    * Get list of available carriers
-   * STUBBED: Returns empty array pending CarrierConfig model
    */
   async getAvailableCarriers(): Promise<
     Array<{
@@ -119,61 +122,158 @@ class CarrierService {
       isTestMode: boolean;
     }>
   > {
-    // TODO: Implement when CarrierConfig model exists
-    return [];
+    return Object.keys(adapterRegistry).map((code) => ({
+      code,
+      name: carrierNames[code] || code,
+      supportsDirectFiling: code !== "mock",
+      supportsStatusUpdates: code !== "mock",
+      isTestMode: process.env.NODE_ENV !== "production",
+    }));
   }
 
   // ============================================================
-  // Claim Operations (STUBBED - pending model fields)
+  // Claim Operations
   // ============================================================
 
   /**
    * File a claim with the carrier
-   * STUBBED: Returns error pending full implementation
    */
   async fileClaim(
-    _claimId: string,
-    _carrierCode: string,
-    _submission: ClaimSubmission
+    claimId: string,
+    carrierCode: string,
+    submission: ClaimSubmission
   ): Promise<CarrierResponse<ClaimFilingResult>> {
-    // TODO: Implement when CarrierConfig and InsuranceClaim fields exist
-    return {
-      success: false,
-      error: {
-        code: "NOT_IMPLEMENTED",
-        message: "Carrier integration coming soon",
-        retryable: false,
-      },
-    };
+    const adapter = await this.getAdapter(carrierCode);
+    if (!adapter) {
+      return {
+        success: false,
+        error: {
+          code: "NO_ADAPTER",
+          message: `No adapter available for carrier: ${carrierCode}`,
+          retryable: false,
+        },
+      };
+    }
+
+    try {
+      const result = await adapter.fileClaim(submission);
+
+      // Update the claim in DB with external reference
+      if (result.success && result.data) {
+        await prisma.insuranceClaim.update({
+          where: { id: claimId },
+          data: {
+            claimNumber: result.data.claimNumber,
+            status: "pending",
+          },
+        });
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: "FILING_ERROR",
+          message: error instanceof Error ? error.message : "Claim filing failed",
+          retryable: true,
+        },
+      };
+    }
   }
 
   /**
    * Sync claim status with carrier
-   * STUBBED: Returns error pending full implementation
    */
-  async syncClaimStatus(_claimId: string): Promise<CarrierResponse<ClaimStatusResult>> {
-    // TODO: Implement when CarrierConfig and InsuranceClaim fields exist
-    return {
-      success: false,
-      error: {
-        code: "NOT_IMPLEMENTED",
-        message: "Carrier sync coming soon",
-        retryable: false,
-      },
-    };
+  async syncClaimStatus(claimId: string): Promise<CarrierResponse<ClaimStatusResult>> {
+    const claim = await prisma.insuranceClaim.findUnique({
+      where: { id: claimId },
+    });
+
+    if (!claim || !claim.claimNumber) {
+      return {
+        success: false,
+        error: {
+          code: "NO_CLAIM",
+          message: "Claim not found or no external claim number",
+          retryable: false,
+        },
+      };
+    }
+
+    // Normalize carrier name to code
+    const carrierCode = claim.carrier.toLowerCase().replace(/\s+/g, "-");
+    const adapter = await this.getAdapter(carrierCode);
+
+    if (!adapter) {
+      return {
+        success: false,
+        error: {
+          code: "NO_ADAPTER",
+          message: `No adapter for carrier: ${claim.carrier}`,
+          retryable: false,
+        },
+      };
+    }
+
+    try {
+      const result = await adapter.getClaimStatus(claim.claimNumber);
+
+      if (result.success && result.data) {
+        // Update claim with latest status
+        await prisma.insuranceClaim.update({
+          where: { id: claimId },
+          data: {
+            status: result.data.status,
+            approvedValue: result.data.approvedAmount ?? undefined,
+          },
+        });
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: "SYNC_ERROR",
+          message: error instanceof Error ? error.message : "Status sync failed",
+          retryable: true,
+        },
+      };
+    }
   }
 
   /**
    * Sync all claims for a carrier
-   * STUBBED: Returns empty result pending full implementation
    */
-  async syncAllClaims(_carrierCode: string): Promise<{
+  async syncAllClaims(carrierCode: string): Promise<{
     synced: number;
     failed: number;
     errors: string[];
   }> {
-    // TODO: Implement when CarrierConfig model exists
-    return { synced: 0, failed: 0, errors: ["Carrier sync coming soon"] };
+    const claims = await prisma.insuranceClaim.findMany({
+      where: {
+        carrier: { contains: carrierCode.replace("-", " "), mode: "insensitive" },
+        claimNumber: { not: null },
+        status: { in: ["pending", "approved", "supplement"] },
+      },
+    });
+
+    let synced = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const claim of claims) {
+      const result = await this.syncClaimStatus(claim.id);
+      if (result.success) {
+        synced++;
+      } else {
+        failed++;
+        errors.push(`Claim ${claim.id}: ${result.error?.message || "Unknown error"}`);
+      }
+    }
+
+    return { synced, failed, errors };
   }
 }
 

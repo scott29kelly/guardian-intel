@@ -147,7 +147,7 @@ export function ClaimDetailsModal({ claimId, isOpen, onClose }: ClaimDetailsModa
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[90vh] bg-[hsl(var(--surface-primary))] border border-border rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[90vh] bg-surface-primary border border-border rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {isLoading || !claim ? (
               <div className="flex items-center justify-center h-96">
@@ -227,7 +227,7 @@ export function ClaimDetailsModal({ claimId, isOpen, onClose }: ClaimDetailsModa
                               className={`
                                 flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all
                                 ${isActive 
-                                  ? `${statusCfg.bgColor} ${statusCfg.color} ring-2 ring-offset-2 ring-offset-[hsl(var(--surface-primary))]` 
+                                  ? `${statusCfg.bgColor} ${statusCfg.color} ring-2 ring-offset-2 ring-offset-surface-primary` 
                                   : isPast 
                                     ? "bg-emerald-500/20 text-emerald-400"
                                     : "bg-surface-secondary text-text-muted hover:bg-surface-hover"

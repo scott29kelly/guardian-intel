@@ -282,7 +282,7 @@ export function RoleplayModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-3xl max-h-[85vh] bg-[hsl(var(--surface-primary))] border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          className="w-full max-w-3xl max-h-[85vh] bg-surface-primary border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

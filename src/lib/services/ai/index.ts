@@ -53,7 +53,7 @@ let isInitialized = false;
 export function initializeAI(): void {
   if (isInitialized) return;
 
-  const adapters = [];
+  const adapters: import("./types").AIAdapter[] = [];
 
   // Gemini - Primary AI (handles all tasks)
   const geminiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;

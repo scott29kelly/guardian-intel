@@ -46,9 +46,9 @@ const formatCurrency = (value: number) => {
 };
 
 const getScoreColor = (score: number) => {
-  if (score >= 80) return "text-accent-success bg-[hsl(var(--accent-success)/0.1)] border-[hsl(var(--accent-success)/0.3)]";
-  if (score >= 60) return "text-accent-primary bg-[hsl(var(--accent-primary)/0.1)] border-[hsl(var(--accent-primary)/0.3)]";
-  if (score >= 40) return "text-accent-warning bg-[hsl(var(--accent-warning)/0.1)] border-[hsl(var(--accent-warning)/0.3)]";
+  if (score >= 80) return "text-accent-success bg-accent-success/10 border-accent-success/30";
+  if (score >= 60) return "text-accent-primary bg-accent-primary/10 border-accent-primary/30";
+  if (score >= 40) return "text-accent-warning bg-accent-warning/10 border-accent-warning/30";
   return "text-text-muted bg-surface-secondary border-border";
 };
 
@@ -98,8 +98,8 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         layout
         className={`
           panel overflow-hidden cursor-pointer transition-all duration-300
-          ${isExpanded ? "glow-intel" : "hover:border-[hsl(var(--border-hover))]"}
-          ${hasStormDamage ? "border-l-2 border-l-[hsl(var(--accent-danger))]" : ""}
+          ${isExpanded ? "glow-intel" : "hover:border-border-hover"}
+          ${hasStormDamage ? "border-l-2 border-l-accent-danger" : ""}
         `}
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -116,7 +116,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                 <span className="font-mono text-[8px] uppercase tracking-wider opacity-70">SCORE</span>
               </div>
               {criticalItems.length > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(var(--accent-danger))] rounded-full flex items-center justify-center animate-pulse">
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-accent-danger rounded-full flex items-center justify-center animate-pulse">
                   <span className="font-mono text-[10px] font-bold text-white">{criticalItems.length}</span>
                 </div>
               )}
@@ -132,14 +132,14 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                   <div className="flex items-center gap-3 mt-1">
                     <span className={`
                       data-badge capitalize
-                      ${customer.status === "prospect" ? "border-[hsl(var(--accent-primary)/0.3)] text-accent-primary" : ""}
-                      ${customer.status === "customer" ? "border-[hsl(var(--accent-success)/0.3)] text-accent-success" : ""}
+                      ${customer.status === "prospect" ? "border-accent-primary/30 text-accent-primary" : ""}
+                      ${customer.status === "customer" ? "border-accent-success/30 text-accent-success" : ""}
                       ${customer.status === "lead" ? "border-border text-text-muted" : ""}
                     `}>
                       {customer.status}
                     </span>
                     {hasStormDamage && (
-                      <span className="data-badge border-[hsl(var(--accent-danger)/0.3)] text-accent-danger flex items-center gap-1">
+                      <span className="data-badge border-accent-danger/30 text-accent-danger flex items-center gap-1">
                         <CloudLightning className="w-3 h-3" />
                         STORM AFFECTED
                       </span>
@@ -187,7 +187,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       className={`
                         px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider
                         ${item.priority === "critical" 
-                          ? "bg-[hsl(var(--accent-danger)/0.1)] text-accent-danger border border-[hsl(var(--accent-danger)/0.3)]" 
+                          ? "bg-accent-danger/10 text-accent-danger border border-accent-danger/30" 
                           : "bg-surface-secondary text-text-muted border border-border"
                         }
                       `}
@@ -384,7 +384,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                           className={`
                             p-3 rounded border
                             ${item.priority === "critical" 
-                              ? "bg-[hsl(var(--accent-danger)/0.05)] border-[hsl(var(--accent-danger)/0.3)]" 
+                              ? "bg-accent-danger/5 border-accent-danger/30" 
                               : "bg-surface-secondary/50 border-border/50"
                             }
                           `}
