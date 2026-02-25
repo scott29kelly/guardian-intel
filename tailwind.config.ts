@@ -108,6 +108,8 @@ export default {
         "glow-intel": "0 0 12px rgba(34, 211, 238, 0.15)",
         "soft": "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)",
         "soft-lg": "0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)",
+        "warm-sm": "0 1px 3px rgba(120, 100, 80, 0.08)",
+        "warm": "0 4px 12px rgba(120, 100, 80, 0.07)",
       },
       animation: {
         "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",

@@ -3,12 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, Sun, Monitor, ChevronDown } from "lucide-react";
+import { Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
 const themes = [
   { id: "dark", label: "Dark", icon: Moon, description: "Night mode" },
-  { id: "slate", label: "Slate", icon: Monitor, description: "Neutral gray" },
   { id: "light", label: "Light", icon: Sun, description: "Day mode" },
 ] as const;
 

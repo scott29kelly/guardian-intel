@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "slate" | "light";
+type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
@@ -26,11 +26,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const storedTheme = localStorage.getItem("tradepulse-theme");
 
-    if (storedTheme && ["dark", "slate", "light"].includes(storedTheme)) {
+    if (storedTheme && ["dark", "light"].includes(storedTheme)) {
       setTheme(storedTheme as Theme);
-    } else if (storedTheme === "gray" || storedTheme === "light-gray") {
-      // Migrate old theme names
-      setTheme("slate");
+    } else if (storedTheme === "slate" || storedTheme === "gray" || storedTheme === "light-gray") {
+      // Migrate old theme names to dark
+      setTheme("dark");
     }
   }, []);
 

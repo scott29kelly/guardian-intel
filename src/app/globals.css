@@ -4,131 +4,90 @@
 
 @layer base {
   /* =============================================
-     LIGHT THEME (Default) - Clean Professional
+     LIGHT THEME (Default) - Warm Clean SaaS
      ============================================= */
   :root,
   [data-theme="light"] {
-    --bg-primary: 0 0% 98%;
-    --bg-secondary: 210 20% 96%;
-    --bg-tertiary: 210 14% 93%;
-    --bg-hover: 210 10% 90%;
+    --bg-primary: 30 25% 98%;
+    --bg-secondary: 30 18% 95%;
+    --bg-tertiary: 30 12% 92%;
+    --bg-hover: 30 10% 89%;
 
     --surface-primary: 0 0% 100%;
-    --surface-secondary: 210 20% 97%;
-    --surface-hover: 210 14% 94%;
+    --surface-secondary: 30 18% 97%;
+    --surface-hover: 30 12% 94%;
 
-    --text-primary: 224 71% 4%;
-    --text-secondary: 220 9% 43%;
-    --text-muted: 220 9% 56%;
+    --text-primary: 25 20% 18%;
+    --text-secondary: 25 8% 40%;
+    --text-muted: 25 6% 55%;
 
-    --border: 220 13% 91%;
-    --border-hover: 220 13% 82%;
+    --border: 25 10% 88%;
+    --border-hover: 25 10% 78%;
 
-    --accent-primary: 175 84% 32%;
-    --accent-secondary: 173 80% 40%;
+    --accent-primary: 24 80% 50%;
+    --accent-secondary: 175 70% 35%;
     --accent-danger: 0 72% 51%;
     --accent-success: 160 84% 39%;
     --accent-warning: 38 92% 50%;
 
-    --gradient-start: #0d9488;
-    --gradient-end: #0891b2;
+    --gradient-start: #f97316;
+    --gradient-end: #ea580c;
     --gradient-danger-start: #ef4444;
     --gradient-danger-end: #dc2626;
 
-    --shadow-color: 220 13% 91%;
+    --shadow-color: 25 10% 88%;
     --glow-primary: transparent;
     --glow-danger: transparent;
 
     --sidebar-bg: 0 0% 100%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 25 10% 88%;
 
     --noise-opacity: 0;
     --scan-line-opacity: 0;
   }
 
   /* =============================================
-     DARK THEME - Professional Dark
+     DARK THEME - Warm Professional Dark
      ============================================= */
   [data-theme="dark"] {
-    --bg-primary: 224 10% 8%;
-    --bg-secondary: 224 10% 10%;
-    --bg-tertiary: 224 8% 13%;
-    --bg-hover: 224 8% 17%;
+    --bg-primary: 25 10% 8%;
+    --bg-secondary: 25 10% 10%;
+    --bg-tertiary: 25 8% 13%;
+    --bg-hover: 25 8% 17%;
 
-    --surface-primary: 224 10% 11%;
-    --surface-secondary: 224 8% 14%;
-    --surface-hover: 224 8% 18%;
+    --surface-primary: 25 10% 11%;
+    --surface-secondary: 25 8% 14%;
+    --surface-hover: 25 8% 18%;
 
-    --text-primary: 210 17% 95%;
-    --text-secondary: 215 12% 65%;
-    --text-muted: 215 8% 45%;
+    --text-primary: 30 17% 95%;
+    --text-secondary: 25 12% 65%;
+    --text-muted: 25 8% 45%;
 
-    --border: 224 8% 18%;
-    --border-hover: 224 8% 26%;
+    --border: 25 8% 18%;
+    --border-hover: 25 8% 26%;
 
-    --accent-primary: 175 55% 45%;
-    --accent-secondary: 173 50% 50%;
+    --accent-primary: 24 75% 55%;
+    --accent-secondary: 175 55% 45%;
     --accent-danger: 0 68% 52%;
     --accent-success: 160 50% 48%;
     --accent-warning: 38 70% 52%;
 
-    --gradient-start: #2dd4bf;
-    --gradient-end: #22d3ee;
+    --gradient-start: #fb923c;
+    --gradient-end: #f97316;
     --gradient-danger-start: #ef4444;
     --gradient-danger-end: #dc2626;
 
     --shadow-color: 0 0% 0%;
-    --glow-primary: rgba(13, 148, 136, 0.06);
+    --glow-primary: rgba(249, 115, 22, 0.06);
     --glow-danger: rgba(239, 68, 68, 0.06);
 
-    --sidebar-bg: 224 10% 7%;
-    --sidebar-border: 224 8% 15%;
+    --sidebar-bg: 25 10% 7%;
+    --sidebar-border: 25 8% 15%;
 
     --noise-opacity: 0;
     --scan-line-opacity: 0;
   }
 
-  /* =============================================
-     SLATE THEME - Professional Gray
-     ============================================= */
-  [data-theme="slate"] {
-    --bg-primary: 215 14% 13%;
-    --bg-secondary: 215 12% 16%;
-    --bg-tertiary: 215 10% 20%;
-    --bg-hover: 215 8% 24%;
-
-    --surface-primary: 215 12% 16%;
-    --surface-secondary: 215 10% 20%;
-    --surface-hover: 215 8% 24%;
-
-    --text-primary: 210 17% 95%;
-    --text-secondary: 215 12% 65%;
-    --text-muted: 215 8% 48%;
-
-    --border: 215 8% 24%;
-    --border-hover: 215 8% 32%;
-
-    --accent-primary: 175 50% 46%;
-    --accent-secondary: 173 45% 50%;
-    --accent-danger: 0 60% 52%;
-    --accent-success: 160 45% 48%;
-    --accent-warning: 38 60% 54%;
-
-    --gradient-start: #2dd4bf;
-    --gradient-end: #22d3ee;
-    --gradient-danger-start: #ef4444;
-    --gradient-danger-end: #dc2626;
-
-    --shadow-color: 220 20% 5%;
-    --glow-primary: rgba(13, 148, 136, 0.05);
-    --glow-danger: rgba(239, 68, 68, 0.05);
-
-    --sidebar-bg: 215 14% 11%;
-    --sidebar-border: 215 8% 20%;
-
-    --noise-opacity: 0;
-    --scan-line-opacity: 0;
-  }
 }
 
 @layer base {
@@ -238,6 +197,14 @@
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   }
 
+  .shadow-warm-sm {
+    box-shadow: 0 1px 3px rgba(120, 100, 80, 0.08);
+  }
+
+  .shadow-warm {
+    box-shadow: 0 4px 12px rgba(120, 100, 80, 0.07);
+  }
+
   /* Metric display */
   .metric-value {
     font-family: var(--font-geist-mono);
@@ -284,16 +251,15 @@ select option {
 
 /* Dark themes need explicit option styling */
 :root option,
-[data-theme="dark"] option,
-[data-theme="slate"] option {
-  background-color: #151820;
+[data-theme="dark"] option {
+  background-color: #1a1714;
   color: #f0f0f0;
 }
 
 /* Light themes */
 [data-theme="light"] option {
   background-color: #ffffff;
-  color: #1e2938;
+  color: #302a24;
 }
 
 /* Theme transition - applied selectively, not globally (avoids perf lag) */

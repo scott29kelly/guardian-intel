@@ -275,7 +275,7 @@ export function Sidebar() {
       <div className={`p-3 border-t border-sidebar-border ${isCollapsed ? 'px-2' : ''}`}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div 
-            className="w-8 h-8 rounded-full bg-accent-primary/[0.15] flex items-center justify-center text-accent-primary text-sm font-medium flex-shrink-0"
+            className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
             title={isCollapsed ? userName : undefined}
           >
             {userInitials}
