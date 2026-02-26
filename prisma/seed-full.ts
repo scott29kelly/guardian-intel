@@ -131,7 +131,7 @@ const ROOF_TYPES = [
   "Slate", "Tile", "Cedar Shake", "Composite", "TPO", "EPDM"
 ];
 
-const PROPERTY_TYPES = ["single_family", "townhouse", "condo", "multi_family"];
+const PROPERTY_TYPES = ["single-family", "townhouse", "condo", "multi-family"];
 
 const INSURANCE_CARRIERS = [
   "State Farm", "Allstate", "GEICO", "Liberty Mutual", "Nationwide", "Farmers",
@@ -493,7 +493,7 @@ async function main() {
         category,
         title,
         content,
-        confidence: randomFloat(0.6, 0.99),
+        confidence: randomInt(60, 99),
         actionable: randomBoolean(0.7),
         priority: randomElement(["low", "medium", "high", "urgent"]),
         isRead: randomBoolean(0.4),
