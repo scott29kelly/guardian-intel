@@ -124,12 +124,17 @@ export async function rateLimit(
   if (USE_REDIS) {
     const limiter = createUpstashLimiter(type);
     if (limiter) {
-      const upstashResult = await limiter.limit(identifier);
-      result = {
-        success: upstashResult.success,
-        remaining: upstashResult.remaining,
-        reset: upstashResult.reset,
-      };
+      try {
+        const upstashResult = await limiter.limit(identifier);
+        result = {
+          success: upstashResult.success,
+          remaining: upstashResult.remaining,
+          reset: upstashResult.reset,
+        };
+      } catch (error) {
+        console.error("[RateLimit] Upstash error, falling back to in-memory:", error);
+        result = checkInMemoryLimit(identifier, type);
+      }
     } else {
       result = checkInMemoryLimit(identifier, type);
     }
