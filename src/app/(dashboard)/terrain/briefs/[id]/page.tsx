@@ -13,14 +13,14 @@ export default function BriefDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    terrainData.initialize();
-    const id = params.id as string;
-    const foundBrief = terrainData.getBriefById(id);
-    
-    if (foundBrief) {
-      setBrief(foundBrief);
-    }
-    setIsLoading(false);
+    terrainData.initializeAsync().then(() => {
+      const id = params.id as string;
+      const foundBrief = terrainData.getBriefById(id);
+      if (foundBrief) {
+        setBrief(foundBrief);
+      }
+      setIsLoading(false);
+    });
   }, [params.id]);
   
   if (isLoading) {

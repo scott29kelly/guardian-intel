@@ -1,5 +1,5 @@
 import { Competitor, TerrainAlert, StateCode, InsightPriority, AlertType } from '../types';
-import { MOCK_COMPETITORS, TERRITORY_COUNTIES } from '../constants';
+import { TERRITORY_COUNTIES } from '../constants';
 
 // Helper functions
 const randomBetween = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -19,8 +19,8 @@ export interface CompetitorActivity {
   source: string;
 }
 
-export function generateCompetitorActivity(competitor?: Competitor): CompetitorActivity {
-  const comp = competitor || randomChoice(MOCK_COMPETITORS);
+export function generateCompetitorActivity(competitor: Competitor): CompetitorActivity {
+  const comp = competitor;
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   
@@ -79,45 +79,21 @@ export function generateCompetitorActivity(competitor?: Competitor): CompetitorA
   };
 }
 
-export function generateCompetitorActivities(count: number = 20): CompetitorActivity[] {
-  return Array.from({ length: count }, () => generateCompetitorActivity())
+export function generateCompetitorActivities(competitors: Competitor[], count: number = 20): CompetitorActivity[] {
+  if (competitors.length === 0) return [];
+  return Array.from({ length: count }, () => generateCompetitorActivity(randomChoice(competitors)))
     .sort((a, b) => b.detectedAt.getTime() - a.detectedAt.getTime());
 }
 
 // Generate demo competitor activities with notable patterns
-export function generateDemoCompetitorActivities(): CompetitorActivity[] {
+export function generateDemoCompetitorActivities(competitors: Competitor[]): CompetitorActivity[] {
+  if (competitors.length === 0) return [];
+
   const activities: CompetitorActivity[] = [];
-  const now = new Date();
-  
-  // Northeast Storm Repair expanding aggressively (for demo insight)
-  const northeastComp = MOCK_COMPETITORS.find(c => c.name === 'Northeast Storm Repair')!;
-  activities.push({
-    id: 'activity_demo_001',
-    competitorId: northeastComp.id,
-    competitorName: northeastComp.name,
-    activityType: 'marketing_activity',
-    description: 'Significant increase in Google Ads spend detected in Bucks/Montgomery corridor',
-    location: { county: 'Bucks', state: 'PA' },
-    detectedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-    significance: 'high',
-    source: 'Competitor Monitoring',
-  });
-  
-  activities.push({
-    id: 'activity_demo_002',
-    competitorId: northeastComp.id,
-    competitorName: northeastComp.name,
-    activityType: 'new_review',
-    description: '18 new Google reviews in past 30 days indicating expanded operations',
-    location: { county: 'Montgomery', state: 'PA' },
-    detectedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-    significance: 'high',
-    source: 'Competitor Monitoring',
-  });
-  
+
   // Add general competitor noise
-  activities.push(...generateCompetitorActivities(15));
-  
+  activities.push(...generateCompetitorActivities(competitors, 15));
+
   return activities.sort((a, b) => b.detectedAt.getTime() - a.detectedAt.getTime());
 }
 
@@ -264,19 +240,19 @@ export function generateDemoAlerts(): TerrainAlert[] {
 }
 
 // Competitor threat assessment
-export function assessCompetitorThreats(activities: CompetitorActivity[]): {
+export function assessCompetitorThreats(activities: CompetitorActivity[], competitors: Competitor[]): {
   highThreat: Competitor[];
   recentActivity: CompetitorActivity[];
   affectedMarkets: { county: string; state: StateCode; activityCount: number }[];
 } {
-  const recentActivity = activities.filter(a => 
+  const recentActivity = activities.filter(a =>
     a.detectedAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   );
-  
+
   const highThreatIds = new Set(
     activities.filter(a => a.significance === 'high').map(a => a.competitorId)
   );
-  const highThreat = MOCK_COMPETITORS.filter(c => highThreatIds.has(c.id));
+  const highThreat = competitors.filter(c => highThreatIds.has(c.id));
   
   const marketMap = new Map<string, number>();
   activities.forEach(a => {

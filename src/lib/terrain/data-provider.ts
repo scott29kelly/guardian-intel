@@ -7,8 +7,9 @@ import {
   MarketIndicator,
   TerrainAlert,
   DataSource,
+  Competitor,
 } from './types';
-import { DATA_SOURCES, MOCK_COMPETITORS } from './constants';
+import { DATA_SOURCES } from './constants';
 import {
   generateStormEvents,
   generateDemoHailEvent,
@@ -29,7 +30,7 @@ import {
 class TerrainDataProvider {
   private static instance: TerrainDataProvider;
   private initialized = false;
-  
+
   // Cached data
   private stormEvents: StormEvent[] = [];
   private stormActivityIndex: StormActivityIndex | null = null;
@@ -38,45 +39,71 @@ class TerrainDataProvider {
   private currentBrief: IntelligenceBrief | null = null;
   private briefArchive: IntelligenceBrief[] = [];
   private marketIndicators: MarketIndicator[] = [];
+  private competitors: Competitor[] = [];
   private competitorActivities: CompetitorActivity[] = [];
   private activeAlerts: TerrainAlert[] = [];
-  
+
   private constructor() {}
-  
+
   static getInstance(): TerrainDataProvider {
     if (!TerrainDataProvider.instance) {
       TerrainDataProvider.instance = new TerrainDataProvider();
     }
     return TerrainDataProvider.instance;
   }
-  
-  // Initialize with demo data
+
+  // Initialize synchronous demo data (storms, permits, briefs, markets, alerts)
   initialize(): void {
     if (this.initialized) return;
-    
+
     // Generate storm data
     this.stormEvents = generateStormEvents(45);
-    // Add the demo hail event prominently
     const demoHail = generateDemoHailEvent();
     this.stormEvents.unshift(demoHail);
     this.stormActivityIndex = calculateStormActivityIndex(this.stormEvents);
-    
+
     // Generate permit data
     this.permitRecords = generateDemoPermits();
     this.permitVelocities = calculateAllPermitVelocities(this.permitRecords);
-    
+
     // Generate the demo brief
     this.currentBrief = generateDemoBrief();
     this.briefArchive = [this.currentBrief];
-    
+
     // Generate market data
     this.marketIndicators = generateDemoMarketIndicators();
-    
-    // Generate competitor intelligence
-    this.competitorActivities = generateDemoCompetitorActivities();
+
+    // Generate competitor intelligence from whatever competitors we have
+    this.competitorActivities = generateDemoCompetitorActivities(this.competitors);
     this.activeAlerts = generateDemoAlerts();
-    
+
     this.initialized = true;
+  }
+
+  // Async initialization: fetches real competitor data then initializes demo data
+  async initializeAsync(): Promise<void> {
+    try {
+      const res = await fetch('/api/terrain/competitors');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          this.competitors = json.data.competitors || [];
+          // Use real activities from Prisma if available
+          if (json.data.activities && json.data.activities.length > 0) {
+            this.competitorActivities = json.data.activities.map((a: CompetitorActivity) => ({
+              ...a,
+              detectedAt: new Date(a.detectedAt),
+            }));
+          }
+        }
+      }
+    } catch {
+      // Fetch failed — competitors stay as empty array (honest empty state)
+    }
+
+    // Reset initialized flag so synchronous init can re-run with competitors loaded
+    this.initialized = false;
+    this.initialize();
   }
   
   // Ensure initialization
@@ -152,13 +179,13 @@ class TerrainDataProvider {
     return this.competitorActivities;
   }
   
-  getCompetitors() {
-    return MOCK_COMPETITORS;
+  getCompetitors(): Competitor[] {
+    return this.competitors;
   }
-  
+
   getCompetitorThreatAssessment() {
     this.ensureInitialized();
-    return assessCompetitorThreats(this.competitorActivities);
+    return assessCompetitorThreats(this.competitorActivities, this.competitors);
   }
   
   // Alert accessors

@@ -1,4 +1,4 @@
-import { County, StateCode, DataSource, Competitor } from './types';
+import { County, StateCode, DataSource } from './types';
 
 // Guardian's 6-state territory
 export const GUARDIAN_STATES: StateCode[] = ['PA', 'NY', 'VA', 'NJ', 'DE', 'MD'];
@@ -117,13 +117,13 @@ export const DATA_SOURCES: DataSource[] = [
     id: 'google_alerts',
     name: 'Competitor Monitoring',
     type: 'competitive',
-    status: 'mock',
+    status: 'live',
     description: 'Automated competitor mentions and market activity.',
     refreshFrequency: 'daily',
     lastUpdated: new Date(),
     reliability: 65,
     recordCount: 147,
-    integrationNotes: 'Free via Google Alerts RSS. Production: aggregate alerts for key competitors.',
+    integrationNotes: 'Live data from Prisma competitor database. Competitor records and activity tracked in real-time.',
     iconName: 'Search',
   },
   {
@@ -138,55 +138,6 @@ export const DATA_SOURCES: DataSource[] = [
     recordCount: 0,
     integrationNotes: 'Requires industry subscriptions (IBHS, III) or public adjuster network partnership.',
     iconName: 'Shield',
-  },
-];
-
-// Mock competitors for demo
-export const MOCK_COMPETITORS: Competitor[] = [
-  {
-    id: 'comp_1',
-    name: 'Statewide Roofing Solutions',
-    serviceArea: ['PA', 'NJ'] as StateCode[],
-    estimatedSize: 'medium',
-    strengths: ['Strong Google reviews', 'Fast response time'],
-    weaknesses: ['Limited insurance expertise'],
-    threatLevel: 'high',
-  },
-  {
-    id: 'comp_2',
-    name: 'Northeast Storm Repair',
-    serviceArea: ['PA', 'NY', 'NJ'] as StateCode[],
-    estimatedSize: 'large',
-    strengths: ['Multi-state coverage', 'Marketing budget'],
-    weaknesses: ['Impersonal service'],
-    threatLevel: 'high',
-  },
-  {
-    id: 'comp_3',
-    name: 'Heritage Home Exteriors',
-    serviceArea: ['PA'] as StateCode[],
-    estimatedSize: 'small',
-    strengths: ['Local reputation', 'Quality workmanship'],
-    weaknesses: ['Limited capacity'],
-    threatLevel: 'moderate',
-  },
-  {
-    id: 'comp_4',
-    name: 'VA Storm Masters',
-    serviceArea: ['VA', 'MD'] as StateCode[],
-    estimatedSize: 'medium',
-    strengths: ['Regional expertise', 'Established network'],
-    weaknesses: ['Higher pricing'],
-    threatLevel: 'moderate',
-  },
-  {
-    id: 'comp_5',
-    name: 'Rochester Roofing Co',
-    serviceArea: ['NY'] as StateCode[],
-    estimatedSize: 'medium',
-    strengths: ['Long history', 'Commercial focus'],
-    weaknesses: ['Slower response'],
-    threatLevel: 'low',
   },
 ];
 

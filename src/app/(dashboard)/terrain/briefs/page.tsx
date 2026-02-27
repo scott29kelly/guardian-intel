@@ -13,9 +13,10 @@ export default function BriefsArchivePage() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    terrainData.initialize();
-    setBriefs(terrainData.getBriefArchive());
-    setIsLoading(false);
+    terrainData.initializeAsync().then(() => {
+      setBriefs(terrainData.getBriefArchive());
+      setIsLoading(false);
+    });
   }, []);
   
   if (isLoading) {

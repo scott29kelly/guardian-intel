@@ -36,18 +36,16 @@ export default function TerrainDashboard() {
   
   const loadData = () => {
     setIsLoading(true);
-    
-    // Initialize terrain data and load all dashboard data
-    terrainData.initialize();
-    
-    setSummary(terrainData.getDashboardSummary());
-    setStormIndex(terrainData.getStormActivityIndex());
-    setPermitVelocities(terrainData.getPermitVelocities());
-    setPermitStats(terrainData.getPermitStats(30));
-    setCurrentBrief(terrainData.getCurrentBrief());
-    setAlerts(terrainData.getActiveAlerts());
-    
-    setIsLoading(false);
+
+    terrainData.initializeAsync().then(() => {
+      setSummary(terrainData.getDashboardSummary());
+      setStormIndex(terrainData.getStormActivityIndex());
+      setPermitVelocities(terrainData.getPermitVelocities());
+      setPermitStats(terrainData.getPermitStats(30));
+      setCurrentBrief(terrainData.getCurrentBrief());
+      setAlerts(terrainData.getActiveAlerts());
+      setIsLoading(false);
+    });
   };
   
   const handleRefresh = () => {

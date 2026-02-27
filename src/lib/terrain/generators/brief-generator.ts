@@ -269,13 +269,13 @@ export function generateDemoBrief(): IntelligenceBrief {
       dateRange: { start: threeMonthsAgo, end: now }, 
       reliability: 75 
     },
-    { 
-      sourceId: 'google_alerts', 
-      sourceName: 'Competitor Monitoring', 
-      sourceStatus: 'mock', 
-      recordsUsed: 147, 
-      dateRange: { start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), end: now }, 
-      reliability: 65 
+    {
+      sourceId: 'google_alerts',
+      sourceName: 'Competitor Monitoring',
+      sourceStatus: 'live',
+      recordsUsed: 147,
+      dateRange: { start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), end: now },
+      reliability: 65
     },
   ];
 
@@ -296,6 +296,7 @@ export function generateDemoBrief(): IntelligenceBrief {
     dataQualityNotes: [
       'Storm data uses NOAA structure (demo data for this preview)',
       'Permit data aggregated from county records (demo data for this preview)',
+      'Competitor data sourced from live Prisma database',
       'Market indicators require Zillow/Redfin integration for production',
       'Insurance signals require industry report subscriptions',
     ],

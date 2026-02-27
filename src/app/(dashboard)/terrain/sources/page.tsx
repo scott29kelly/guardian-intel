@@ -13,9 +13,10 @@ export default function DataSourcesPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    terrainData.initialize();
-    setSources(terrainData.getDataSources());
-    setIsLoading(false);
+    terrainData.initializeAsync().then(() => {
+      setSources(terrainData.getDataSources());
+      setIsLoading(false);
+    });
   }, []);
   
   const liveCount = sources.filter(s => s.status === 'live').length;

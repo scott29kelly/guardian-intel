@@ -18,10 +18,11 @@ export default function TerritoryMapPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    terrainData.initialize();
-    setStorms(terrainData.getRecentStormEvents(30));
-    setMarkets(terrainData.getMarketIndicators());
-    setIsLoading(false);
+    terrainData.initializeAsync().then(() => {
+      setStorms(terrainData.getRecentStormEvents(30));
+      setMarkets(terrainData.getMarketIndicators());
+      setIsLoading(false);
+    });
   }, []);
   
   const toggleLayer = (layer: MapLayer) => {

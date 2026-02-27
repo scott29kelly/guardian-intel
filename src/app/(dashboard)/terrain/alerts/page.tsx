@@ -25,9 +25,10 @@ export default function AlertsPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    terrainData.initialize();
-    setAlerts(terrainData.getAllAlerts());
-    setIsLoading(false);
+    terrainData.initializeAsync().then(() => {
+      setAlerts(terrainData.getAllAlerts());
+      setIsLoading(false);
+    });
   }, []);
   
   const filteredAlerts = alerts.filter(alert => {
