@@ -35,7 +35,7 @@ import dynamic from "next/dynamic";
 // Dynamically import the map to avoid SSR issues
 const WeatherRadarMap = dynamic(
   () => import("@/components/maps/weather-radar-map").then(mod => mod.WeatherRadarMap),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="aspect-video bg-surface-secondary rounded-lg flex items-center justify-center border border-border">
@@ -55,6 +55,9 @@ interface StormEvent {
   date: Date;
   location: string;
   county: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
   hailSize?: number;
   windSpeed?: number;
   severity: string;
@@ -64,103 +67,62 @@ interface StormEvent {
   opportunity: number;
 }
 
-// Mock storm data - Guardian service area (PA, NJ, DE, MD, VA, NY)
-const activeAlerts = [
-  {
-    id: "alert-1",
-    type: "hail",
-    severity: "severe",
-    headline: "Severe Thunderstorm Warning",
-    description: "Large hail up to 1.5 inches expected. Damaging winds up to 60 mph possible.",
-    areas: ["Bucks County, PA", "Montgomery County, PA"],
-    onset: new Date("2026-01-07T14:00:00"),
-    expires: new Date("2026-01-07T18:00:00"),
-    affectedCustomers: 23,
-    estimatedOpportunity: 345000,
-  },
-  {
-    id: "alert-2",
-    type: "wind",
-    severity: "moderate",
-    headline: "Wind Advisory",
-    description: "Southwest winds 25 to 35 mph with gusts up to 50 mph expected.",
-    areas: ["Spotsylvania County, VA"],
-    onset: new Date("2026-01-07T16:00:00"),
-    expires: new Date("2026-01-08T06:00:00"),
-    affectedCustomers: 8,
-    estimatedOpportunity: 120000,
-  },
-];
+// Alert type from API
+interface StormAlert {
+  id: string;
+  type: string;
+  severity: string;
+  headline: string;
+  description: string;
+  areas: string[];
+  onset: string;
+  expires: string;
+  affectedCustomers: number;
+  estimatedOpportunity: number;
+}
 
-const recentStormEvents: StormEvent[] = [
-  {
-    id: "event-1",
-    type: "hail",
-    date: new Date("2026-01-02"),
-    location: "Southampton, PA",
-    county: "Bucks",
-    hailSize: 1.25,
-    severity: "severe",
-    affectedCustomers: 45,
-    inspectionsPending: 12,
-    claimsFiled: 8,
-    opportunity: 675000,
-  },
-  {
-    id: "event-2",
-    type: "wind",
-    date: new Date("2025-12-28"),
-    location: "Doylestown, PA",
-    county: "Bucks",
-    windSpeed: 65,
-    severity: "severe",
-    affectedCustomers: 32,
-    inspectionsPending: 5,
-    claimsFiled: 15,
-    opportunity: 480000,
-  },
-  {
-    id: "event-3",
-    type: "hail",
-    date: new Date("2025-12-15"),
-    location: "Bensalem, PA",
-    county: "Bucks",
-    hailSize: 0.75,
-    severity: "moderate",
-    affectedCustomers: 28,
-    inspectionsPending: 3,
-    claimsFiled: 18,
-    opportunity: 392000,
-  },
-  {
-    id: "event-4",
-    type: "thunderstorm",
-    date: new Date("2025-11-20"),
-    location: "Fredericksburg, VA",
-    county: "Spotsylvania",
-    windSpeed: 55,
-    hailSize: 0.5,
-    severity: "moderate",
-    affectedCustomers: 18,
-    inspectionsPending: 0,
-    claimsFiled: 12,
-    opportunity: 234000,
-  },
-];
+// API response shape
+interface StormsApiResponse {
+  success: boolean;
+  data: {
+    events: Array<{
+      id: string;
+      type: string;
+      date: string;
+      location: string;
+      county: string;
+      state: string;
+      latitude: number;
+      longitude: number;
+      hailSize: number | null;
+      windSpeed: number | null;
+      severity: string;
+      affectedCustomers: number;
+      inspectionsPending: number;
+      claimsFiled: number;
+      opportunity: number;
+    }>;
+    alerts: StormAlert[];
+    stats: {
+      totalOpportunity: number;
+      totalAffected: number;
+      totalPending: number;
+      alertCount: number;
+    };
+    filterOptions: {
+      types: Array<{ value: string; label: string; count: number }>;
+      severities: Array<{ value: string; label: string; count: number }>;
+      counties: Array<{ value: string; label: string; count: number }>;
+    };
+  };
+  error?: string;
+}
 
 const stormTypeIcons: Record<string, typeof CloudLightning> = {
   hail: CloudRain,
   wind: Wind,
   thunderstorm: Zap,
   tornado: CloudLightning,
-};
-
-// Location coordinates mapping
-const locationCoords: Record<string, { lat: number; lon: number }> = {
-  "Southampton, PA": { lat: 40.1773, lon: -75.0035 },
-  "Doylestown, PA": { lat: 40.3101, lon: -75.1299 },
-  "Bensalem, PA": { lat: 40.1046, lon: -74.9518 },
-  "Fredericksburg, VA": { lat: 38.3032, lon: -77.4605 },
 };
 
 // Weather icon helper
@@ -175,7 +137,7 @@ function getWeatherIcon(forecast: string) {
 }
 
 // Weather Preview Widget Component
-function WeatherPreview({ location }: { location: string }) {
+function WeatherPreview({ latitude, longitude }: { latitude?: number; longitude?: number }) {
   const [forecast, setForecast] = useState<{
     temperature: number;
     temperatureUnit: string;
@@ -187,8 +149,7 @@ function WeatherPreview({ location }: { location: string }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const coords = locationCoords[location];
-    if (!coords) {
+    if (!latitude || !longitude) {
       setError(true);
       setLoading(false);
       return;
@@ -196,7 +157,7 @@ function WeatherPreview({ location }: { location: string }) {
 
     const fetchForecast = async () => {
       try {
-        const response = await fetch(`/api/weather/forecast?lat=${coords.lat}&lon=${coords.lon}`);
+        const response = await fetch(`/api/weather/forecast?lat=${latitude}&lon=${longitude}`);
         if (!response.ok) throw new Error("Failed to fetch");
         const data = await response.json();
         if (data.periods && data.periods.length > 0) {
@@ -210,7 +171,7 @@ function WeatherPreview({ location }: { location: string }) {
     };
 
     fetchForecast();
-  }, [location]);
+  }, [latitude, longitude]);
 
   if (loading) {
     return (
@@ -233,7 +194,7 @@ function WeatherPreview({ location }: { location: string }) {
       <div className="flex items-center gap-3 text-sm">
         <span className="flex items-center gap-1 font-medium text-text-primary">
           <Thermometer className="w-3.5 h-3.5 text-text-muted" />
-          {forecast.temperature}°{forecast.temperatureUnit}
+          {forecast.temperature}&deg;{forecast.temperatureUnit}
         </span>
         <span className="text-text-muted hidden sm:inline">{forecast.shortForecast}</span>
         {forecast.probabilityOfPrecipitation !== undefined && forecast.probabilityOfPrecipitation > 0 && (
@@ -254,15 +215,15 @@ const severityColors: Record<string, string> = {
   catastrophic: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
-// Filter configuration
-const stormFilterConfig = [
+// Default filter configuration (will be enriched with real counts from API)
+const defaultStormFilterConfig = [
   {
     id: "type",
     label: "Storm Type",
     options: [
-      { value: "hail", label: "Hail", count: 2 },
-      { value: "wind", label: "Wind", count: 1 },
-      { value: "thunderstorm", label: "Thunderstorm", count: 1 },
+      { value: "hail", label: "Hail", count: 0 },
+      { value: "wind", label: "Wind", count: 0 },
+      { value: "thunderstorm", label: "Thunderstorm", count: 0 },
       { value: "tornado", label: "Tornado", count: 0 },
     ],
     multiSelect: true,
@@ -271,10 +232,10 @@ const stormFilterConfig = [
     id: "severity",
     label: "Severity",
     options: [
-      { value: "minor", label: "Minor" },
-      { value: "moderate", label: "Moderate", count: 2 },
-      { value: "severe", label: "Severe", count: 2 },
-      { value: "catastrophic", label: "Catastrophic" },
+      { value: "minor", label: "Minor", count: 0 },
+      { value: "moderate", label: "Moderate", count: 0 },
+      { value: "severe", label: "Severe", count: 0 },
+      { value: "catastrophic", label: "Catastrophic", count: 0 },
     ],
     multiSelect: true,
   },
@@ -291,11 +252,7 @@ const stormFilterConfig = [
   {
     id: "county",
     label: "County",
-    options: [
-      { value: "bucks", label: "Bucks County, PA", count: 3 },
-      { value: "montgomery", label: "Montgomery County, PA", count: 1 },
-      { value: "spotsylvania", label: "Spotsylvania County, VA", count: 1 },
-    ],
+    options: [] as { value: string; label: string; count: number }[],
     multiSelect: true,
   },
 ];
@@ -309,23 +266,135 @@ export default function StormsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
-  // Memoized aggregated stats to avoid recalculation on every render
-  const totalOpportunity = useMemo(
-    () => recentStormEvents.reduce((sum, e) => sum + e.opportunity, 0),
-    []
-  );
-  const totalAffected = useMemo(
-    () => recentStormEvents.reduce((sum, e) => sum + e.affectedCustomers, 0),
-    []
-  );
-  const totalPending = useMemo(
-    () => recentStormEvents.reduce((sum, e) => sum + e.inspectionsPending, 0),
-    []
-  );
+  // Data state
+  const [stormEvents, setStormEvents] = useState<StormEvent[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<StormAlert[]>([]);
+  const [stats, setStats] = useState({ totalOpportunity: 0, totalAffected: 0, totalPending: 0, alertCount: 0 });
+  const [filterOptions, setFilterOptions] = useState<StormsApiResponse["data"]["filterOptions"] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Memoized filtered events
+  // Derive days param from timeframe filter
+  const daysFromFilter = useMemo(() => {
+    const tf = activeFilters.timeframe?.[0];
+    switch (tf) {
+      case "7d": return 7;
+      case "30d": return 30;
+      case "1y": return 365;
+      default: return 90;
+    }
+  }, [activeFilters.timeframe]);
+
+  // Fetch storm data from API
+  const fetchStormData = useCallback(async (showRefreshToast = false) => {
+    try {
+      if (showRefreshToast) {
+        setIsRefreshing(true);
+        showToast("info", "Refreshing Data", "Fetching latest weather data...");
+      } else {
+        setIsLoading(true);
+      }
+      setFetchError(null);
+
+      const params = new URLSearchParams();
+      params.set("days", String(daysFromFilter));
+
+      const response = await fetch(`/api/storms?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+
+      const result: StormsApiResponse = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "Unknown error");
+      }
+
+      // Convert date strings to Date objects
+      const events: StormEvent[] = result.data.events.map((e) => ({
+        ...e,
+        date: new Date(e.date),
+        hailSize: e.hailSize ?? undefined,
+        windSpeed: e.windSpeed ?? undefined,
+      }));
+
+      setStormEvents(events);
+      setActiveAlerts(result.data.alerts);
+      setStats(result.data.stats);
+      setFilterOptions(result.data.filterOptions);
+
+      if (showRefreshToast) {
+        showToast("success", "Data Updated", "Weather data refreshed successfully");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch storm data";
+      setFetchError(message);
+      if (showRefreshToast) {
+        showToast("error", "Refresh Failed", message);
+      }
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [daysFromFilter, showToast]);
+
+  // Initial fetch and refetch when timeframe changes
+  useEffect(() => {
+    fetchStormData();
+  }, [fetchStormData]);
+
+  // Build filter config from real data
+  const stormFilterConfig = useMemo(() => {
+    if (!filterOptions) return defaultStormFilterConfig;
+
+    return [
+      {
+        id: "type",
+        label: "Storm Type",
+        options: [
+          { value: "hail", label: "Hail", count: filterOptions.types.find((t) => t.value === "hail")?.count || 0 },
+          { value: "wind", label: "Wind", count: filterOptions.types.find((t) => t.value === "wind")?.count || 0 },
+          { value: "thunderstorm", label: "Thunderstorm", count: filterOptions.types.find((t) => t.value === "thunderstorm")?.count || 0 },
+          { value: "tornado", label: "Tornado", count: filterOptions.types.find((t) => t.value === "tornado")?.count || 0 },
+        ],
+        multiSelect: true,
+      },
+      {
+        id: "severity",
+        label: "Severity",
+        options: [
+          { value: "minor", label: "Minor", count: filterOptions.severities.find((s) => s.value === "minor")?.count || 0 },
+          { value: "moderate", label: "Moderate", count: filterOptions.severities.find((s) => s.value === "moderate")?.count || 0 },
+          { value: "severe", label: "Severe", count: filterOptions.severities.find((s) => s.value === "severe")?.count || 0 },
+          { value: "catastrophic", label: "Catastrophic", count: filterOptions.severities.find((s) => s.value === "catastrophic")?.count || 0 },
+        ],
+        multiSelect: true,
+      },
+      {
+        id: "timeframe",
+        label: "Time Frame",
+        options: [
+          { value: "7d", label: "Last 7 Days" },
+          { value: "30d", label: "Last 30 Days" },
+          { value: "90d", label: "Last 90 Days" },
+          { value: "1y", label: "Last Year" },
+        ],
+      },
+      {
+        id: "county",
+        label: "County",
+        options: filterOptions.counties.map((c) => ({
+          value: c.value,
+          label: c.label,
+          count: c.count,
+        })),
+        multiSelect: true,
+      },
+    ];
+  }, [filterOptions]);
+
+  // Client-side filter (type, severity, county applied locally; timeframe triggers refetch)
   const filteredEvents = useMemo(() => {
-    return recentStormEvents.filter(event => {
+    return stormEvents.filter(event => {
       if (activeFilters.type?.length && !activeFilters.type.includes(event.type)) {
         return false;
       }
@@ -337,7 +406,7 @@ export default function StormsPage() {
       }
       return true;
     });
-  }, [activeFilters]);
+  }, [stormEvents, activeFilters]);
 
   const activeFilterCount = useMemo(
     () => Object.values(activeFilters).reduce((acc, arr) => acc + arr.length, 0),
@@ -354,13 +423,8 @@ export default function StormsPage() {
   }, [showToast]);
 
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    showToast("info", "Refreshing Data", "Fetching latest weather data from NOAA...");
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsRefreshing(false);
-    showToast("success", "Data Updated", "Weather data refreshed successfully");
-  }, [showToast]);
+    await fetchStormData(true);
+  }, [fetchStormData]);
 
   const handleOpenWeatherMap = useCallback(() => {
     window.open("https://www.weather.gov/", "_blank");
@@ -385,6 +449,37 @@ export default function StormsPage() {
     window.open("https://www.ncdc.noaa.gov/stormevents/", "_blank");
   }, []);
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-primary" />
+          <p className="text-text-muted">Loading storm intelligence...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (fetchError && stormEvents.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md w-full">
+          <CardContent className="py-12 text-center">
+            <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-text-primary mb-2">Failed to load storm data</h3>
+            <p className="text-text-muted mb-4">{fetchError}</p>
+            <Button onClick={() => fetchStormData()}>
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -402,8 +497,8 @@ export default function StormsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowFilterModal(true)}
             className={activeFilterCount > 0 ? "border-accent-primary text-accent-primary" : ""}
           >
@@ -439,7 +534,7 @@ export default function StormsPage() {
             </h2>
             <Badge variant="warning">{activeAlerts.length} Active</Badge>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {activeAlerts.map((alert) => {
               const Icon = stormTypeIcons[alert.type] || CloudLightning;
@@ -460,7 +555,7 @@ export default function StormsPage() {
                             {alert.severity}
                           </Badge>
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm">
                           <span className="flex items-center gap-1 text-text-secondary">
                             <MapPin className="w-4 h-4" />
@@ -468,14 +563,14 @@ export default function StormsPage() {
                           </span>
                           <span className="flex items-center gap-1 text-text-secondary">
                             <Calendar className="w-4 h-4" />
-                            Until {alert.expires.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            Until {new Date(alert.expires).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
                           <span className="flex items-center gap-1 text-text-secondary">
                             <Users className="w-4 h-4" />
                             {alert.affectedCustomers} customers in area
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-amber-500/20">
                           <div>
                             <span className="text-sm text-text-muted">Estimated Opportunity:</span>
@@ -501,7 +596,7 @@ export default function StormsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Storm Opportunity (90 days)"
-          value={formatCurrency(totalOpportunity)}
+          value={formatCurrency(stats.totalOpportunity)}
           change={23}
           changeLabel="vs previous quarter"
           trend="up"
@@ -510,7 +605,7 @@ export default function StormsPage() {
         />
         <MetricCard
           title="Affected Customers"
-          value={totalAffected}
+          value={stats.totalAffected}
           change={15}
           changeLabel="new this month"
           trend="up"
@@ -519,7 +614,7 @@ export default function StormsPage() {
         />
         <MetricCard
           title="Inspections Pending"
-          value={totalPending}
+          value={stats.totalPending}
           icon={Calendar}
           variant="accent"
         />
@@ -555,26 +650,22 @@ export default function StormsPage() {
             height="450px"
             showRadar={true}
             showAnimation={true}
-            markers={[
-              // Recent storm event markers - Guardian service area (PA, NJ, DE, MD, VA, NY)
-              ...filteredEvents.map(event => ({
+            markers={filteredEvents
+              .filter(event => event.latitude && event.longitude)
+              .map(event => ({
                 id: event.id,
-                lat: event.location === "Southampton, PA" ? 40.1773 : 
-                     event.location === "Doylestown, PA" ? 40.3101 :
-                     event.location === "Bensalem, PA" ? 40.1046 : 
-                     event.location === "Fredericksburg, VA" ? 38.3032 : 40.0856,
-                lon: event.location === "Southampton, PA" ? -75.0035 :
-                     event.location === "Doylestown, PA" ? -75.1299 :
-                     event.location === "Bensalem, PA" ? -74.9518 : 
-                     event.location === "Fredericksburg, VA" ? -77.4605 : -74.8059,
+                lat: event.latitude!,
+                lon: event.longitude!,
                 type: event.type as "hail" | "wind",
                 label: `${event.type.charAt(0).toUpperCase() + event.type.slice(1)} Event - ${event.location}`,
-                severity: event.severity as "low" | "moderate" | "high" | "critical",
-                details: event.hailSize 
+                severity: event.severity === "catastrophic" ? "critical" as const
+                  : event.severity === "severe" ? "high" as const
+                  : event.severity === "moderate" ? "moderate" as const
+                  : "low" as const,
+                details: event.hailSize
                   ? `${event.hailSize}" hail - ${event.affectedCustomers} customers affected`
                   : `${event.windSpeed} mph winds - ${event.affectedCustomers} customers affected`,
-              })),
-            ]}
+              }))}
           />
           <div className="mt-4 flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
@@ -613,7 +704,7 @@ export default function StormsPage() {
             </button>
           )}
         </div>
-        
+
         <div className="space-y-4">
           {filteredEvents.map((event, index) => {
             const Icon = stormTypeIcons[event.type] || CloudLightning;
@@ -639,7 +730,7 @@ export default function StormsPage() {
                           event.severity === "severe" ? "text-rose-400" : "text-amber-400"
                         }`} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
                           <h3 className="font-semibold text-text-primary capitalize">
@@ -649,7 +740,7 @@ export default function StormsPage() {
                             {event.severity}
                           </Badge>
                           {event.hailSize && (
-                            <Badge variant="secondary">{event.hailSize}" Hail</Badge>
+                            <Badge variant="secondary">{event.hailSize}&quot; Hail</Badge>
                           )}
                           {event.windSpeed && (
                             <Badge variant="secondary">{event.windSpeed} mph</Badge>
@@ -667,10 +758,10 @@ export default function StormsPage() {
                         </div>
                         {/* Weather Preview */}
                         <div className="mt-3">
-                          <WeatherPreview location={event.location} />
+                          <WeatherPreview latitude={event.latitude} longitude={event.longitude} />
                         </div>
                       </div>
-                      
+
                       <div className="hidden lg:flex items-center gap-6">
                         <div className="text-center">
                           <p className="text-2xl font-bold text-text-primary">{event.affectedCustomers}</p>
@@ -689,9 +780,9 @@ export default function StormsPage() {
                           <p className="text-xs text-text-muted">Opportunity</p>
                         </div>
                       </div>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -701,7 +792,7 @@ export default function StormsPage() {
                         View Details
                       </Button>
                     </div>
-                    
+
                     {/* Mobile stats */}
                     <div className="lg:hidden grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
                       <div className="text-center">

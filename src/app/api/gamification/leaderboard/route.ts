@@ -1,87 +1,226 @@
 /**
  * Gamification Leaderboard API
- * 
- * GET - Fetch team leaderboard
+ *
+ * GET - Fetch team leaderboard from real database data
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { calculateLevel, XP_REWARDS, ACHIEVEMENTS } from "@/lib/gamification/types";
 import type { LeaderboardEntry } from "@/lib/gamification/types";
 
-// Mock leaderboard data
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, userId: "user-1", name: "Marcus Johnson", score: 127500, change: 0, level: 12 },
-  { rank: 2, userId: "user-2", name: "Sarah Mitchell", score: 98200, change: 1, level: 10 },
-  { rank: 3, userId: "user-3", name: "James Wilson", score: 87650, change: -1, level: 9 },
-  { rank: 4, userId: "user-4", name: "Emily Chen", score: 76400, change: 2, level: 8 },
-  { rank: 5, userId: "user-5", name: "David Park", score: 65200, change: 0, level: 7 },
-  { rank: 6, userId: "user-6", name: "Lisa Rodriguez", score: 54800, change: 1, level: 6 },
-  { rank: 7, userId: "user-7", name: "Mike Thompson", score: 48900, change: -2, level: 6 },
-  { rank: 8, userId: "user-8", name: "Jennifer Adams", score: 42100, change: 0, level: 5 },
-  { rank: 9, userId: "user-9", name: "Robert Kim", score: 38500, change: 1, level: 5 },
-  { rank: 10, userId: "user-10", name: "Amanda Foster", score: 35200, change: -1, level: 4 },
-];
+export const dynamic = "force-dynamic";
+
+/** Interaction types that count as calls */
+const CALL_TYPES = ["call", "phone_call", "voicemail"];
+/** Interaction types that count as emails */
+const EMAIL_TYPES = ["email"];
+/** Interaction types that count as visits / site inspections */
+const VISIT_TYPES = ["visit", "site_visit", "appointment"];
+
+/**
+ * Compute a date filter for the requested leaderboard period.
+ */
+function getPeriodStart(period: string): Date | null {
+  const now = new Date();
+  switch (period) {
+    case "week": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case "month": {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case "all-time":
+    default:
+      return null;
+  }
+}
+
+/**
+ * Build stats for a single user, optionally constrained by a period start date.
+ */
+async function getUserLeaderboardStats(
+  userId: string,
+  periodStart: Date | null
+) {
+  const dateFilter = periodStart ? { gte: periodStart } : undefined;
+  const createdAtFilter = dateFilter ? { createdAt: dateFilter } : {};
+
+  const [callCount, emailCount, visitCount, dealAgg] = await Promise.all([
+    prisma.interaction.count({
+      where: { userId, type: { in: CALL_TYPES }, ...createdAtFilter },
+    }),
+    prisma.interaction.count({
+      where: { userId, type: { in: EMAIL_TYPES }, ...createdAtFilter },
+    }),
+    prisma.interaction.count({
+      where: { userId, type: { in: VISIT_TYPES }, ...createdAtFilter },
+    }),
+    prisma.customer.aggregate({
+      where: {
+        assignedRepId: userId,
+        status: "closed-won",
+        ...(periodStart ? { updatedAt: { gte: periodStart } } : {}),
+      },
+      _count: { id: true },
+      _sum: { estimatedJobValue: true, profitPotential: true },
+    }),
+  ]);
+
+  const totalDeals = dealAgg._count.id;
+  const totalRevenue =
+    (dealAgg._sum.profitPotential ?? 0) || (dealAgg._sum.estimatedJobValue ?? 0);
+  const totalInteractions = callCount + emailCount + visitCount;
+
+  // Compute XP
+  let xp = 0;
+  xp += callCount * (XP_REWARDS.call as number);
+  xp += emailCount * (XP_REWARDS.email as number);
+  xp += visitCount * (XP_REWARDS.visit as number);
+  xp += totalDeals * (XP_REWARDS.closeDeal as number);
+
+  // Add achievement XP
+  for (const achievement of ACHIEVEMENTS) {
+    let isUnlocked = false;
+    switch (achievement.category) {
+      case "calls":
+        isUnlocked = callCount >= achievement.requirement;
+        break;
+      case "deals":
+        isUnlocked = totalDeals >= achievement.requirement;
+        break;
+      case "revenue":
+        isUnlocked = totalRevenue >= achievement.requirement;
+        break;
+    }
+    if (isUnlocked) {
+      xp += achievement.xpReward;
+    }
+  }
+
+  return { totalDeals, totalRevenue, totalInteractions, xp };
+}
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id || "demo-user";
     const userName = session?.user?.name || "You";
-    
+
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get("period") || "month"; // week, month, all-time
+    const period = searchParams.get("period") || "month";
     const metric = searchParams.get("metric") || "revenue"; // revenue, deals, xp
     const limit = parseInt(searchParams.get("limit") || "10");
-    
-    // In production, this would query the database
-    // For now, insert the current user into the leaderboard if not present
-    let leaderboard = [...MOCK_LEADERBOARD];
-    
-    // Check if current user is in the leaderboard
-    const currentUserEntry = leaderboard.find(e => e.userId === userId);
-    if (!currentUserEntry) {
-      // Add current user at a random position (simulating their actual rank)
-      const userRank = Math.floor(Math.random() * 5) + 4; // Rank 4-8
-      const userScore = Math.floor(Math.random() * 30000) + 40000; // 40k-70k
-      
-      leaderboard.push({
-        rank: userRank,
+
+    const periodStart = getPeriodStart(period);
+
+    // Fetch all active reps/managers
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { in: ["rep", "manager"] },
+      },
+      select: { id: true, name: true, image: true },
+    });
+
+    // Aggregate stats for each user in parallel
+    const statsPromises = users.map(async (user) => {
+      const stats = await getUserLeaderboardStats(user.id, periodStart);
+      return { user, stats };
+    });
+
+    const allStats = await Promise.all(statsPromises);
+
+    // Determine score based on requested metric
+    const scored = allStats.map(({ user, stats }) => {
+      let score = 0;
+      switch (metric) {
+        case "revenue":
+          score = stats.totalRevenue;
+          break;
+        case "deals":
+          score = stats.totalDeals;
+          break;
+        case "xp":
+          score = stats.xp;
+          break;
+        default:
+          score = stats.totalRevenue;
+      }
+
+      const levelInfo = calculateLevel(stats.xp);
+      return {
+        userId: user.id,
+        name: user.name,
+        avatar: user.image || undefined,
+        score,
+        level: levelInfo.level,
+      };
+    });
+
+    // Sort descending by score
+    scored.sort((a, b) => b.score - a.score);
+
+    // Assign ranks
+    const ranked: LeaderboardEntry[] = scored.map((entry, index) => ({
+      rank: index + 1,
+      userId: entry.userId,
+      name: entry.name,
+      avatar: entry.avatar,
+      score: Math.round(entry.score * 100) / 100,
+      change: 0, // Position change tracking would require historical data
+      level: entry.level,
+    }));
+
+    // Ensure current user is represented even if not in the active rep list
+    let currentUser = ranked.find((e) => e.userId === userId);
+    if (!currentUser) {
+      // Current user is not in the rep/manager list — add them with their real stats
+      const currentStats = await getUserLeaderboardStats(userId, periodStart);
+      let currentScore = 0;
+      switch (metric) {
+        case "revenue":
+          currentScore = currentStats.totalRevenue;
+          break;
+        case "deals":
+          currentScore = currentStats.totalDeals;
+          break;
+        case "xp":
+          currentScore = currentStats.xp;
+          break;
+        default:
+          currentScore = currentStats.totalRevenue;
+      }
+
+      const currentLevelInfo = calculateLevel(currentStats.xp);
+      currentUser = {
+        rank: ranked.length + 1,
         userId,
         name: userName,
-        score: userScore,
-        change: Math.floor(Math.random() * 5) - 2,
-        level: Math.floor(Math.random() * 4) + 4,
-      });
-      
-      // Re-sort and re-rank
-      leaderboard.sort((a, b) => b.score - a.score);
-      leaderboard.forEach((entry, index) => {
-        entry.rank = index + 1;
-      });
+        score: Math.round(currentScore * 100) / 100,
+        change: 0,
+        level: currentLevelInfo.level,
+      };
     }
-    
-    // Apply limit
-    const topEntries = leaderboard.slice(0, limit);
-    
-    // Find current user's position (might be outside top N)
-    const userPosition = leaderboard.find(e => e.userId === userId || e.name === userName);
-    
+
+    // Apply limit for top entries
+    const topEntries = ranked.slice(0, limit);
+
     return NextResponse.json({
       success: true,
       data: {
         entries: topEntries,
-        currentUser: userPosition || {
-          rank: leaderboard.length + 1,
-          userId,
-          name: userName,
-          score: 0,
-          change: 0,
-          level: 1,
-        },
+        currentUser,
         period,
         metric,
-        totalParticipants: leaderboard.length,
+        totalParticipants: ranked.length,
       },
     });
   } catch (error) {

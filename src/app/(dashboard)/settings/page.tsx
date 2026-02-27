@@ -236,9 +236,9 @@ export default function SettingsPage() {
     showToast("success", "Synced", `${integrationName} data has been refreshed`);
   };
 
-  const handleThemeChange = (newTheme: "dark" | "slate" | "light") => {
+  const handleThemeChange = (newTheme: "dark" | "light") => {
     setTheme(newTheme);
-    const themeNames = { dark: "Dark", slate: "Slate", light: "Light" };
+    const themeNames = { dark: "Dark", light: "Light" };
     showToast("success", "Theme Changed", `Switched to ${themeNames[newTheme]} theme`);
   };
 
@@ -890,10 +890,9 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div>
                   <h4 className="text-sm font-medium text-text-primary mb-3">Theme</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {[
                       { id: "dark" as const, label: "Dark", bg: "bg-[#0f1114]", preview: "bg-[#1a1d22]" },
-                      { id: "slate" as const, label: "Slate", bg: "bg-[#1e2228]", preview: "bg-[#2a2f36]" },
                       { id: "light" as const, label: "Light", bg: "bg-[#f5f7f9]", preview: "bg-white" },
                     ].map((t) => (
                       <button
