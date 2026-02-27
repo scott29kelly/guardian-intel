@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         success: true,
         message: {
           role: "assistant",
-          content: getMockResponse(formattedMessages, customerId),
+          content: await getMockResponse(formattedMessages, customerId),
         },
         model: "mock",
         warning: "No AI adapters configured. Using mock responses.",
@@ -211,18 +211,39 @@ function analyzeMessageComplexity(messages: Message[]): boolean {
   return complexKeywords.some(keyword => content.includes(keyword));
 }
 
-function getMockResponse(messages: Array<{ role: string; content: string }>, customerId?: string): string {
+async function getMockResponse(messages: Array<{ role: string; content: string }>, customerId?: string): Promise<string> {
   const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
   const conversationLength = messages.filter(m => m.role === "user").length;
-  
-  // Import mock data inline to get actual customer context
-  const { mockCustomers, mockIntelItems, mockWeatherEvents } = require("@/lib/mock-data");
-  
-  // Get actual customer data if customerId is provided
-  const customer = customerId ? mockCustomers.find((c: { id: string }) => c.id === customerId) : null;
-  const customerIntel = customerId ? mockIntelItems.filter((i: { customerId: string }) => i.customerId === customerId) : [];
-  const customerWeather = customerId ? mockWeatherEvents.filter((w: { customerId: string }) => w.customerId === customerId) : [];
-  
+
+  // Load customer data from database
+  let customer: any = null;
+  let customerIntel: any[] = [];
+  let customerWeather: any[] = [];
+
+  if (customerId) {
+    const { prisma } = await import("@/lib/prisma");
+    const dbCustomer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: {
+        assignedRep: { select: { name: true } },
+        intelItems: { where: { isDismissed: false }, orderBy: { priority: "asc" }, take: 10 },
+        weatherEvents: { orderBy: { eventDate: "desc" }, take: 5 },
+      },
+    });
+    if (dbCustomer) {
+      customer = {
+        ...dbCustomer,
+        assignedRep: dbCustomer.assignedRep?.name ?? "Unassigned",
+        nextAction: "Follow up",
+      };
+      customerIntel = dbCustomer.intelItems;
+      customerWeather = dbCustomer.weatherEvents.map((w) => ({
+        ...w,
+        customerId: w.customerId ?? customerId,
+      }));
+    }
+  }
+
   // Build customer-specific context
   const customerName = customer ? `${customer.firstName} ${customer.lastName}` : null;
   const hasCustomer = !!customer;
