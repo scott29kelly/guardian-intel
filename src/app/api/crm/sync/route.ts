@@ -1,6 +1,6 @@
 /**
  * CRM Sync API
- * 
+ *
  * POST /api/crm/sync - Trigger CRM synchronization
  * GET /api/crm/sync - Get sync status
  */
@@ -25,14 +25,25 @@ export async function GET(request: Request) {
     }
 
     const crmAdapter = getCrmAdapter();
-    
+
+    if (!crmAdapter) {
+      return NextResponse.json({
+        success: true,
+        status: {
+          connected: false,
+          provider: "none",
+          message: "No CRM configured",
+        },
+      });
+    }
+
     // Test connection and get status
     const isConnected = await crmAdapter.testConnection();
-    
+
     // Get sync status if the adapter supports it
-    const syncStatus = "getSyncStatus" in crmAdapter 
-      ? (crmAdapter as any).getSyncStatus() 
-      : { isDemoMode: true, provider: "unknown" };
+    const syncStatus = "getSyncStatus" in crmAdapter
+      ? (crmAdapter as any).getSyncStatus()
+      : { provider: "unknown" };
 
     return NextResponse.json({
       success: true,
@@ -75,6 +86,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const crmAdapter = getCrmAdapter();
+
+    if (!crmAdapter) {
+      return NextResponse.json(
+        { success: false, error: "No CRM provider configured. Set CRM_PROVIDER=leap in .env" },
+        { status: 400 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const { direction, entityType } = body;
@@ -93,7 +113,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const crmAdapter = getCrmAdapter();
     let result;
 
     if (direction === "from") {

@@ -35,7 +35,7 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().optional().default("deck-pdfs"),
 
   // CRM Integration (Leap CRM for home improvement industry)
-  CRM_PROVIDER: z.enum(["leap", "placeholder"]).optional().default("placeholder"),
+  CRM_PROVIDER: z.enum(["leap"]).optional(),
   LEAP_API_KEY: z.string().optional(),
   LEAP_COMPANY_ID: z.string().optional(),
   LEAP_BASE_URL: z.string().url().optional(),
@@ -111,7 +111,7 @@ function getDefaultEnv(): z.infer<typeof envSchema> {
     NEXTAUTH_SECRET: "development-secret-do-not-use-in-production",
     NODE_ENV: "development",
     RATE_LIMIT_ENABLED: "true",
-    CRM_PROVIDER: "placeholder",
+    CRM_PROVIDER: undefined,
     SUPABASE_STORAGE_BUCKET: "deck-pdfs",
     SENDGRID_FROM_NAME: "Guardian Roofing",
     COMPANY_NAME: "Guardian Roofing",

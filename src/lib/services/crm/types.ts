@@ -53,7 +53,7 @@ export interface CrmSyncResult {
 }
 
 export interface CrmConfig {
-  provider: "leap" | "hubspot" | "salesforce" | "jobnimbus" | "placeholder";
+  provider: "leap" | "hubspot" | "salesforce" | "jobnimbus";
   apiKey?: string;
   apiSecret?: string;
   accessToken?: string;
