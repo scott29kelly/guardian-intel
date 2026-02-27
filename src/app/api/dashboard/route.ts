@@ -109,16 +109,43 @@ export async function GET(request: Request) {
       _count: true,
     });
 
-    // Calculate revenue from closed-won
-    const revenueData = await prisma.customer.aggregate({
-      where: { status: "closed-won" },
-      _sum: { profitPotential: true },
-    });
+    // Calculate revenue from closed-won (current month)
+    const monthStart = new Date(new Date().setDate(1));
+    monthStart.setHours(0, 0, 0, 0);
+    const lastMonthStart = new Date(monthStart);
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+
+    const [revenueData, thisMonthRevenue, lastMonthRevenue] = await Promise.all([
+      prisma.customer.aggregate({
+        where: { status: "closed-won" },
+        _sum: { profitPotential: true },
+      }),
+      prisma.customer.aggregate({
+        where: {
+          status: "closed-won",
+          updatedAt: { gte: monthStart },
+        },
+        _sum: { profitPotential: true },
+      }),
+      prisma.customer.aggregate({
+        where: {
+          status: "closed-won",
+          updatedAt: { gte: lastMonthStart, lt: monthStart },
+        },
+        _sum: { profitPotential: true },
+      }),
+    ]);
+
+    const thisMonth = thisMonthRevenue._sum.profitPotential || 0;
+    const lastMonth = lastMonthRevenue._sum.profitPotential || 0;
+    const revenueChange = lastMonth > 0
+      ? Math.round(((thisMonth - lastMonth) / lastMonth) * 1000) / 10
+      : 0;
 
     const metrics = {
       revenue: {
         value: revenueData._sum.profitPotential || 0,
-        change: 23.4, // Would calculate from historical data
+        change: revenueChange,
         target: 500000,
       },
       pipeline: {
