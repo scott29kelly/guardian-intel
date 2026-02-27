@@ -75,6 +75,8 @@ export interface PropertyLookupOptions {
   forceRefresh?: boolean;
 }
 
+import { prisma } from "@/lib/prisma";
+
 export interface PropertySearchFilters {
   city?: string;
   state?: string;
@@ -111,12 +113,6 @@ class PropertyDataService {
     }
 
     try {
-      // In production, this would call multiple APIs:
-      // 1. County assessor API
-      // 2. Real estate data providers (ATTOM, CoreLogic, etc.)
-      // 3. Zillow API
-      
-      // For now, generate realistic mock data
       const details = await this.fetchPropertyData(address, city, state, zipCode);
       
       if (details) {
@@ -271,7 +267,8 @@ class PropertyDataService {
   }
 
   /**
-   * Fetch property data (mock implementation)
+   * Fetch property data from existing customer records.
+   * In production this would also query external APIs (ATTOM, CoreLogic, etc.).
    */
   private async fetchPropertyData(
     address: string,
@@ -279,56 +276,57 @@ class PropertyDataService {
     state: string,
     zipCode: string
   ): Promise<PropertyDetails> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Look up existing customer records that match this address
+    const customer = await prisma.customer.findFirst({
+      where: {
+        address: { contains: address },
+        city: { equals: city, mode: "insensitive" },
+        state: { equals: state, mode: "insensitive" },
+      },
+      select: {
+        propertyType: true,
+        yearBuilt: true,
+        squareFootage: true,
+        lotSize: true,
+        stories: true,
+        bedrooms: true,
+        bathrooms: true,
+        roofType: true,
+        roofAge: true,
+        roofSquares: true,
+        roofCondition: true,
+        propertyValue: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
 
-    // Generate realistic mock data
-    const random = () => Math.random();
-    const yearBuilt = 1980 + Math.floor(random() * 40);
-    const currentYear = new Date().getFullYear();
-    const roofAge = this.estimateRoofAge(yearBuilt);
-    
-    const propertyTypes = ["Single Family", "Townhouse", "Condo", "Multi-Family"];
-    const roofTypes = ["Asphalt Shingle", "Architectural Shingle", "3-Tab Shingle", "Metal", "Tile"];
-    const exteriors = ["Vinyl Siding", "Brick", "Stucco", "Wood", "Fiber Cement"];
-    
-    const squareFootage = 1500 + Math.floor(random() * 2500);
-    const stories = random() > 0.6 ? 2 : 1;
-    const roofType = roofTypes[Math.floor(random() * roofTypes.length)];
+    const yearBuilt = customer?.yearBuilt ?? undefined;
+    const roofAge = customer?.roofAge ?? this.estimateRoofAge(yearBuilt);
+    const roofType = customer?.roofType ?? undefined;
+    const squareFootage = customer?.squareFootage ?? undefined;
 
     const details: PropertyDetails = {
       address,
       city,
       state,
       zipCode,
-      
-      propertyType: propertyTypes[Math.floor(random() * propertyTypes.length)],
+      propertyType: customer?.propertyType ?? undefined,
       yearBuilt,
       squareFootage,
-      lotSize: 0.15 + random() * 0.5,
-      stories,
-      bedrooms: 2 + Math.floor(random() * 3),
-      bathrooms: 1.5 + Math.floor(random() * 2),
-      
-      assessedValue: 200000 + Math.floor(random() * 400000),
-      marketValue: 250000 + Math.floor(random() * 500000),
-      lastSalePrice: 180000 + Math.floor(random() * 350000),
-      lastSaleDate: new Date(2015 + Math.floor(random() * 10), Math.floor(random() * 12), 1),
-      
+      lotSize: customer?.lotSize ?? undefined,
+      stories: customer?.stories ?? undefined,
+      bedrooms: customer?.bedrooms ?? undefined,
+      bathrooms: customer?.bathrooms ?? undefined,
+      marketValue: customer?.propertyValue ?? undefined,
       roofType,
       roofAge,
-      roofArea: Math.ceil(squareFootage * 1.15 / 100),
-      roofCondition: this.assessRoofCondition(roofAge, roofType, 0),
-      
-      exteriorWall: exteriors[Math.floor(random() * exteriors.length)],
-      foundation: random() > 0.5 ? "Concrete Slab" : "Basement",
-      
-      ownerName: "Property Owner",
-      ownerOccupied: random() > 0.2,
-      
-      source: "mock-data",
+      roofArea: customer?.roofSquares ?? (squareFootage ? Math.ceil(squareFootage * 1.15 / 100) : undefined),
+      roofCondition: customer?.roofCondition as PropertyDetails["roofCondition"] ?? (roofAge ? this.assessRoofCondition(roofAge, roofType) : "unknown"),
+      ownerName: customer ? `${customer.firstName} ${customer.lastName}` : undefined,
+      source: customer ? "customer-records" : "address-lookup",
       lastUpdated: new Date(),
-      confidence: 75 + Math.floor(random() * 20),
+      confidence: customer ? 85 : 30,
     };
 
     return details;

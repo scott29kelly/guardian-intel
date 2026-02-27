@@ -68,24 +68,61 @@ async function fetchOverallAnalytics(): Promise<OverallStats> {
     totalUsages += pb.usageCount || 0;
   }
 
-  // Get top performers (by usage and rating)
-  const topPerformers = playbooks
-    .filter((p: { rating: number | null }) => p.rating && p.rating >= 4)
+  // Get top playbooks by usage for analytics
+  const topByUsage = [...playbooks]
     .sort((a: { usageCount: number }, b: { usageCount: number }) => b.usageCount - a.usageCount)
+    .slice(0, 10);
+
+  // Fetch real analytics for top playbooks in parallel
+  const analyticsResults = await Promise.allSettled(
+    topByUsage
+      .filter((p: { usageCount: number }) => p.usageCount > 0)
+      .map(async (p: { id: string }) => {
+        const res = await fetch(`/api/playbooks/${p.id}/analytics`);
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.success ? json.analytics : null;
+      })
+  );
+
+  const analytics = analyticsResults
+    .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value != null)
+    .map((r) => r.value);
+
+  // Compute real aggregate rates
+  let totalCompleted = 0;
+  let totalUsed = 0;
+  let totalWithCustomers = 0;
+  let totalClosedWon = 0;
+
+  for (const a of analytics) {
+    totalCompleted += a.completedUsages || 0;
+    totalUsed += a.totalUsages || 0;
+    totalWithCustomers += a.usagesWithCustomers || 0;
+    totalClosedWon += a.closedWonCount || 0;
+  }
+
+  const avgCompletionRate = totalUsed > 0 ? Math.round((totalCompleted / totalUsed) * 100) : 0;
+  const avgConversionRate = totalWithCustomers > 0 ? Math.round((totalClosedWon / totalWithCustomers) * 100) : 0;
+
+  // Build top performers from analytics
+  const topPerformers = analytics
+    .filter((a) => a.avgRating && a.avgRating >= 4)
+    .sort((a, b) => b.totalUsages - a.totalUsages)
     .slice(0, 5)
-    .map((p: { id: string; title: string; category: string; rating: number; usageCount: number }) => ({
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      conversionRate: 0, // Would need individual analytics
-      usages: p.usageCount,
+    .map((a) => ({
+      id: a.playbookId,
+      title: a.title,
+      category: a.category,
+      conversionRate: a.conversionRate || 0,
+      usages: a.totalUsages,
     }));
 
   return {
     totalPlaybooks: playbooks.length,
     totalUsages,
-    avgCompletionRate: 72, // Mock for now
-    avgConversionRate: 18, // Mock for now
+    avgCompletionRate,
+    avgConversionRate,
     topPerformers,
     categoryBreakdown,
   };

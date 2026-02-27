@@ -14,6 +14,7 @@
  */
 
 import { geocodingService } from "../geocoding";
+import { prisma } from "@/lib/prisma";
 
 export interface WeatherAlert {
   id: string;
@@ -131,7 +132,8 @@ class WeatherService {
   }
 
   /**
-   * Get historical storm events for a location within a date range
+   * Get historical storm events for a location within a date range.
+   * Queries the WeatherEvent table for events near the given coordinates.
    */
   async getHistoricalEvents(
     lat: number,
@@ -139,18 +141,44 @@ class WeatherService {
     startDate: Date,
     endDate: Date = new Date()
   ): Promise<StormEvent[]> {
-    // In production, this would query NOAA Storm Events Database
-    // or a commercial provider like Hail Trace
-    
     const cacheKey = `history-${lat.toFixed(4)}-${lon.toFixed(4)}-${startDate.toISOString()}`;
     const cached = this.getFromCache<StormEvent[]>(cacheKey);
     if (cached) return cached;
 
-    // Mock implementation - replace with real API calls
-    const mockEvents: StormEvent[] = this.generateMockHistoricalEvents(lat, lon, startDate, endDate);
-    
-    this.setCache(cacheKey, mockEvents);
-    return mockEvents;
+    // Query WeatherEvent records within ~10 miles of the coordinates
+    const latDelta = 10 / 69;
+    const lonDelta = 10 / (69 * Math.cos((lat * Math.PI) / 180));
+
+    const dbEvents = await prisma.weatherEvent.findMany({
+      where: {
+        eventDate: { gte: startDate, lte: endDate },
+        latitude: { gte: lat - latDelta, lte: lat + latDelta },
+        longitude: { gte: lon - lonDelta, lte: lon + lonDelta },
+      },
+      orderBy: { eventDate: "desc" },
+      take: 50,
+    });
+
+    const events: StormEvent[] = dbEvents.map((e) => ({
+      id: e.id,
+      eventType: e.eventType as StormEvent["eventType"],
+      eventDate: e.eventDate,
+      latitude: e.latitude,
+      longitude: e.longitude,
+      city: e.city ?? undefined,
+      state: e.state ?? "",
+      county: e.county ?? undefined,
+      zipCode: e.zipCode ?? undefined,
+      hailSize: e.hailSize ?? undefined,
+      windSpeed: e.windSpeed ?? undefined,
+      windGust: e.windGust ?? undefined,
+      severity: e.severity as StormEvent["severity"],
+      propertyDamage: e.estimatedDamage ?? undefined,
+      source: "database",
+    }));
+
+    this.setCache(cacheKey, events);
+    return events;
   }
 
   /**
@@ -287,46 +315,6 @@ class WeatherService {
     }
 
     return Math.min(100, Math.round(score));
-  }
-
-  /**
-   * Generate mock historical events for development
-   */
-  private generateMockHistoricalEvents(
-    lat: number,
-    lon: number,
-    startDate: Date,
-    endDate: Date
-  ): StormEvent[] {
-    // Generate realistic mock data for Mid-Atlantic region (PA, NJ, DE, MD, VA, NY)
-    const events: StormEvent[] = [];
-    const random = () => Math.random();
-
-    // Add a few random events
-    const eventCount = Math.floor(random() * 4);
-    
-    for (let i = 0; i < eventCount; i++) {
-      const eventDate = new Date(
-        startDate.getTime() + random() * (endDate.getTime() - startDate.getTime())
-      );
-
-      const isHail = random() > 0.4;
-      
-      events.push({
-        id: `mock-${i}-${Date.now()}`,
-        eventType: isHail ? "hail" : "wind",
-        eventDate,
-        latitude: lat + (random() - 0.5) * 0.1,
-        longitude: lon + (random() - 0.5) * 0.1,
-        state: "OH",
-        hailSize: isHail ? 0.5 + random() * 1.5 : undefined,
-        windSpeed: !isHail ? 45 + random() * 40 : undefined,
-        severity: random() > 0.7 ? "severe" : random() > 0.4 ? "moderate" : "minor",
-        source: "mock-data",
-      });
-    }
-
-    return events.sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime());
   }
 
   /**

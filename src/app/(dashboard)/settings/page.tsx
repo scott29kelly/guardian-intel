@@ -39,7 +39,7 @@ const settingsSections = [
   { id: "appearance", label: "Appearance", icon: Palette },
 ];
 
-// Mock CRM integration status - Leap is the target CRM
+// CRM integration status — Leap is the target CRM
 const crmIntegrations = [
   {
     id: "leap",
@@ -94,7 +94,7 @@ const dataIntegrations = [
   },
 ];
 
-// Mock notification preferences
+// Default notification preferences
 const defaultNotifications = {
   storm: true,
   leads: true,

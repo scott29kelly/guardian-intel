@@ -87,12 +87,5 @@ export const locationCoords: Record<string, { lat: number; lon: number; state: s
   "Fredericksburg, VA": { lat: 38.3032, lon: -77.4605, state: "VA" },
 };
 
-export const mockAffectedCustomers: AffectedCustomer[] = [
-  { id: "1", name: "Robert Chen", address: "123 Oak Lane", phone: "(555) 234-5678", status: "pending_inspection" },
-  { id: "2", name: "Michael Davis", address: "456 Elm Street", phone: "(555) 345-6789", status: "claim_filed" },
-  { id: "3", name: "Jennifer Walsh", address: "789 Pine Ave", phone: "(555) 456-7890", status: "contacted" },
-  { id: "4", name: "Thomas Anderson", address: "321 Maple Dr", phone: "(555) 567-8901", status: "not_contacted" },
-  { id: "5", name: "Patricia Williams", address: "654 Cedar Blvd", phone: "(555) 678-9012", status: "not_contacted" },
-];
 
 export type TabId = "overview" | "forecast" | "alerts";
