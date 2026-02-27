@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, History, FileText, Edit, Zap, Bot } from "lucide-react";
 import { TakeActionModal } from "./take-action-modal";
-import { Customer, mockIntelItems, mockWeatherEvents } from "@/lib/mock-data";
+import type { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { ActivityTimeline } from "@/components/customer/activity-timeline";
 import { ProfileOverviewTab } from "./customer-profile/profile-overview-tab";
@@ -12,6 +12,8 @@ import { ProfileNotesTab } from "./customer-profile/profile-notes-tab";
 
 interface CustomerProfileModalProps {
   customer: Customer;
+  intelItems?: IntelItem[];
+  weatherEvents?: WeatherEvent[];
   isOpen: boolean;
   onClose: () => void;
   onAskAI?: () => void;
@@ -24,17 +26,12 @@ interface Note {
   user: string;
 }
 
-export function CustomerProfileModal({ customer, isOpen, onClose, onAskAI }: CustomerProfileModalProps) {
+export function CustomerProfileModal({ customer, intelItems = [], weatherEvents = [], isOpen, onClose, onAskAI }: CustomerProfileModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "notes">("overview");
   const [showActionModal, setShowActionModal] = useState(false);
-  const [notes, setNotes] = useState<Note[]>([
-    { id: "1", date: "Jan 5, 2026", note: "Customer very interested in insurance claim process. Has visible hail damage on north-facing roof slope.", user: "Sarah Mitchell" },
-    { id: "2", date: "Jan 2, 2026", note: "Roof is 24 years old, 3-tab shingles. Multiple storm events in area. High priority for inspection.", user: "System" },
-  ]);
+  const [notes, setNotes] = useState<Note[]>([]);
 
-  const customerIntel = mockIntelItems.filter(i => i.customerId === customer.id);
-  const customerWeather = mockWeatherEvents.filter(e => e.customerId === customer.id);
-  const scores = calculateCustomerScores({ customer, intelItems: customerIntel, weatherEvents: customerWeather });
+  const scores = calculateCustomerScores({ customer, intelItems, weatherEvents });
 
   const handleAddNote = (noteText: string) => {
     const newNote: Note = {

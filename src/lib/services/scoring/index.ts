@@ -4,7 +4,7 @@
  * based on real customer data signals.
  */
 
-import type { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
+import type { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 
 // Regional pricing per square foot (profit margin after costs)
 const REGIONAL_PROFIT_PER_SQFT: Record<string, number> = {

@@ -22,7 +22,7 @@ import {
   Bot,
   ClipboardList,
 } from "lucide-react";
-import { Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
+import { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
 import { LazyCustomerProfileModal, LazyTakeActionModal } from "./modals/lazy-modals";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -489,6 +489,8 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
       {showProfileModal && (
         <LazyCustomerProfileModal
           customer={customer}
+          intelItems={intelItems}
+          weatherEvents={weatherEvents}
           isOpen={showProfileModal}
           onClose={() => setShowProfileModal(false)}
           onAskAI={() => {

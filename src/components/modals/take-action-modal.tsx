@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Phone, Mail, Send, CheckCircle, ChevronRight, PanelRightClose, Expand, Maximize2, Sparkles, Loader2 } from "lucide-react";
-import { Customer } from "@/lib/mock-data";
+import { Customer } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useAIAnalysis } from "@/lib/hooks/use-ai-analysis";
 import { ActionTypeSelector, ActionType } from "./take-action/action-type-selector";

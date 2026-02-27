@@ -6,7 +6,7 @@
  */
 
 import { CustomerContext, RepActivity } from "./types";
-import { mockCustomers, mockIntelItems, mockWeatherEvents, Customer, IntelItem, WeatherEvent } from "@/lib/mock-data";
+import type { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { prisma } from "@/lib/prisma";
 import { cacheGetOrSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
@@ -118,23 +118,7 @@ export class CustomerContextBuilder {
       return this;
     }
 
-    // Fall back to mock data for development
-    this.customer = mockCustomers.find(c => c.id === this.customerId) || null;
-
-    if (!this.customer) {
-      throw new Error(`Customer not found: ${this.customerId}`);
-    }
-
-    // Load related intel items from mock
-    this.intelItems = mockIntelItems.filter(i => i.customerId === this.customerId);
-
-    // Load weather events from mock
-    this.weatherEvents = mockWeatherEvents.slice(0, 5);
-
-    // Load interaction history
-    this.interactions = this.generateMockInteractions();
-
-    return this;
+    throw new Error(`Customer not found: ${this.customerId}`);
   }
 
   /**
@@ -220,67 +204,6 @@ export class CustomerContextBuilder {
     };
   }
 
-  /**
-   * Generate mock interaction history
-   * In production, this would come from CRM or database
-   */
-  private generateMockInteractions(): RepActivity[] {
-    if (!this.customer) return [];
-
-    const interactions: RepActivity[] = [];
-    const baseDate = new Date();
-
-    // Generate some mock interaction history
-    if (this.customer.stage !== "new") {
-      interactions.push({
-        customerId: this.customer.id,
-        repId: "rep-1",
-        type: "call",
-        outcome: "connected",
-        notes: "Initial contact made. Discussed recent storm damage and offered free inspection.",
-        sentiment: "positive",
-        createdAt: new Date(baseDate.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      });
-    }
-
-    if (["qualified", "proposal", "negotiation", "closed"].includes(this.customer.stage)) {
-      interactions.push({
-        customerId: this.customer.id,
-        repId: "rep-1",
-        type: "visit",
-        outcome: "scheduled",
-        notes: "Conducted on-site inspection. Found significant hail damage to shingles and gutters.",
-        sentiment: "positive",
-        createdAt: new Date(baseDate.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      });
-    }
-
-    if (["proposal", "negotiation", "closed"].includes(this.customer.stage)) {
-      interactions.push({
-        customerId: this.customer.id,
-        repId: "rep-1",
-        type: "email",
-        outcome: "proposal_sent",
-        notes: "Sent detailed proposal with inspection photos and insurance claim breakdown.",
-        createdAt: new Date(baseDate.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      });
-    }
-
-    if (this.customer.stage === "negotiation") {
-      interactions.push({
-        customerId: this.customer.id,
-        repId: "rep-1",
-        type: "call",
-        outcome: "follow_up_needed",
-        notes: "Discussed pricing concerns. Customer comparing with competitor quotes.",
-        objections: ["price", "timeline"],
-        sentiment: "neutral",
-        createdAt: new Date(baseDate.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      });
-    }
-
-    return interactions;
-  }
 }
 
 // =============================================================================

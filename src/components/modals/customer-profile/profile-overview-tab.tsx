@@ -1,7 +1,7 @@
 "use client";
 
 import { Phone, Mail, MapPin, Home, Shield, Calendar, Camera } from "lucide-react";
-import { Customer } from "@/lib/mock-data";
+import { Customer } from "@/types/crm";
 import { StreetViewPreview } from "@/components/property/street-view-preview";
 
 interface ProfileOverviewTabProps {
