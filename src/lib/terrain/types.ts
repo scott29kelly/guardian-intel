@@ -1,5 +1,5 @@
 // Data Source Types
-export type DataSourceType = 'weather' | 'permits' | 'market' | 'trade_journal' | 'competitive' | 'insurance';
+type DataSourceType = 'weather' | 'permits' | 'market' | 'trade_journal' | 'competitive' | 'insurance';
 export type DataSourceStatus = 'live' | 'mock' | 'placeholder';
 
 export interface DataSource {
@@ -102,7 +102,7 @@ export interface PermitVelocity {
 }
 
 // Intelligence Brief Types
-export type BriefType = 'daily' | 'weekly' | 'monthly' | 'alert' | 'quarterly';
+type BriefType = 'daily' | 'weekly' | 'monthly' | 'alert' | 'quarterly';
 export type InsightCategory = 'opportunity' | 'threat' | 'trend' | 'anomaly';
 export type InsightPriority = 'critical' | 'high' | 'medium' | 'low';
 export type TeamRelevance = 'sales' | 'production' | 'leadership' | 'operations' | 'all';
@@ -154,7 +154,7 @@ export interface Insight {
   expiresAt?: Date;
 }
 
-export interface DataPoint {
+interface DataPoint {
   source: string;
   sourceStatus: DataSourceStatus;
   metric: string;

@@ -69,7 +69,7 @@ export interface AffectedCustomer {
   stormPredictionId: string;
 }
 
-export interface PredictionFilters {
+interface PredictionFilters {
   state?: string;
   hours?: number;
   minSeverity?: "marginal" | "slight" | "enhanced" | "moderate" | "high";
@@ -79,7 +79,7 @@ export interface PredictionFilters {
 // Query Keys
 // ============================================================
 
-export const predictionKeys = {
+const predictionKeys = {
   all: ["predictions"] as const,
   lists: () => [...predictionKeys.all, "list"] as const,
   list: (filters: PredictionFilters) => [...predictionKeys.lists(), filters] as const,

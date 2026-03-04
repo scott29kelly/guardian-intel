@@ -77,22 +77,6 @@ interface LeaderboardData {
   };
 }
 
-interface TrendPoint {
-  date: string;
-  revenue: number;
-  deals: number;
-  cumulative: number;
-}
-
-interface TrendsData {
-  trends: TrendPoint[];
-  summary: {
-    totalRevenue: number;
-    totalDeals: number;
-    avgDealSize: number;
-  };
-}
-
 export function useAnalytics(timeRange: string = "month") {
   return useQuery<AnalyticsData>({
     queryKey: ["analytics", timeRange],
@@ -117,14 +101,3 @@ export function useLeaderboard(timeRange: string = "month") {
   });
 }
 
-export function useTrends(period: string = "monthly", months: number = 6) {
-  return useQuery<TrendsData>({
-    queryKey: ["trends", period, months],
-    queryFn: async () => {
-      const response = await fetch(`/api/analytics/trends?period=${period}&months=${months}`);
-      if (!response.ok) throw new Error("Failed to fetch trends");
-      return response.json();
-    },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-  });
-}

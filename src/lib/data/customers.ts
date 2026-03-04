@@ -22,7 +22,7 @@ interface CustomerWithRelations extends Customer {
   };
 }
 
-export interface PaginatedResult<T> {
+interface PaginatedResult<T> {
   data: T[];
   pagination: {
     page: number;
@@ -286,100 +286,6 @@ export async function bulkDeleteCustomers(ids: string[]): Promise<{ count: numbe
   });
 
   return { count: result.count };
-}
-
-/**
- * Get customers affected by weather events in a specific area
- */
-export async function getStormAffectedCustomers(options: {
-  lat: number;
-  lon: number;
-  radiusMiles?: number;
-  daysBack?: number;
-}) {
-  const { lat, lon, radiusMiles = 10, daysBack = 30 } = options;
-
-  // Calculate bounding box (approximate)
-  const latDelta = radiusMiles / 69; // ~69 miles per degree latitude
-  const lonDelta = radiusMiles / (69 * Math.cos((lat * Math.PI) / 180));
-
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-
-  return prisma.customer.findMany({
-    where: {
-      latitude: {
-        gte: lat - latDelta,
-        lte: lat + latDelta,
-      },
-      longitude: {
-        gte: lon - lonDelta,
-        lte: lon + lonDelta,
-      },
-      weatherEvents: {
-        some: {
-          eventDate: { gte: cutoffDate },
-        },
-      },
-    },
-    include: {
-      weatherEvents: {
-        where: { eventDate: { gte: cutoffDate } },
-        orderBy: { eventDate: "desc" },
-      },
-      assignedRep: {
-        select: { id: true, name: true },
-      },
-    },
-    orderBy: { leadScore: "desc" },
-  });
-}
-
-/**
- * Get customer statistics for dashboard
- */
-export async function getCustomerStats(repId?: string) {
-  const where: Prisma.CustomerWhereInput = repId
-    ? { assignedRepId: repId }
-    : {};
-
-  const [
-    total,
-    byStatus,
-    byStage,
-    avgLeadScore,
-    stormAffected,
-  ] = await Promise.all([
-    prisma.customer.count({ where }),
-    prisma.customer.groupBy({
-      by: ["status"],
-      where,
-      _count: true,
-    }),
-    prisma.customer.groupBy({
-      by: ["stage"],
-      where,
-      _count: true,
-    }),
-    prisma.customer.aggregate({
-      where,
-      _avg: { leadScore: true },
-    }),
-    prisma.customer.count({
-      where: {
-        ...where,
-        weatherEvents: { some: {} },
-      },
-    }),
-  ]);
-
-  return {
-    total,
-    byStatus: Object.fromEntries(byStatus.map((s) => [s.status, s._count])),
-    byStage: Object.fromEntries(byStage.map((s) => [s.stage, s._count])),
-    avgLeadScore: Math.round(avgLeadScore._avg.leadScore || 0),
-    stormAffected,
-  };
 }
 
 // =============================================================================

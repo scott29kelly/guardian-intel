@@ -48,7 +48,7 @@ export interface ContractData {
   expirationDays?: number;
 }
 
-export interface SignatureData {
+interface SignatureData {
   signature: string; // Base64 image
   initials?: string; // Base64 image
   signedAt: Date;
@@ -69,23 +69,6 @@ export interface AuditEvent {
 // ============================================================
 // Default Templates
 // ============================================================
-
-export const DEFAULT_CONTRACT_TEMPLATE = `
-<div class="contract">
-  <header style="text-align: center; margin-bottom: 2rem;">
-    <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">ROOFING SERVICE AGREEMENT</h1>
-    <p style="color: #666;">Contract #{{contractNumber}}</p>
-  </header>
-  <!-- Template content... -->
-</div>
-`;
-
-export const DEFAULT_TERMS = `
-<div class="terms" style="font-size: 0.85rem; line-height: 1.6;">
-  <h3>TERMS AND CONDITIONS</h3>
-  <!-- Terms content... -->
-</div>
-`;
 
 // ============================================================
 // Helpers

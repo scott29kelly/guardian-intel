@@ -48,7 +48,7 @@ export type AuditEntityType =
   | "api_key"
   | "bulk_operation";
 
-export interface AuditLogEntry {
+interface AuditLogEntry {
   userId: string;
   type: AuditEventType;
   entityType: AuditEntityType;
@@ -59,7 +59,7 @@ export interface AuditLogEntry {
   userAgent?: string;
 }
 
-export interface AuditLogFilter {
+interface AuditLogFilter {
   userId?: string;
   type?: AuditEventType;
   entityType?: AuditEntityType;
@@ -447,7 +447,7 @@ export const auditService = AuditService.getInstance();
 /**
  * Extract client info from request headers
  */
-export function getClientInfo(headers: Headers) {
+function getClientInfo(headers: Headers) {
   return {
     ipAddress: 
       headers.get("x-forwarded-for")?.split(",")[0] ||

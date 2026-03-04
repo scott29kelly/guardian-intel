@@ -1,6 +1,6 @@
 // Gamification System Types
 
-export type AchievementCategory = 
+type AchievementCategory =
   | "calls" 
   | "deals" 
   | "revenue" 
@@ -96,7 +96,7 @@ export const XP_REWARDS = {
 } as const;
 
 // Level thresholds (XP required for each level)
-export const LEVEL_THRESHOLDS = [
+const LEVEL_THRESHOLDS = [
   0,      // Level 1
   100,    // Level 2
   250,    // Level 3
@@ -219,21 +219,6 @@ export function calculateLevel(xp: number): { level: number; xpInLevel: number; 
     xpInLevel: xp - currentLevelXp,
     xpToNextLevel: nextLevelXp - currentLevelXp,
   };
-}
-
-export function getAchievementProgress(achievement: Achievement, stats: UserStats): number {
-  switch (achievement.category) {
-    case "calls":
-      return Math.min(100, (stats.totalCalls / achievement.requirement) * 100);
-    case "deals":
-      return Math.min(100, (stats.totalDeals / achievement.requirement) * 100);
-    case "revenue":
-      return Math.min(100, (stats.totalRevenue / achievement.requirement) * 100);
-    case "streak":
-      return Math.min(100, (stats.currentStreak / achievement.requirement) * 100);
-    default:
-      return 0;
-  }
 }
 
 export function getLevelTitle(level: number): string {

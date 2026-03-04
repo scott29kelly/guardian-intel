@@ -48,7 +48,7 @@ interface PlaybookResponse {
 }
 
 // Query Keys
-export const playbookKeys = {
+const playbookKeys = {
   all: ["playbooks"] as const,
   lists: () => [...playbookKeys.all, "list"] as const,
   list: (filters: Partial<PlaybookQueryInput>) => [...playbookKeys.lists(), filters] as const,
@@ -309,21 +309,6 @@ export function useDeletePlaybook() {
   });
 }
 
-/**
- * Prefetch a playbook (for hover states, etc.)
- */
-export function usePrefetchPlaybook() {
-  const queryClient = useQueryClient();
-  
-  return (id: string) => {
-    queryClient.prefetchQuery({
-      queryKey: playbookKeys.detail(id),
-      queryFn: () => fetchPlaybookById(id),
-      staleTime: 1000 * 60 * 5,
-    });
-  };
-}
-
 // =============================================================================
 // FAVORITES HOOKS
 // =============================================================================
@@ -546,70 +531,3 @@ export function useRatePlaybook() {
   });
 }
 
-// =============================================================================
-// AI GENERATION HOOKS
-// =============================================================================
-
-export type PlaybookAIAction = 
-  | "generate_full"
-  | "generate_section"
-  | "enhance"
-  | "expand"
-  | "simplify"
-  | "add_objections"
-  | "add_closing"
-  | "add_tips"
-  | "add_opening"
-  | "make_conversational"
-  | "add_insurance_context"
-  | "brainstorm";
-
-export interface PlaybookAIRequest {
-  action: PlaybookAIAction;
-  title?: string;
-  category?: string;
-  type?: string;
-  stage?: string;
-  existingContent?: string;
-  selectedText?: string;
-  additionalContext?: string;
-}
-
-export interface PlaybookAIResponse {
-  success: boolean;
-  content: string;
-  model?: string;
-  usage?: {
-    promptTokens?: number;
-    completionTokens?: number;
-    totalTokens?: number;
-  };
-  warning?: string;
-}
-
-/**
- * Generate playbook content using AI
- */
-async function generatePlaybookContent(request: PlaybookAIRequest): Promise<PlaybookAIResponse> {
-  const response = await fetch("/api/ai/playbook-assist", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to generate content");
-  }
-  
-  return response.json();
-}
-
-/**
- * Hook for AI-powered playbook content generation
- */
-export function usePlaybookAI() {
-  return useMutation({
-    mutationFn: generatePlaybookContent,
-  });
-}

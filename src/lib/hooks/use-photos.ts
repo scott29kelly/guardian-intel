@@ -86,7 +86,7 @@ export type PhotoCategory =
 export type DamageType = "hail" | "wind" | "water" | "wear" | "impact";
 export type DamageSeverity = "minor" | "moderate" | "severe";
 
-export interface PhotoFilters {
+interface PhotoFilters {
   customerId?: string;
   claimId?: string;
   category?: PhotoCategory;
@@ -94,7 +94,7 @@ export interface PhotoFilters {
   limit?: number;
 }
 
-export interface UploadPhotoInput {
+interface UploadPhotoInput {
   imageData: string; // Base64
   filename?: string;
   mimeType?: string;
@@ -118,7 +118,7 @@ export interface UploadPhotoInput {
   deviceModel?: string;
 }
 
-export interface UpdatePhotoInput {
+interface UpdatePhotoInput {
   customerId?: string;
   claimId?: string;
   category?: PhotoCategory;
@@ -133,7 +133,7 @@ export interface UpdatePhotoInput {
 // Query Keys
 // ============================================================
 
-export const photoKeys = {
+const photoKeys = {
   all: ["photos"] as const,
   lists: () => [...photoKeys.all, "list"] as const,
   list: (filters: PhotoFilters) => [...photoKeys.lists(), filters] as const,
@@ -191,13 +191,6 @@ export function usePhoto(id: string | null) {
     },
     enabled: !!id,
   });
-}
-
-/**
- * Fetch customer photos
- */
-export function useCustomerPhotos(customerId: string | null) {
-  return usePhotos(customerId ? { customerId, limit: 100 } : {});
 }
 
 /**
