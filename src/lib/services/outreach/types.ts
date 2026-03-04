@@ -8,9 +8,7 @@
 // Channel Types
 // ============================================================
 
-export type OutreachChannel = "sms" | "email" | "push";
-
-export type MessageStatus = 
+export type MessageStatus =
   | "pending" 
   | "queued"
   | "sent" 
@@ -21,7 +19,7 @@ export type MessageStatus =
   | "bounced"
   | "unsubscribed";
 
-export type CampaignStatus = 
+type CampaignStatus =
   | "pending" 
   | "processing" 
   | "completed" 
@@ -53,7 +51,7 @@ export interface SendEmailOptions {
   attachments?: EmailAttachment[];
 }
 
-export interface EmailAttachment {
+interface EmailAttachment {
   filename: string;
   content: string; // Base64
   type: string;
