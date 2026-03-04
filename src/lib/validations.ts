@@ -124,25 +124,6 @@ export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 // WEATHER SCHEMAS
 // =============================================================================
 
-export const coordinatesSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lon: z.number().min(-180).max(180),
-});
-
-export const weatherAlertQuerySchema = z.object({
-  lat: z.coerce.number().min(-90).max(90),
-  lon: z.coerce.number().min(-180).max(180),
-});
-
-export const addressLookupSchema = z.object({
-  address: z.string().min(1).max(255),
-  city: z.string().min(1).max(100),
-  state: stateSchema,
-  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/),
-  lookbackDays: z.coerce.number().int().min(1).max(365).optional().default(90),
-});
-
-export type AddressLookupInput = z.infer<typeof addressLookupSchema>;
 
 // =============================================================================
 // INTERACTION SCHEMAS
@@ -166,44 +147,11 @@ export const interactionOutcomeSchema = z.enum([
   "callback",
 ]);
 
-export const createInteractionSchema = z.object({
-  customerId: cuidSchema,
-  type: interactionTypeSchema,
-  direction: z.enum(["inbound", "outbound"]).default("outbound"),
-  subject: z.string().max(255).optional(),
-  content: z.string().max(5000).optional(),
-  outcome: interactionOutcomeSchema.optional(),
-  sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
-  duration: z.number().int().min(0).optional(),
-  nextAction: z.string().max(255).optional(),
-  nextActionDate: z.coerce.date().optional(),
-});
-
-export type CreateInteractionInput = z.infer<typeof createInteractionSchema>;
 
 // =============================================================================
 // AUTH SCHEMAS
 // =============================================================================
 
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(6).max(100),
-});
-
-export const registerSchema = z.object({
-  email: emailSchema,
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .max(100)
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  name: z.string().min(1).max(100),
-  phone: phoneSchema.optional(),
-});
-
-export type LoginInput = z.infer<typeof loginSchema>;
-export type RegisterInput = z.infer<typeof registerSchema>;
 
 // =============================================================================
 // PAGINATION SCHEMAS
@@ -250,7 +198,6 @@ export const bulkDeleteCustomersSchema = z.object({
 });
 
 export type BulkUpdateCustomersInput = z.infer<typeof bulkUpdateCustomersSchema>;
-export type BulkDeleteCustomersInput = z.infer<typeof bulkDeleteCustomersSchema>;
 
 // =============================================================================
 // CLAIM SCHEMAS
@@ -361,8 +308,6 @@ export const fileClaimSchema = z.object({
   photoIds: z.array(z.string()).optional(),
 });
 
-export type ClaimCreateInput = z.infer<typeof claimCreateSchema>;
-export type ClaimUpdateInput = z.infer<typeof claimUpdateSchema>;
 export type FileClaimInput = z.infer<typeof fileClaimSchema>;
 
 // =============================================================================
@@ -380,7 +325,6 @@ export const damageAnalysisSchema = z.object({
   saveResults: z.boolean().default(true),
 });
 
-export type DamageAnalysisInput = z.infer<typeof damageAnalysisSchema>;
 
 // =============================================================================
 // AI ROLEPLAY SCHEMAS
@@ -412,7 +356,6 @@ export const roleplayRequestSchema = z.object({
 });
 
 export type RoleplayPersona = z.infer<typeof roleplayPersonaSchema>;
-export type RoleplayRequestInput = z.infer<typeof roleplayRequestSchema>;
 
 // =============================================================================
 // PLAYBOOK RATING/USAGE SCHEMAS
@@ -446,7 +389,6 @@ export const playbookUsageSchema = z.object({
   outcome: playbookUsageOutcomeSchema.optional(),
 });
 
-export type PlaybookRatingInput = z.infer<typeof playbookRatingSchema>;
 export type PlaybookUsageInput = z.infer<typeof playbookUsageSchema>;
 
 // =============================================================================
@@ -505,20 +447,6 @@ export type PlaybookQueryInput = z.infer<typeof playbookQuerySchema>;
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
-
-/**
- * Safely parse and validate input, returning typed result or error
- */
-export function validateInput<T>(
-  schema: z.ZodSchema<T>,
-  data: unknown
-): { success: true; data: T } | { success: false; error: z.ZodError } {
-  const result = schema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
-  }
-  return { success: false, error: result.error };
-}
 
 /**
  * Format Zod errors for API response

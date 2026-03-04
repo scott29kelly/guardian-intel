@@ -126,33 +126,3 @@ export const env = validateEnv();
 // Type-safe environment access
 export type Env = z.infer<typeof envSchema>;
 
-// Helper functions
-export function isDevelopment(): boolean {
-  return env.NODE_ENV === "development";
-}
-
-export function isProduction(): boolean {
-  return env.NODE_ENV === "production";
-}
-
-export function hasAICapability(): boolean {
-  return !!(
-    env.GOOGLE_API_KEY ||
-    env.GOOGLE_AI_API_KEY ||
-    env.GEMINI_API_KEY ||
-    env.ANTHROPIC_API_KEY ||
-    env.OPENAI_API_KEY
-  );
-}
-
-export function hasLeapIntegration(): boolean {
-  return !!(env.LEAP_API_KEY && env.LEAP_COMPANY_ID);
-}
-
-export function hasRedisCache(): boolean {
-  return !!(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
-}
-
-export function hasGoogleMaps(): boolean {
-  return !!env.GOOGLE_MAPS_API_KEY;
-}

@@ -38,7 +38,7 @@ export interface Campaign {
   executions?: CampaignExecution[];
 }
 
-export interface CampaignExecution {
+interface CampaignExecution {
   id: string;
   createdAt: string;
   status: string;
@@ -46,19 +46,6 @@ export interface CampaignExecution {
   affectedCustomers: number;
   smsSent: number;
   emailSent: number;
-}
-
-export interface OutreachTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  category: string;
-  channel: "sms" | "email";
-  subject?: string;
-  body: string;
-  variables?: string[];
-  isDefault?: boolean;
-  isBuiltIn?: boolean;
 }
 
 export interface CreateCampaignInput {
@@ -78,7 +65,7 @@ export interface CreateCampaignInput {
   delayMinutes?: number;
 }
 
-export interface ExecuteCampaignInput {
+interface ExecuteCampaignInput {
   customerIds?: string[];
   stormData?: {
     stormId: string;
@@ -107,7 +94,7 @@ export interface ExecutionResult {
 // Query Keys
 // ============================================================
 
-export const outreachKeys = {
+const outreachKeys = {
   all: ["outreach"] as const,
   campaigns: () => [...outreachKeys.all, "campaigns"] as const,
   campaignList: (filters?: Record<string, unknown>) => [...outreachKeys.campaigns(), "list", filters] as const,
@@ -177,7 +164,7 @@ export function useCreateCampaign() {
   });
 }
 
-export interface UpdateCampaignInput extends Partial<CreateCampaignInput> {
+interface UpdateCampaignInput extends Partial<CreateCampaignInput> {
   id: string;
   isActive?: boolean;
 }
@@ -205,23 +192,6 @@ export function useUpdateCampaign() {
   });
 }
 
-export function useDeleteCampaign() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/outreach/campaigns/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete campaign");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: outreachKeys.campaigns() });
-    },
-  });
-}
-
 export function useExecuteCampaign(campaignId: string) {
   const queryClient = useQueryClient();
 
@@ -241,54 +211,6 @@ export function useExecuteCampaign(campaignId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: outreachKeys.campaignDetail(campaignId) });
       queryClient.invalidateQueries({ queryKey: outreachKeys.campaigns() });
-    },
-  });
-}
-
-// ============================================================
-// Template Hooks
-// ============================================================
-
-export function useTemplates(filters?: { category?: string; channel?: string }) {
-  return useQuery({
-    queryKey: outreachKeys.templateList(filters),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.category) params.set("category", filters.category);
-      if (filters?.channel) params.set("channel", filters.channel);
-
-      const response = await fetch(`/api/outreach/templates?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch templates");
-      return response.json();
-    },
-  });
-}
-
-export function useCreateTemplate() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: {
-      name: string;
-      description?: string;
-      category: string;
-      channel: string;
-      subject?: string;
-      body: string;
-    }) => {
-      const response = await fetch("/api/outreach/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create template");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: outreachKeys.templates() });
     },
   });
 }
@@ -317,35 +239,3 @@ export function usePreviewTemplate() {
   });
 }
 
-// ============================================================
-// Storm Trigger Hook
-// ============================================================
-
-export function useTriggerStormOutreach() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (stormData: {
-      stormId: string;
-      stormType: string;
-      severity: string;
-      affectedZipCodes: string[];
-      stormDate: string;
-      description?: string;
-    }) => {
-      const response = await fetch("/api/outreach/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(stormData),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Trigger failed");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: outreachKeys.campaigns() });
-    },
-  });
-}

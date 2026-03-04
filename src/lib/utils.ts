@@ -50,14 +50,6 @@ export function formatCurrency(amount: number): string {
   return formatted;
 }
 
-export function formatNumber(num: number): string {
-  return numberFormatter.format(num);
-}
-
-export function formatPercentage(value: number): string {
-  return `${Math.round(value)}%`;
-}
-
 export function getScoreColor(score: number): string {
   if (score >= 80) return "text-emerald-400";
   if (score >= 60) return "text-accent-primary";
