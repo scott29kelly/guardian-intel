@@ -44,7 +44,7 @@ export interface AIConfig {
 // MESSAGE TYPES
 // =============================================================================
 
-export type MessageRole = "user" | "assistant" | "system" | "tool";
+type MessageRole = "user" | "assistant" | "system" | "tool";
 
 export interface Message {
   id?: string;
@@ -138,7 +138,7 @@ export interface CustomerContext {
 // TOOL DEFINITIONS
 // =============================================================================
 
-export interface ToolParameter {
+interface ToolParameter {
   type: "string" | "number" | "boolean" | "array" | "object";
   description: string;
   required?: boolean;

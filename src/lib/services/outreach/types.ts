@@ -120,23 +120,6 @@ export interface PersonalizationContext {
   };
 }
 
-export interface CampaignConfig {
-  id: string;
-  name: string;
-  triggerType: TriggerType;
-  stormTypes?: StormType[];
-  minSeverity?: string;
-  targetZipCodes?: string[];
-  targetStates?: string[];
-  excludeRecentDays: number;
-  enableSms: boolean;
-  enableEmail: boolean;
-  smsTemplate?: string;
-  emailSubject?: string;
-  emailTemplate?: string;
-  delayMinutes: number;
-}
-
 export interface ExecutionResult {
   executionId: string;
   status: CampaignStatus;

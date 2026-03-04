@@ -30,7 +30,7 @@
 import { prisma } from "@/lib/prisma";
 
 // Variable definition with metadata
-export interface VariableDefinition {
+interface VariableDefinition {
   name: string;
   label: string;
   description: string;
@@ -221,11 +221,6 @@ export function parseVariables(content: string): string[] {
   }
 
   return variables;
-}
-
-// Check if content contains variables
-export function hasVariables(content: string): boolean {
-  return /\{[A-Z_]+\}/.test(content);
 }
 
 // Variable values interface

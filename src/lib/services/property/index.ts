@@ -14,7 +14,7 @@
  * - Owner information
  */
 
-export interface PropertyDetails {
+interface PropertyDetails {
   // Address
   address: string;
   city: string;
@@ -68,7 +68,7 @@ export interface PropertyDetails {
   rawData?: Record<string, unknown>;
 }
 
-export interface PropertyLookupOptions {
+interface PropertyLookupOptions {
   includeValuation?: boolean;
   includeOwner?: boolean;
   includePermits?: boolean;
@@ -76,19 +76,6 @@ export interface PropertyLookupOptions {
 }
 
 import { prisma } from "@/lib/prisma";
-
-export interface PropertySearchFilters {
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  minYearBuilt?: number;
-  maxYearBuilt?: number;
-  minSquareFootage?: number;
-  maxSquareFootage?: number;
-  propertyType?: string;
-  minValue?: number;
-  maxValue?: number;
-}
 
 class PropertyDataService {
   private cacheTimeout = 24 * 60 * 60 * 1000; // 24 hours
@@ -352,4 +339,4 @@ class PropertyDataService {
   }
 }
 
-export const propertyService = new PropertyDataService();
+const propertyService = new PropertyDataService();
