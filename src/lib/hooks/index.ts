@@ -24,9 +24,8 @@ export * from "./use-carriers";
 export * from "./use-damage-analysis";
 export * from "./use-predictions";
 
-// PR #10 - Competitors, Proposals
+// PR #10 - Competitors
 export * from "./use-competitors";
-export * from "./use-proposals";
 
 // Performance Hooks
 export * from "./use-debounce";

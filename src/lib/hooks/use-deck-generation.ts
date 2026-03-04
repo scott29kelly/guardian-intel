@@ -77,7 +77,7 @@ const deckQueryKeys = {
 /**
  * Check deck generation status for a customer
  */
-export function useDeckStatus(customerId: string | undefined, options?: { 
+function useDeckStatus(customerId: string | undefined, options?: {
   enabled?: boolean;
   refetchInterval?: number | false;
 }) {
@@ -106,7 +106,7 @@ export function useDeckStatus(customerId: string | undefined, options?: {
 /**
  * Schedule a new deck generation
  */
-export function useScheduleDeck() {
+function useScheduleDeck() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -140,7 +140,7 @@ export function useScheduleDeck() {
 /**
  * Cancel a pending deck job
  */
-export function useCancelDeck() {
+function useCancelDeck() {
   const queryClient = useQueryClient();
 
   return useMutation({

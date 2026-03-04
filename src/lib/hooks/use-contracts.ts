@@ -83,17 +83,6 @@ export interface AuditEvent {
   details?: string;
 }
 
-export interface ContractStats {
-  total: number;
-  draft: number;
-  sent: number;
-  signed: number;
-  completed: number;
-  totalValue: number;
-  signedValue: number;
-  conversionRate: number;
-}
-
 export interface CreateContractInput {
   customerId: string;
   templateId?: string;
@@ -114,7 +103,7 @@ export interface CreateContractInput {
   expirationDays?: number;
 }
 
-export interface SignContractInput {
+interface SignContractInput {
   signature: string;
   initials?: string;
   latitude?: number;
@@ -126,7 +115,7 @@ export interface SignContractInput {
 // Query Keys
 // ============================================================
 
-export const contractKeys = {
+const contractKeys = {
   all: ["contracts"] as const,
   lists: () => [...contractKeys.all, "list"] as const,
   list: (filters?: Record<string, unknown>) => [...contractKeys.lists(), filters] as const,
@@ -139,7 +128,7 @@ export const contractKeys = {
 // Contract Hooks
 // ============================================================
 
-export function useContracts(filters?: {
+function useContracts(filters?: {
   customerId?: string;
   status?: ContractStatus;
   page?: number;
@@ -171,19 +160,6 @@ export function useContract(id: string) {
       return data.data as Contract;
     },
     enabled: !!id,
-  });
-}
-
-export function useContractStats(userId?: string) {
-  return useQuery({
-    queryKey: contractKeys.stats(userId),
-    queryFn: async () => {
-      const params = userId ? `?userId=${userId}` : "";
-      const response = await fetch(`/api/contracts/stats${params}`);
-      if (!response.ok) throw new Error("Failed to fetch stats");
-      const data = await response.json();
-      return data.data as ContractStats;
-    },
   });
 }
 
@@ -265,24 +241,3 @@ export function useSendContract(contractId: string) {
   });
 }
 
-export function useCancelContract() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const params = reason ? `?reason=${encodeURIComponent(reason)}` : "";
-      const response = await fetch(`/api/contracts/${id}${params}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Cancel failed");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contractKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: contractKeys.stats() });
-    },
-  });
-}

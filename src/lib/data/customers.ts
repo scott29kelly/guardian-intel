@@ -9,7 +9,7 @@ import type { Customer, Prisma } from "@prisma/client";
 import { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
 
 // Types for query results
-export interface CustomerWithRelations extends Customer {
+interface CustomerWithRelations extends Customer {
   assignedRep?: {
     id: string;
     name: string;

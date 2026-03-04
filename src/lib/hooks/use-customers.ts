@@ -7,8 +7,8 @@
 
 "use client";
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import type { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { CustomerQueryInput, CreateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
 
 // Types
 interface Customer {
@@ -68,7 +68,7 @@ interface CustomerResponse {
 }
 
 // Query Keys
-export const customerKeys = {
+const customerKeys = {
   all: ["customers"] as const,
   lists: () => [...customerKeys.all, "list"] as const,
   list: (filters: CustomerQueryInput) => [...customerKeys.lists(), filters] as const,
@@ -124,32 +124,6 @@ async function createCustomer(data: CreateCustomerInput): Promise<CustomerRespon
   return response.json();
 }
 
-async function updateCustomer(id: string, data: UpdateCustomerInput): Promise<CustomerResponse> {
-  const response = await fetch(`/api/customers/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to update customer");
-  }
-  
-  return response.json();
-}
-
-async function deleteCustomer(id: string): Promise<void> {
-  const response = await fetch(`/api/customers/${id}`, {
-    method: "DELETE",
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to delete customer");
-  }
-}
-
 interface BulkUpdateResponse {
   success: boolean;
   message: string;
@@ -203,26 +177,6 @@ export function useCustomers(params: Partial<CustomerQueryInput> = {}) {
     queryKey: customerKeys.list(queryParams),
     queryFn: () => fetchCustomers(queryParams),
     staleTime: 1000 * 60 * 2, // 2 minutes
-  });
-}
-
-/**
- * Fetch customers with infinite scroll
- */
-export function useInfiniteCustomers(params: Partial<Omit<CustomerQueryInput, "page">> = {}) {
-  const baseParams = {
-    limit: params.limit ?? 20,
-    sortOrder: params.sortOrder ?? "desc" as const,
-    ...params,
-  };
-  
-  return useInfiniteQuery({
-    queryKey: customerKeys.list({ ...baseParams, page: 1 }),
-    queryFn: ({ pageParam = 1 }) => fetchCustomers({ ...baseParams, page: pageParam }),
-    getNextPageParam: (lastPage) => 
-      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
-    initialPageParam: 1,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -320,125 +274,6 @@ export function useCreateCustomer() {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
     },
   });
-}
-
-/**
- * Update a customer with optimistic updates
- */
-export function useUpdateCustomer() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateCustomerInput }) => 
-      updateCustomer(id, data),
-    
-    // Optimistic update: instantly reflect changes in the UI
-    onMutate: async ({ id, data }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: customerKeys.detail(id) });
-      await queryClient.cancelQueries({ queryKey: customerKeys.lists() });
-      
-      // Snapshot the previous values
-      const previousCustomer = queryClient.getQueryData(customerKeys.detail(id));
-      const previousLists = queryClient.getQueriesData({ queryKey: customerKeys.lists() });
-      
-      // Optimistically update the detail cache
-      queryClient.setQueryData(
-        customerKeys.detail(id),
-        (old: CustomerResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            customer: {
-              ...old.customer,
-              ...data,
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        }
-      );
-      
-      // Optimistically update the list caches
-      queryClient.setQueriesData(
-        { queryKey: customerKeys.lists() },
-        (old: PaginatedCustomersResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            data: old.data.map((customer) =>
-              customer.id === id
-                ? { ...customer, ...data, updatedAt: new Date().toISOString() }
-                : customer
-            ),
-          };
-        }
-      );
-      
-      // Return context for rollback
-      return { previousCustomer, previousLists, customerId: id };
-    },
-    
-    // On error, rollback to the previous state
-    onError: (_error, _variables, context) => {
-      if (context?.previousCustomer) {
-        queryClient.setQueryData(
-          customerKeys.detail(context.customerId),
-          context.previousCustomer
-        );
-      }
-      if (context?.previousLists) {
-        context.previousLists.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
-    },
-    
-    // On success, update with the real data from the server
-    onSuccess: (response) => {
-      queryClient.setQueryData(
-        customerKeys.detail(response.customer.id),
-        response
-      );
-    },
-    
-    // Always refetch after error or success
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
-    },
-  });
-}
-
-/**
- * Delete a customer
- */
-export function useDeleteCustomer() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: deleteCustomer,
-    onSuccess: (_, id) => {
-      // Remove from cache
-      queryClient.removeQueries({ queryKey: customerKeys.detail(id) });
-      // Invalidate lists
-      queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
-    },
-  });
-}
-
-/**
- * Prefetch a customer (for hover states, etc.)
- */
-export function usePrefetchCustomer() {
-  const queryClient = useQueryClient();
-  
-  return (id: string) => {
-    queryClient.prefetchQuery({
-      queryKey: customerKeys.detail(id),
-      queryFn: () => fetchCustomerById(id),
-      staleTime: 1000 * 60 * 5,
-    });
-  };
 }
 
 /**

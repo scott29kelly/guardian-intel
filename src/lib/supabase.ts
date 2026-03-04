@@ -17,7 +17,7 @@ let supabaseClient: SupabaseClient | null = null;
  * Get the Supabase client (singleton)
  * Returns null if Supabase is not configured
  */
-export function getSupabaseClient(): SupabaseClient | null {
+function getSupabaseClient(): SupabaseClient | null {
   if (typeof window === "undefined") {
     // Don't create client on server side for realtime
     return null;
@@ -50,7 +50,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 /**
  * Database table types for Supabase Realtime
  */
-export type RealtimePayload<T> = {
+type RealtimePayload<T> = {
   commit_timestamp: string;
   errors: null | string[];
   eventType: "INSERT" | "UPDATE" | "DELETE";
@@ -98,7 +98,7 @@ export type CustomerPayload = {
 /**
  * Subscribe to realtime events on a table
  */
-export function subscribeToTable<T>(
+function subscribeToTable<T>(
   tableName: string,
   callback: (payload: RealtimePayload<T>) => void,
   filter?: { column: string; value: string | number }

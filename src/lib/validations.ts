@@ -12,9 +12,9 @@ import { z } from "zod";
 // =============================================================================
 
 export const cuidSchema = z.string().cuid();
-export const emailSchema = z.string().email().max(255);
-export const phoneSchema = z.string().regex(/^[\d\s\-\+\(\)]+$/).max(20);
-export const stateSchema = z.enum(["PA", "NJ", "DE", "MD", "VA", "NY"]);
+const emailSchema = z.string().email().max(255);
+const phoneSchema = z.string().regex(/^[\d\s\-\+\(\)]+$/).max(20);
+const stateSchema = z.enum(["PA", "NJ", "DE", "MD", "VA", "NY"]);
 
 // =============================================================================
 // AI CHAT SCHEMAS

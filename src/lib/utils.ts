@@ -58,19 +58,6 @@ export function getScoreColor(score: number): string {
 }
 
 
-export function getPriorityClass(priority: string): string {
-  switch (priority) {
-    case "critical":
-      return "priority-critical";
-    case "high":
-      return "priority-high";
-    case "medium":
-      return "priority-medium";
-    default:
-      return "priority-low";
-  }
-}
-
 export function getStatusClass(status: string): string {
   switch (status) {
     case "lead":

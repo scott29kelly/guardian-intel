@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-export interface DashboardCustomer {
+interface DashboardCustomer {
   id: string;
   firstName: string;
   lastName: string;
