@@ -102,27 +102,46 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid or expired demo token");
           }
 
-          // Find the demo user
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-
-          if (!user) {
-            throw new Error("Demo account not found. Run: npx prisma db seed");
+          // Find the demo user (fall back to hardcoded data if DB not seeded)
+          let user: Awaited<ReturnType<typeof prisma.user.findUnique>> = null;
+          try {
+            user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+          } catch {
+            // DB may not be migrated yet
           }
 
-          // Check if account is active (same check as password auth)
-          if (!user.isActive) {
-            throw new Error("Account is disabled");
+          if (user) {
+            if (!user.isActive) {
+              throw new Error("Account is disabled");
+            }
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              image: user.avatarUrl,
+            };
           }
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            image: user.avatarUrl,
+          // Dev fallback: return hardcoded demo user when DB isn't ready
+          const demoUsers: Record<string, { id: string; name: string; role: string }> = {
+            "demo.rep@guardian.com": { id: "demo-rep", name: "James Rodriguez", role: "rep" },
+            "demo.manager@guardian.com": { id: "demo-manager", name: "Sarah Mitchell", role: "manager" },
           };
+          const demoUser = demoUsers[credentials.email];
+          if (demoUser) {
+            return {
+              id: demoUser.id,
+              email: credentials.email,
+              name: demoUser.name,
+              role: demoUser.role,
+              image: null,
+            };
+          }
+
+          throw new Error("Demo account not found");
         }
 
         // Standard password authentication
