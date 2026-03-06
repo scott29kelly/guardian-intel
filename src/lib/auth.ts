@@ -97,9 +97,19 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Demo login disabled in production");
           }
 
-          const validEmail = validateDemoToken(credentials.demoToken);
-          if (!validEmail || validEmail !== credentials.email) {
-            throw new Error("Invalid or expired demo token");
+          // On serverless (Vercel), in-memory tokens don't persist across
+          // function invocations. When ALLOW_DEMO_LOGIN is set, skip token
+          // validation and just verify the email is a known demo account.
+          if (!process.env.ALLOW_DEMO_LOGIN) {
+            const validEmail = validateDemoToken(credentials.demoToken);
+            if (!validEmail || validEmail !== credentials.email) {
+              throw new Error("Invalid or expired demo token");
+            }
+          }
+
+          const DEMO_EMAILS = ["demo.rep@guardian.com", "demo.manager@guardian.com"];
+          if (!DEMO_EMAILS.includes(credentials.email)) {
+            throw new Error("Invalid demo account");
           }
 
           // Find the demo user (fall back to hardcoded data if DB not seeded)
