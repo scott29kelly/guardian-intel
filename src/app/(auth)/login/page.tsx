@@ -44,34 +44,19 @@ export default function LoginPage() {
     }
   };
 
-  // Demo login using secure, time-limited tokens
-  // Token is generated server-side, expires in 5 minutes, and is single-use
+  // Demo login bypass — skips DB, returns hardcoded user for dev
   const handleDemoLogin = async (role: "rep" | "manager") => {
     setIsLoading(true);
     setError("");
 
     try {
-      // Fetch secure demo token from server-side API
-      const response = await fetch(`/api/auth/demo-credentials?role=${role}`);
-      
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || "Demo accounts not configured. Run: npx prisma db seed");
-        setIsLoading(false);
-        return;
-      }
-
-      const { email, demoToken } = await response.json();
-      
-      // Authenticate with the secure demo token
       const result = await signIn("credentials", {
-        email,
-        demoToken,
+        demoBypass: role,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Demo login failed. Please run: npx prisma db seed");
+        setError("Demo login failed.");
       } else {
         router.push(callbackUrl);
         router.refresh();

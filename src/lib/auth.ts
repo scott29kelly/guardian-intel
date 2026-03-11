@@ -84,10 +84,39 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
         demoToken: { label: "Demo Token", type: "text" },
+        demoBypass: { label: "Demo Bypass", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) {
+        if (!credentials?.email && !credentials?.demoBypass) {
           throw new Error("Invalid credentials");
+        }
+
+        // Dev-only demo bypass: skip DB entirely, return hardcoded user
+        if (credentials.demoBypass) {
+          if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_LOGIN) {
+            throw new Error("Demo login disabled in production");
+          }
+
+          const role = credentials.demoBypass as "rep" | "manager";
+          if (role === "rep") {
+            return {
+              id: "demo-rep",
+              email: "demo.rep@guardian.com",
+              name: "Demo Sales Rep",
+              role: "rep",
+              image: null,
+            };
+          }
+          if (role === "manager") {
+            return {
+              id: "demo-manager",
+              email: "demo.manager@guardian.com",
+              name: "Demo Manager",
+              role: "manager",
+              image: null,
+            };
+          }
+          throw new Error("Invalid demo role");
         }
 
         // Demo token authentication (secure, time-limited tokens)
