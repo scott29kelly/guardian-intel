@@ -56,12 +56,6 @@ export const LazyCustomerCompareModal = dynamic(
   { loading: () => <ModalLoading />, ssr: false }
 );
 
-// Playbook Modal - Heavy with markdown rendering
-export const LazyPlaybookModal = dynamic(
-  () => import("./playbook-modal").then((mod) => mod.PlaybookModal),
-  { loading: () => <ModalLoading />, ssr: false }
-);
-
 // Bulk Action Modal - Simple confirmation
 export const LazyBulkActionModal = dynamic(
   () => import("./bulk-action-modal").then((mod) => mod.BulkActionModal),

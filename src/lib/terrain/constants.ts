@@ -1,8 +1,5 @@
 import { County, StateCode, DataSource } from './types';
 
-// Guardian's 6-state territory
-export const GUARDIAN_STATES: StateCode[] = ['PA', 'NY', 'VA', 'NJ', 'DE', 'MD'];
-
 export const GUARDIAN_OFFICES = {
   southampton_pa: {
     name: 'Main Headquarters',
@@ -149,17 +146,6 @@ export const MUNICIPALITIES: Record<StateCode, string[]> = {
   VA: ['Fredericksburg', 'Spotsylvania', 'Stafford', 'Woodbridge', 'Manassas', 'Dale City'],
   MD: ['Frederick', 'Bethesda', 'Rockville', 'Silver Spring', 'Gaithersburg', 'Germantown'],
   DE: ['Wilmington', 'Newark', 'New Castle', 'Bear', 'Hockessin', 'Middletown'],
-};
-
-// Storm event type display names
-export const STORM_TYPE_LABELS: Record<string, string> = {
-  hail: 'Hail Storm',
-  wind: 'High Wind Event',
-  tornado: 'Tornado',
-  severe_thunderstorm: 'Severe Thunderstorm',
-  tropical_storm: 'Tropical Storm',
-  flooding: 'Flooding',
-  winter_storm: 'Winter Storm',
 };
 
 // Severity level display config

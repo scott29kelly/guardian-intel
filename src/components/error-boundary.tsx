@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 // ERROR LOGGING SERVICE
 // ============================================
 
-export interface ErrorLogPayload {
+interface ErrorLogPayload {
   message: string;
   stack?: string;
   componentStack?: string;
@@ -20,7 +20,7 @@ export interface ErrorLogPayload {
 
 /**
  * Error Logging Service
- * 
+ *
  * Centralized error logging with support for external services.
  * Configure adapters for Sentry, LogRocket, Datadog, etc.
  */
@@ -89,15 +89,7 @@ class ErrorLoggingService {
 }
 
 // Singleton instance
-export const errorLogger = ErrorLoggingService.getInstance();
-
-// Example adapter for custom API endpoint
-// errorLogger.registerAdapter(async (payload) => {
-//   await fetch("/api/errors", { 
-//     method: "POST", 
-//     body: JSON.stringify(payload) 
-//   });
-// });
+const errorLogger = ErrorLoggingService.getInstance();
 
 // ============================================
 // ERROR BOUNDARY TYPES
@@ -349,34 +341,6 @@ export class ErrorBoundary extends React.Component<
 // ============================================
 
 /**
- * Suspense-compatible error boundary for async components
- */
-export function AsyncErrorBoundary({
-  children,
-  fallback,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}) {
-  return (
-    <ErrorBoundary fallback={fallback}>
-      <React.Suspense
-        fallback={
-          <div className="min-h-[200px] flex items-center justify-center">
-            <div className="flex items-center gap-2 text-text-muted">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Loading...</span>
-            </div>
-          </div>
-        }
-      >
-        {children}
-      </React.Suspense>
-    </ErrorBoundary>
-  );
-}
-
-/**
  * Section-level error boundary with compact display
  * Shows partial UI failure while keeping the rest of the app functional
  */
@@ -422,110 +386,3 @@ export function SectionErrorBoundary({
   );
 }
 
-/**
- * Recoverable Error Boundary
- * 
- * Wraps a component with automatic recovery attempts.
- * Useful for components that might fail due to transient issues.
- */
-export function RecoverableErrorBoundary({
-  children,
-  maxRetries = 3,
-  retryDelay = 1000,
-  onMaxRetriesExceeded,
-}: {
-  children: React.ReactNode;
-  maxRetries?: number;
-  retryDelay?: number;
-  onMaxRetriesExceeded?: () => void;
-}) {
-  const [retryCount, setRetryCount] = React.useState(0);
-  const [key, setKey] = React.useState(0);
-
-  const handleError = React.useCallback(() => {
-    if (retryCount < maxRetries) {
-      setTimeout(() => {
-        setRetryCount((c) => c + 1);
-        setKey((k) => k + 1);
-      }, retryDelay);
-    } else {
-      onMaxRetriesExceeded?.();
-    }
-  }, [retryCount, maxRetries, retryDelay, onMaxRetriesExceeded]);
-
-  return (
-    <ErrorBoundary
-      key={key}
-      onError={handleError}
-      context={{ retryCount, maxRetries }}
-      fallback={
-        retryCount >= maxRetries ? (
-          <div className="rounded-lg border border-accent-danger/30 bg-accent-danger/5 p-4 text-center">
-            <AlertTriangle className="w-6 h-6 text-accent-danger mx-auto mb-2" />
-            <p className="text-sm text-text-muted">
-              Failed after {maxRetries} attempts
-            </p>
-            <button
-              onClick={() => {
-                setRetryCount(0);
-                setKey((k) => k + 1);
-              }}
-              className="mt-2 text-xs text-accent-primary hover:underline"
-            >
-              Reset and try again
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center p-4">
-            <RefreshCw className="w-4 h-4 animate-spin text-text-muted" />
-            <span className="ml-2 text-sm text-text-muted">
-              Retrying... ({retryCount + 1}/{maxRetries})
-            </span>
-          </div>
-        )
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
-}
-
-/**
- * Widget Error Boundary
- * 
- * Ultra-compact error display for dashboard widgets.
- * Keeps the widget visible but shows error state.
- */
-export function WidgetErrorBoundary({
-  children,
-  widgetName,
-}: {
-  children: React.ReactNode;
-  widgetName?: string;
-}) {
-  const [key, setKey] = React.useState(0);
-
-  return (
-    <ErrorBoundary
-      key={key}
-      context={{ widget: widgetName }}
-      fallback={
-        <div className="h-full min-h-[100px] flex flex-col items-center justify-center text-center p-4 bg-surface-secondary/50 rounded-lg border border-void-700/50">
-          <AlertTriangle className="w-5 h-5 text-accent-warning mb-2" />
-          <p className="text-xs text-text-muted mb-2">
-            {widgetName || "Widget"} unavailable
-          </p>
-          <button
-            onClick={() => setKey((k) => k + 1)}
-            className="text-[10px] text-accent-primary hover:underline flex items-center gap-1"
-          >
-            <RefreshCw className="w-2.5 h-2.5" />
-            Reload
-          </button>
-        </div>
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
-}

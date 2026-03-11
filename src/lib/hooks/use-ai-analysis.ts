@@ -17,7 +17,7 @@ import { useState, useCallback } from "react";
 // TYPES
 // =============================================================================
 
-export interface TextAnalysisResult {
+interface TextAnalysisResult {
   sentiment: "positive" | "neutral" | "negative" | "mixed";
   insights: string[];
   objections: string[];
@@ -26,7 +26,7 @@ export interface TextAnalysisResult {
   source: "ai" | "heuristic";
 }
 
-export interface UseAIAnalysisOptions {
+interface UseAIAnalysisOptions {
   context?: {
     activityType?: string;
     outcome?: string;
@@ -34,7 +34,7 @@ export interface UseAIAnalysisOptions {
   };
 }
 
-export interface UseAIAnalysisReturn {
+interface UseAIAnalysisReturn {
   analyze: (text: string) => Promise<TextAnalysisResult>;
   isAnalyzing: boolean;
   error: string | null;

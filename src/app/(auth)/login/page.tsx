@@ -44,26 +44,20 @@ export default function LoginPage() {
     }
   };
 
-  // Demo login - calls signIn directly with demo flag
+  // Demo login bypass — skips DB, returns hardcoded user for dev
   const handleDemoLogin = async (role: "rep" | "manager") => {
     setIsLoading(true);
     setError("");
 
-    const demoEmails = {
-      rep: "demo.rep@guardian.com",
-      manager: "demo.manager@guardian.com",
-    };
-
     try {
       const result = await signIn("credentials", {
-        email: demoEmails[role],
-        demoToken: "demo",
+        demoBypass: role,
         redirect: false,
       });
 
       if (result?.error) {
-        setError(`Demo login failed: ${result.error}`);
-      } else if (result?.ok) {
+        setError("Demo login failed.");
+      } else {
         router.push(callbackUrl);
         router.refresh();
       }

@@ -62,7 +62,7 @@ export interface StormPrediction {
   updatedAt: Date;
 }
 
-export interface PredictiveAlertSummary {
+interface PredictiveAlertSummary {
   totalPredictions: number;
   urgentCount: number;
   next24Hours: StormPrediction[];

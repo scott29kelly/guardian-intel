@@ -64,7 +64,7 @@ export interface DamageEstimate {
   notes: string;
 }
 
-export interface AnalysisSummary {
+interface AnalysisSummary {
   photosAnalyzed: number;
   photosWithDamage: number;
   overallSeverity: string;
@@ -90,7 +90,7 @@ export interface AnalysisResponse {
   };
 }
 
-export interface AnalyzePhotoInput {
+interface AnalyzePhotoInput {
   photoId?: string;
   photoIds?: string[];
   photoUrl?: string;
@@ -142,28 +142,3 @@ export function useAnalyzeDamage() {
   });
 }
 
-/**
- * Quick analyze a single photo
- */
-export function useQuickAnalysis() {
-  return useMutation({
-    mutationFn: async (photoBase64: string): Promise<DamageAnalysisResult> => {
-      const response = await fetch("/api/ai/analyze-damage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          photoBase64,
-          saveResults: false,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Analysis failed");
-      }
-
-      const data = await response.json();
-      return data.data.analyses[0];
-    },
-  });
-}

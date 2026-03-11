@@ -22,7 +22,7 @@ export interface NotificationPayload {
  * Utility function to build storm alert notification payload.
  * Can be used to send storm alerts via the notification API.
  */
-export function buildStormAlertPayload(
+function buildStormAlertPayload(
   title: string,
   body: string,
   stormId?: string
@@ -46,7 +46,7 @@ export function buildStormAlertPayload(
  * @param userIds - Optional: specific user IDs to notify (defaults to all)
  * @param apiKey - Internal API key for authentication
  */
-export async function sendPushNotification(
+async function sendPushNotification(
   payload: NotificationPayload,
   userIds?: string[],
   apiKey?: string

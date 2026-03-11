@@ -74,7 +74,7 @@ export type ClaimStatus =
   | "paid"
   | "closed";
 
-export interface ClaimFilters {
+interface ClaimFilters {
   page?: number;
   limit?: number;
   status?: ClaimStatus | "all";
@@ -127,13 +127,13 @@ export interface CreateClaimInput {
   notes?: string;
 }
 
-export interface UpdateClaimInput extends Partial<Omit<Claim, "id" | "createdAt" | "updatedAt" | "customerId" | "customer">> {}
+interface UpdateClaimInput extends Partial<Omit<Claim, "id" | "createdAt" | "updatedAt" | "customerId" | "customer">> {}
 
 // =============================================================================
 // QUERY KEYS
 // =============================================================================
 
-export const claimKeys = {
+const claimKeys = {
   all: ["claims"] as const,
   lists: () => [...claimKeys.all, "list"] as const,
   list: (filters: ClaimFilters) => [...claimKeys.lists(), filters] as const,
@@ -310,15 +310,3 @@ export function useDeleteClaim() {
   });
 }
 
-/**
- * Update claim status (convenience hook)
- */
-export function useUpdateClaimStatus() {
-  const updateClaim = useUpdateClaim();
-  
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: ClaimStatus }) => {
-      return updateClaim.mutateAsync({ id, status });
-    },
-  });
-}

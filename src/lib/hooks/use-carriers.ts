@@ -73,17 +73,11 @@ export interface FileClaimInput {
   photoIds?: string[];
 }
 
-export interface SyncResult {
-  synced: number;
-  failed: number;
-  errors: string[];
-}
-
 // ============================================================
 // Query Keys
 // ============================================================
 
-export const carrierKeys = {
+const carrierKeys = {
   all: ["carriers"] as const,
   list: () => [...carrierKeys.all, "list"] as const,
   status: (claimId: string) => [...carrierKeys.all, "status", claimId] as const,
@@ -96,7 +90,7 @@ export const carrierKeys = {
 /**
  * Fetch available carriers
  */
-export function useCarriers() {
+function useCarriers() {
   return useQuery({
     queryKey: carrierKeys.list(),
     queryFn: async () => {
@@ -162,43 +156,6 @@ export function useSyncClaimStatus(carrierCode: string) {
       queryClient.invalidateQueries({ queryKey: carrierKeys.status(claimId) });
     },
   });
-}
-
-/**
- * Sync all claims for a carrier
- */
-export function useSyncAllClaims(carrierCode: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/carriers/${carrierCode}/sync`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Sync failed");
-      }
-
-      return response.json() as Promise<{ success: boolean; data: SyncResult }>;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["claims"] });
-    },
-  });
-}
-
-/**
- * Get carriers that support direct filing
- */
-export function useDirectFilingCarriers() {
-  const { data: carriers, ...rest } = useCarriers();
-  
-  return {
-    ...rest,
-    data: carriers?.filter(c => c.supportsDirectFiling) || [],
-  };
 }
 
 /**

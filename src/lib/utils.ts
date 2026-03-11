@@ -50,14 +50,6 @@ export function formatCurrency(amount: number): string {
   return formatted;
 }
 
-export function formatNumber(num: number): string {
-  return numberFormatter.format(num);
-}
-
-export function formatPercentage(value: number): string {
-  return `${Math.round(value)}%`;
-}
-
 export function getScoreColor(score: number): string {
   if (score >= 80) return "text-emerald-400";
   if (score >= 60) return "text-accent-primary";
@@ -65,19 +57,6 @@ export function getScoreColor(score: number): string {
   return "text-rose-400";
 }
 
-
-export function getPriorityClass(priority: string): string {
-  switch (priority) {
-    case "critical":
-      return "priority-critical";
-    case "high":
-      return "priority-high";
-    case "medium":
-      return "priority-medium";
-    default:
-      return "priority-low";
-  }
-}
 
 export function getStatusClass(status: string): string {
   switch (status) {

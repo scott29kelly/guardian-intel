@@ -25,7 +25,7 @@ import type {
 // TYPES
 // =============================================================================
 
-export interface CompetitorListItem {
+interface CompetitorListItem {
   id: string;
   name: string;
   displayName: string | null;
@@ -41,7 +41,7 @@ export interface CompetitorListItem {
   updatedAt: string;
 }
 
-export interface CompetitorDetail extends CompetitorListItem {
+interface CompetitorDetail extends CompetitorListItem {
   phone: string | null;
   serviceAreas: string[];
   yearFounded: number | null;
@@ -63,7 +63,7 @@ export interface CompetitorDetail extends CompetitorListItem {
   };
 }
 
-export interface CompetitorActivityItem {
+interface CompetitorActivityItem {
   id: string;
   createdAt: string;
   competitorId: string;
@@ -82,7 +82,7 @@ export interface CompetitorActivityItem {
   hasPhoto: boolean;
 }
 
-export interface CreateCompetitorRequest {
+interface CreateCompetitorRequest {
   name: string;
   displayName?: string;
   website?: string;
@@ -100,7 +100,7 @@ export interface CreateCompetitorRequest {
   pricingNotes?: string;
 }
 
-export interface LogActivityRequest {
+interface LogActivityRequest {
   competitorId: string;
   customerId?: string;
   activityType: ActivityType;
@@ -234,21 +234,6 @@ async function logActivity(data: LogActivityRequest): Promise<CompetitorActivity
   return result.data;
 }
 
-async function updateCompetitor(id: string, data: Partial<CreateCompetitorRequest>): Promise<CompetitorDetail> {
-  const response = await fetch(`/api/competitors/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  
-  if (!response.ok) throw new Error("Failed to update competitor");
-  
-  const result = await response.json();
-  if (!result.success) throw new Error(result.error);
-  
-  return result.data;
-}
-
 // =============================================================================
 // HOOKS
 // =============================================================================
@@ -326,18 +311,3 @@ export function useLogCompetitorActivity() {
   });
 }
 
-/**
- * Update a competitor
- */
-export function useUpdateCompetitor() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateCompetitorRequest> }) => 
-      updateCompetitor(id, data),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["competitor", data.id], data);
-      queryClient.invalidateQueries({ queryKey: ["competitors"] });
-    },
-  });
-}

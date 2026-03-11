@@ -18,7 +18,7 @@ export interface SlideImageRequest {
   totalSlides: number;
 }
 
-export interface SlideImageResponse {
+interface SlideImageResponse {
   success: boolean;
   imageData?: string; // Base64 PNG
   mimeType?: string;
@@ -27,7 +27,7 @@ export interface SlideImageResponse {
   retryable?: boolean;
 }
 
-export interface RetryConfig {
+interface RetryConfig {
   maxRetries: number;
   baseDelayMs: number;
   onRetry?: (attempt: number, error: Error, nextDelayMs: number) => void;
@@ -143,41 +143,3 @@ export async function generateSlideImage(
   throw finalError;
 }
 
-/**
- * Generate images for multiple slides in sequence
- *
- * @param slides - Array of slide configurations
- * @param branding - Branding configuration
- * @param onProgress - Optional progress callback
- * @returns Array of base64 image data (or null for failed slides)
- */
-export async function generateAllSlideImages(
-  slides: Array<{ type: SlideType; sectionId: string; content: SlideContent }>,
-  branding: BrandingConfig,
-  onProgress?: (current: number, total: number, status: string) => void
-): Promise<Array<string | null>> {
-  const results: Array<string | null> = [];
-  const total = slides.length;
-
-  for (let i = 0; i < total; i++) {
-    const slide = slides[i];
-    const slideNumber = i + 1;
-
-    onProgress?.(slideNumber, total, `Generating image for ${slide.sectionId}...`);
-
-    try {
-      const imageData = await generateSlideImage({
-        slide,
-        branding,
-        slideNumber,
-        totalSlides: total,
-      });
-      results.push(imageData);
-    } catch (error) {
-      console.error(`Failed to generate image for slide ${slideNumber}:`, error);
-      results.push(null);
-    }
-  }
-
-  return results;
-}

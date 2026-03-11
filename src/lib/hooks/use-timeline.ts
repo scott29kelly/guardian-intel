@@ -23,7 +23,7 @@ interface TimelineResponse {
 }
 
 // Query Keys
-export const timelineKeys = {
+const timelineKeys = {
   all: ["timeline"] as const,
   customer: (customerId: string) => [...timelineKeys.all, customerId] as const,
   filtered: (customerId: string, types?: TimelineItemType[]) => 

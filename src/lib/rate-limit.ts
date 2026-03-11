@@ -19,7 +19,7 @@ const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
 /**
  * Rate limit configurations for different endpoint types
  */
-export const RATE_LIMITS = {
+const RATE_LIMITS = {
   // AI Chat - expensive operation
   ai: { requests: 20, window: "1m" as const },
   
@@ -166,17 +166,3 @@ export async function rateLimit(
   return null;
 }
 
-/**
- * Get rate limit headers for successful requests
- */
-export function getRateLimitHeaders(
-  type: RateLimitType,
-  remaining: number,
-  reset: number
-): Record<string, string> {
-  return {
-    "X-RateLimit-Limit": String(RATE_LIMITS[type].requests),
-    "X-RateLimit-Remaining": String(remaining),
-    "X-RateLimit-Reset": String(reset),
-  };
-}

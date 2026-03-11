@@ -10,7 +10,7 @@
  * - Fallback to approximate ZIP code coordinates
  */
 
-export interface GeocodingResult {
+interface GeocodingResult {
   latitude: number;
   longitude: number;
   matchedAddress?: string;

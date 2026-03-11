@@ -91,7 +91,7 @@ export interface WindReport {
 // NOAA Weather Service Class
 // ============================================================
 
-export class NOAAWeatherService {
+class NOAAWeatherService {
   private userAgent = "GuardianIntel/1.0 (contact@guardian-intel.com)";
   private nwsBaseUrl = "https://api.weather.gov";
   

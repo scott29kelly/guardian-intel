@@ -8,30 +8,6 @@
 // COMPETITOR TYPES
 // =============================================================================
 
-export interface CompetitorData {
-  id: string;
-  name: string;
-  displayName: string | null;
-  website: string | null;
-  phone: string | null;
-  headquarters: string | null;
-  serviceAreas: string[];
-  yearFounded: number | null;
-  employeeCount: number | null;
-  pricingTier: PricingTier;
-  specialties: string[];
-  certifications: string[];
-  strengths: string | null;
-  weaknesses: string | null;
-  salesTactics: string | null;
-  pricingNotes: string | null;
-  marketShare: number | null;
-  reputation: number | null;
-  avgReviewScore: number | null;
-  reviewCount: number | null;
-  isActive: boolean;
-}
-
 export type PricingTier = "budget" | "mid" | "premium" | "luxury";
 
 export type ActivityType = 
@@ -44,21 +20,6 @@ export type ActivityType =
   | "price_intel";  // Got pricing intelligence
 
 export type PriceComparison = "lower" | "similar" | "higher";
-
-export type MentionSource = 
-  | "customer_call"
-  | "customer_email"
-  | "review_site"
-  | "news"
-  | "social_media"
-  | "canvassing";
-
-export type MentionType = 
-  | "pricing"
-  | "quality"
-  | "service"
-  | "timing"
-  | "reputation";
 
 // =============================================================================
 // ACTIVITY TYPES
@@ -87,23 +48,6 @@ export interface CompetitorActivityData {
   hasPhoto: boolean;
   photoUrl: string | null;
   isVerified: boolean;
-}
-
-export interface CreateActivityRequest {
-  competitorId: string;
-  customerId?: string;
-  activityType: ActivityType;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  description?: string;
-  quotedPrice?: number;
-  priceComparison?: PriceComparison;
-  outcome?: string;
-  outcomeReason?: string;
-  dealValue?: number;
-  photoUrl?: string;
 }
 
 // =============================================================================

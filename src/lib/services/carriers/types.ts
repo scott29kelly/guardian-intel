@@ -70,7 +70,7 @@ export interface ClaimSubmission {
   internalClaimId: string;
 }
 
-export interface ClaimPhoto {
+interface ClaimPhoto {
   url?: string;
   base64?: string;
   filename: string;
@@ -188,7 +188,7 @@ export type CarrierClaimStatus =
   | "payment-issued"
   | "closed";
 
-export interface AdjusterInfo {
+interface AdjusterInfo {
   name: string;
   phone?: string;
   email?: string;
@@ -204,7 +204,7 @@ export interface CarrierDocument {
   uploadedAt: Date;
 }
 
-export interface ClaimTimelineEvent {
+interface ClaimTimelineEvent {
   date: Date;
   event: string;
   description?: string;
@@ -254,7 +254,7 @@ export interface DocumentUpload {
   description?: string;
 }
 
-export type DocumentType = 
+type DocumentType =
   | "estimate"
   | "invoice"
   | "photo"
@@ -283,7 +283,7 @@ export interface CarrierWebhookPayload {
   data: Record<string, any>;
 }
 
-export type CarrierWebhookEvent = 
+type CarrierWebhookEvent =
   | "claim.status_changed"
   | "claim.adjuster_assigned"
   | "claim.inspection_scheduled"

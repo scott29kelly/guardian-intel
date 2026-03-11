@@ -30,7 +30,7 @@ export interface Customer {
 
 // Helper to get profit and urgency from customer object
 export const getCustomerProfit = (customer: Customer) => customer.profitPotential || 0;
-export const getCustomerUrgency = (customer: Customer) => customer.urgencyScore || 0;
+const getCustomerUrgency = (customer: Customer) => customer.urgencyScore || 0;
 
 export const statusOptions = [
   { value: "all", label: "All Status" },

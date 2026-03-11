@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-export interface DashboardCustomer {
+interface DashboardCustomer {
   id: string;
   firstName: string;
   lastName: string;
@@ -39,7 +39,7 @@ export interface DashboardCustomer {
   nextActionDate: Date;
 }
 
-export interface DashboardIntelItem {
+interface DashboardIntelItem {
   id: string;
   customerId: string;
   source: string;
@@ -52,7 +52,7 @@ export interface DashboardIntelItem {
   createdAt: Date;
 }
 
-export interface DashboardWeatherEvent {
+interface DashboardWeatherEvent {
   id: string;
   customerId: string | null;
   eventType: string;
@@ -64,7 +64,7 @@ export interface DashboardWeatherEvent {
   claimFiled: boolean;
 }
 
-export interface DashboardMetrics {
+interface DashboardMetrics {
   revenue: { value: number; change: number; target: number };
   pipeline: { value: number; deals: number };
   stormOpportunity: { value: number; affected: number };
@@ -72,7 +72,7 @@ export interface DashboardMetrics {
   hotLeads: number;
 }
 
-export interface DashboardAlert {
+interface DashboardAlert {
   id: string;
   type: string;
   message: string;
@@ -80,7 +80,7 @@ export interface DashboardAlert {
   severity: "critical" | "high" | "warning";
 }
 
-export interface DashboardData {
+interface DashboardData {
   priorityCustomers: DashboardCustomer[];
   intelItems: DashboardIntelItem[];
   weatherEvents: DashboardWeatherEvent[];

@@ -52,7 +52,7 @@ export interface CrmSyncResult {
   lastSyncedAt: Date;
 }
 
-export interface CrmConfig {
+interface CrmConfig {
   provider: "leap" | "hubspot" | "salesforce" | "jobnimbus";
   apiKey?: string;
   apiSecret?: string;

@@ -193,36 +193,3 @@ export function ReadyDecksWidget({ onViewDeck, maxDisplay = 5 }: ReadyDecksWidge
   );
 }
 
-/**
- * Compact version for sidebar or smaller spaces
- */
-export function ReadyDecksBadge() {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const response = await fetch("/api/decks/ready?limit=1");
-        const data = await response.json();
-        if (data.success) {
-          setCount(data.count);
-        }
-      } catch {
-        // Ignore errors for badge
-      }
-    };
-
-    fetchCount();
-    // Poll every 5 minutes
-    const interval = setInterval(fetchCount, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (count === 0) return null;
-
-  return (
-    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-medium bg-accent-primary text-white rounded-full px-1">
-      {count}
-    </span>
-  );
-}

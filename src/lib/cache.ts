@@ -285,7 +285,7 @@ export function isCacheRedisEnabled(): boolean {
 /**
  * Get cache stats (for debugging)
  */
-export interface CacheStatsResult {
+interface CacheStatsResult {
   type: "redis" | "memory";
   keys?: number;
   global: {
@@ -359,11 +359,3 @@ export function resetCacheStats(): void {
 // Convenience functions for specific caches
 // ============================================
 
-/**
- * Invalidate dashboard cache
- * Call this after mutations that affect dashboard data (customers, weather events, etc.)
- */
-export async function invalidateDashboardCache(): Promise<boolean> {
-  const key = buildCacheKey("dashboard", "main");
-  return cacheDel(key);
-}

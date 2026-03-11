@@ -8,9 +8,7 @@
 // Channel Types
 // ============================================================
 
-export type OutreachChannel = "sms" | "email" | "push";
-
-export type MessageStatus = 
+export type MessageStatus =
   | "pending" 
   | "queued"
   | "sent" 
@@ -21,7 +19,7 @@ export type MessageStatus =
   | "bounced"
   | "unsubscribed";
 
-export type CampaignStatus = 
+type CampaignStatus =
   | "pending" 
   | "processing" 
   | "completed" 
@@ -53,7 +51,7 @@ export interface SendEmailOptions {
   attachments?: EmailAttachment[];
 }
 
-export interface EmailAttachment {
+interface EmailAttachment {
   filename: string;
   content: string; // Base64
   type: string;
@@ -120,23 +118,6 @@ export interface PersonalizationContext {
     phone: string;
     email: string;
   };
-}
-
-export interface CampaignConfig {
-  id: string;
-  name: string;
-  triggerType: TriggerType;
-  stormTypes?: StormType[];
-  minSeverity?: string;
-  targetZipCodes?: string[];
-  targetStates?: string[];
-  excludeRecentDays: number;
-  enableSms: boolean;
-  enableEmail: boolean;
-  smsTemplate?: string;
-  emailSubject?: string;
-  emailTemplate?: string;
-  delayMinutes: number;
 }
 
 export interface ExecutionResult {

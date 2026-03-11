@@ -10,7 +10,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Types
-export interface DeckJob {
+interface DeckJob {
   id: string;
   customerId: string;
   customerName: string;
@@ -34,7 +34,7 @@ export interface DeckJob {
   };
 }
 
-export interface DeckStatusResponse {
+interface DeckStatusResponse {
   hasDeck: boolean;
   deck?: DeckJob;
   message?: string;
@@ -45,7 +45,7 @@ export interface DeckStatusResponse {
   isReady: boolean;
 }
 
-export interface ScheduleDeckRequest {
+interface ScheduleDeckRequest {
   customerId: string;
   templateId?: string;
   templateName?: string;
@@ -53,7 +53,7 @@ export interface ScheduleDeckRequest {
   scheduledFor?: string;
 }
 
-export interface ScheduleDeckResponse {
+interface ScheduleDeckResponse {
   success: boolean;
   job: {
     id: string;
@@ -68,7 +68,7 @@ export interface ScheduleDeckResponse {
 }
 
 // Query keys
-export const deckQueryKeys = {
+const deckQueryKeys = {
   all: ["decks"] as const,
   status: (customerId: string) => ["decks", "status", customerId] as const,
   list: (filters?: Record<string, string>) => ["decks", "list", filters] as const,
@@ -77,7 +77,7 @@ export const deckQueryKeys = {
 /**
  * Check deck generation status for a customer
  */
-export function useDeckStatus(customerId: string | undefined, options?: { 
+function useDeckStatus(customerId: string | undefined, options?: {
   enabled?: boolean;
   refetchInterval?: number | false;
 }) {
@@ -106,7 +106,7 @@ export function useDeckStatus(customerId: string | undefined, options?: {
 /**
  * Schedule a new deck generation
  */
-export function useScheduleDeck() {
+function useScheduleDeck() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -140,7 +140,7 @@ export function useScheduleDeck() {
 /**
  * Cancel a pending deck job
  */
-export function useCancelDeck() {
+function useCancelDeck() {
   const queryClient = useQueryClient();
 
   return useMutation({

@@ -107,7 +107,7 @@ export interface DamageEstimate {
   notes: string;
 }
 
-export interface AnalyzePhotoOptions {
+interface AnalyzePhotoOptions {
   photoUrl?: string;
   photoBase64?: string;
   photoId?: string;
