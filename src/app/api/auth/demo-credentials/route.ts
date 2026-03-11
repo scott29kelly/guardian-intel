@@ -44,13 +44,18 @@ export async function GET(request: Request) {
 
   const email = DEMO_ACCOUNTS[role];
 
-  // Verify the demo account exists in the database
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true, name: true },
-  });
+  // In development, skip DB check if user doesn't exist yet
+  let user: { id: string; email: string; name: string } | null = null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true },
+    });
+  } catch {
+    // DB may not be migrated yet - that's fine in dev
+  }
 
-  if (!user) {
+  if (!user && !process.env.ALLOW_DEMO_LOGIN) {
     return NextResponse.json(
       { error: "Demo account not found. Run: npx prisma db seed" },
       { status: 404 }
