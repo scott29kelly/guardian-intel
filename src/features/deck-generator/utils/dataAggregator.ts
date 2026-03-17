@@ -365,11 +365,7 @@ export async function generateCustomerTalkingPoints(customerId: string): Promise
     const customer = customerData.customer;
 
     // Generate talking points based on customer data
-<<<<<<< ours
-    const points: Array<{ topic: string; script: string; priority: 'high' | 'medium' | 'low' }> = [];
-=======
     const points: TalkingPointsSlideContent["points"] = [];
->>>>>>> theirs
     
     // Opening based on lead source or storm history
     points.push({
@@ -479,11 +475,7 @@ export async function getRecommendedNextSteps(customerId: string): Promise<ListS
     const data = await response.json();
     const customer = data.customer;
 
-<<<<<<< ours
-    const items: Array<{ primary: string; secondary: string; icon: string; highlight: boolean }> = [];
-=======
     const items: ListSlideContent["items"] = [];
->>>>>>> theirs
 
     // Based on customer stage
     if (customer.stage === 'new' || customer.stage === 'contacted') {
