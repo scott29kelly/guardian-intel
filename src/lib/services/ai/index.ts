@@ -35,6 +35,7 @@ export { CustomerContextBuilder, getCustomerContext, getCustomerContexts, getCon
 // INITIALIZATION
 // =============================================================================
 
+import type { AIAdapter } from "./types";
 import { getAIRouter, initializeAIRouter } from "./router";
 import { createClaudeOpusAdapter, createClaudeSonnetAdapter, createClaudeHaikuAdapter } from "./adapters/claude";
 import { createKimiAdapter } from "./adapters/kimi";
@@ -53,7 +54,11 @@ let isInitialized = false;
 export function initializeAI(): void {
   if (isInitialized) return;
 
+<<<<<<< ours
   const adapters: import("./types").AIAdapter[] = [];
+=======
+  const adapters: AIAdapter[] = [];
+>>>>>>> theirs
 
   // Gemini - Primary AI (handles all tasks)
   const geminiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
