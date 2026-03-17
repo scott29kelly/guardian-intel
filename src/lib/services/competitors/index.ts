@@ -11,9 +11,7 @@
  * - Win/loss analysis
  * 
  * Usage:
- *   import { getCompetitorAnalytics } from "@/lib/services/competitors";
- *   const analytics = await getCompetitorAnalytics({ startDate: "2026-01-01" });
+ *   import type { CompetitorAnalytics } from "@/lib/services/competitors";
  */
 
-export { getCompetitorAnalytics } from "./analytics";
 export * from "./types";
