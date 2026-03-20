@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { auditService } from "@/lib/services/audit";
 import crypto from "crypto";
+import { authSecret } from "@/lib/auth-secret";
 
 /**
  * Wrapper around getServerSession for cleaner API route usage
@@ -69,6 +70,7 @@ export function validateDemoToken(token: string): string | null {
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
+  secret: authSecret,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -259,4 +261,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-
