@@ -54,3 +54,6 @@ logs
 # OS
 Thumbs.db
 nul
+
+.vercel
+.env*.local
