@@ -7,12 +7,12 @@
 
 ### Foundation
 
-- [ ] **INFOG-001**: TypeScript types for all infographic generation entities (GenerationMode, InfographicPreset, TopicModule, ModelCapabilities, ScoringResult, InfographicRequest/Response, GenerationProgress, BatchRequest, CacheEntry)
-- [ ] **INFOG-002**: Branding assets with dark theme (internal) and light theme (customer-facing), audience-based helper, brand reference images
+- [x] **INFOG-001**: TypeScript types for all infographic generation entities (GenerationMode, InfographicPreset, TopicModule, ModelCapabilities, ScoringResult, InfographicRequest/Response, GenerationProgress, BatchRequest, CacheEntry)
+- [x] **INFOG-002**: Branding assets with dark theme (internal) and light theme (customer-facing), audience-based helper, brand reference images
 
 ### Model Intelligence
 
-- [ ] **INFOG-003**: Model registry with NB2 + NB Pro capability profiles, 3-dimension scoring engine (audience, complexity, web search), chain strategies (A: web-grounded quality, B: complexity upgrade, C: batch elevation), singleton accessor
+- [x] **INFOG-003**: Model registry with NB2 + NB Pro capability profiles, 3-dimension scoring engine (audience, complexity, web search), chain strategies (A: web-grounded quality, B: complexity upgrade, C: batch elevation), singleton accessor
 - [x] **INFOG-004**: Gemini Flash Image adapter implementing AIAdapter interface with web search grounding, resolution tiers (1K/2K/4K), reference image support (up to 14), retry with exponential backoff (1s, 2s, 4s)
 - [x] **INFOG-005**: AI Router updates — image_generation task in TASK_MODEL_MAP, generateImage() method delegating to Model Intelligence for model selection
 
@@ -85,9 +85,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFOG-001 | Phase 1 | Pending |
-| INFOG-002 | Phase 1 | Pending |
-| INFOG-003 | Phase 1 | Pending |
+| INFOG-001 | Phase 1 | Complete |
+| INFOG-002 | Phase 1 | Complete |
+| INFOG-003 | Phase 1 | Complete |
 | INFOG-004 | Phase 1 | Complete |
 | INFOG-005 | Phase 1 | Complete |
 | INFOG-006 | Phase 2 | Pending |

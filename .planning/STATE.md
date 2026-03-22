@@ -51,6 +51,9 @@ Plan: 2 of 2
 - Groups 0+1 merged into Phase 1 (Foundation + Model Intelligence) since code already exists
 - Hooks + UI Components merged into Phase 5 since hooks exist solely to serve UI
 - Integration + Polish + Testing merged into Phase 6 for final wiring
+- No QualityTier type -- removed in PRD v3, model intelligence handles quality autonomously
+- Chain C (Batch Elevation) deferred to Phase 5 batch hook -- runtime concern, not chain strategy
+- Reuse BrandingConfig from deck-generator for cross-feature consistency
 
 ### Discovered TODOs
 
