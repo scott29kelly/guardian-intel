@@ -26,7 +26,10 @@
   3. Model Intelligence scores a request and selects NB2, NB Pro, or a chain strategy based on audience, complexity, and web search dimensions
   4. Gemini Flash Image adapter accepts a prompt and returns a generated image with retry on failure
   5. AI Router routes an image_generation task through Model Intelligence without exposing model choice to callers
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md -- Verify and commit types, branding, and model intelligence (INFOG-001, INFOG-002, INFOG-003)
+- [ ] 01-02-PLAN.md -- Verify and commit Gemini adapter and router updates (INFOG-004, INFOG-005)
 
 ### Phase 2: Data Layer
 **Goal**: Content pipeline that assembles customer data, composes model-aware prompts, and parses natural language intent into structured generation parameters
@@ -87,7 +90,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Model Intelligence | 0/? | Not started | - |
+| 1. Foundation + Model Intelligence | 0/2 | Planning complete | - |
 | 2. Data Layer | 0/? | Not started | - |
 | 3. Templates | 0/? | Not started | - |
 | 4. Generation Engine | 0/? | Not started | - |
