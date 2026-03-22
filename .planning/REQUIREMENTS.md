@@ -51,9 +51,9 @@
 
 ### Integration
 
-- [ ] **INFOG-024**: Customer card integration — "Generate Briefing" button alongside existing deck generator button, badge notification for background completion
-- [ ] **INFOG-025**: Dashboard "Prep My Day" — batch trigger for all today's appointments, shows BatchDayView with progressive results
-- [ ] **INFOG-026**: Customer profile modal — infographic tab/action button, quick-launch preset generation, show recent cached infographics
+- [x] **INFOG-024**: Customer card integration — "Generate Briefing" button alongside existing deck generator button, badge notification for background completion
+- [x] **INFOG-025**: Dashboard "Prep My Day" — batch trigger for all today's appointments, shows BatchDayView with progressive results
+- [x] **INFOG-026**: Customer profile modal — infographic tab/action button, quick-launch preset generation, show recent cached infographics
 
 ### Polish & Testing
 
@@ -108,9 +108,9 @@
 | INFOG-021 | Phase 5 | Complete |
 | INFOG-022 | Phase 5 | Complete |
 | INFOG-023 | Phase 5 | Complete |
-| INFOG-024 | Phase 6 | Pending |
-| INFOG-025 | Phase 6 | Pending |
-| INFOG-026 | Phase 6 | Pending |
+| INFOG-024 | Phase 6 | Complete |
+| INFOG-025 | Phase 6 | Complete |
+| INFOG-026 | Phase 6 | Complete |
 | INFOG-027 | Phase 6 | Pending |
 | INFOG-028 | Phase 6 | Pending |
 | INFOG-029 | Phase 6 | Pending |

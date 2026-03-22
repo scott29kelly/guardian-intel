@@ -99,7 +99,11 @@ Plans:
   3. Customer profile modal includes infographic tab with quick-launch presets and displays recent cached infographics
   4. Offline mode caches generated PNGs via service worker, prompts on WiFi awareness, and offers regeneration when back online
   5. Unit tests cover model scoring, data assembler metrics, prompt templates, and intent classification; E2E tests cover generation flows and sharing
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [x] 06-01-PLAN.md -- App surface integration: customer card button, dashboard Prep My Day, profile modal tab (INFOG-024, INFOG-025, INFOG-026)
+- [ ] 06-02-PLAN.md -- Offline support: service worker PNG caching, WiFi awareness utilities (INFOG-027)
+- [ ] 06-03-PLAN.md -- Tests: unit tests for model intelligence, prompt composer, intent parser + E2E generation flows (INFOG-028, INFOG-029)
 
 ## Progress
 
@@ -110,7 +114,7 @@ Plans:
 | 3. Templates | 2/2 | Complete | 2026-03-22 |
 | 4. Generation Engine | 3/3 | Complete | 2026-03-22 |
 | 5. Hooks + UI | 4/4 | Complete | 2026-03-22 |
-| 6. Integration + Polish | 0/? | Not started | - |
+| 6. Integration + Polish | 2/3 | In Progress | - |
 
 ---
 *Roadmap created: 2026-03-21*

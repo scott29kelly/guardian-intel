@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T16:00:00.000Z"
+last_updated: "2026-03-22T15:33:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 14
+  completed_plans: 14
 ---
 
 # Project State: Infographic Generator
@@ -16,7 +16,7 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 06 — integration-polish
+**Current Focus:** Phase 06 -- integration-polish
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
@@ -53,6 +53,7 @@ Plan: 2 (complete)
 | Phase 05 P02 | 146s | 2 tasks | 4 files |
 | Phase 05 P03 | 96s | 2 tasks | 2 files |
 | Phase 05 P04 | 120s | 2 tasks | 4 files |
+| Phase 06 P01 | 173s | 3 tasks | 3 files |
 | Phase 06 P02 | 58s | 1 tasks | 2 files |
 
 ## Accumulated Context
@@ -87,6 +88,8 @@ Plan: 2 (complete)
 - ShareSheet uses bottom-sheet slide-up pattern with spring animation
 - BatchDayView uses AnimatePresence popLayout for swipeable card transitions
 - Native Web Share API offered as fallback via typeof check
+- Customer type has no name property -- use firstName + lastName concatenation for customerName prop
+- Quick-launch presets in profile modal open full generator modal (preset selection handled inside modal)
 - Browser Cache API for offline infographic PNG storage (not Upstash Redis)
 - CacheFirst strategy in sw.js for /infographics/cache/* with 7-day max age
 - LRU pruning based on X-Cached-At header capped at 50 entries
@@ -108,16 +111,18 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 06-02-PLAN.md -- offline support for infographic PNG caching
-- **Where we left off:** Phase 06 Plan 02 complete
-- **Next step:** Continue Phase 06 remaining plans
+- **What happened:** Completed 06-01-PLAN.md -- wired infographic generator into customer card, dashboard, and profile modal
+- **Where we left off:** Phase 06 Plans 01 and 02 complete
+- **Next step:** Execute 06-03-PLAN.md (tests)
 
 ### Important Context for Next Session
 
+- Infographic generator accessible from 3 app surfaces: customer card BRIEFING button, dashboard Prep My Day, profile modal tab
+- Customer card follows exact same pattern as PREP DECK / DeckGeneratorModal
+- Dashboard batch uses useInfographicBatch hook with BatchDayView
+- Profile modal has 4 quick-launch preset buttons that open generator modal
 - offlineSupport.ts provides Cache API-based PNG storage with WiFi awareness
 - sw.js updated with CacheFirst route for /infographics/cache/* URLs
-- Cache name: infographic-images-v1, max 50 items, 7-day expiration
-- All Phase 05 hooks and UI components remain complete
 
 ---
 *State initialized: 2026-03-21*
