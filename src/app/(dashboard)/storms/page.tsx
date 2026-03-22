@@ -265,6 +265,7 @@ export default function StormsPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   // Data state
   const [stormEvents, setStormEvents] = useState<StormEvent[]>([]);
@@ -756,9 +757,22 @@ export default function StormsPage() {
                             {event.date.toLocaleDateString()}
                           </span>
                         </div>
-                        {/* Weather Preview */}
+                        {/* Weather Preview - lazy loaded on expand */}
                         <div className="mt-3">
-                          <WeatherPreview latitude={event.latitude} longitude={event.longitude} />
+                          {expandedEventId === event.id ? (
+                            <WeatherPreview latitude={event.latitude} longitude={event.longitude} />
+                          ) : (
+                            <button
+                              className="flex items-center gap-1.5 text-xs text-accent-primary hover:opacity-80 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedEventId(event.id);
+                              }}
+                            >
+                              <Sun className="w-3.5 h-3.5" />
+                              View Forecast
+                            </button>
+                          )}
                         </div>
                       </div>
 

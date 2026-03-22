@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { noaaWeatherService } from "@/lib/services/weather/noaa-service";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -24,6 +25,13 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Round to 2 decimal places for cache key (~1.1km precision)
+    const cacheKey = buildCacheKey("weatherForecast", `${latitude.toFixed(2)}_${longitude.toFixed(2)}`);
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const forecast = await noaaWeatherService.getForecast(latitude, longitude);
 
     if (!forecast) {
@@ -47,6 +55,8 @@ export async function GET(request: Request) {
         expires: alert.expires.toISOString(),
       })),
     };
+
+    await cacheSet(cacheKey, serializedForecast, CACHE_TTL.weatherForecast);
 
     return NextResponse.json(serializedForecast);
   } catch (error) {

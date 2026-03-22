@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,13 @@ export async function GET(request: Request) {
     const eventType = searchParams.get("type");
     const days = parseInt(searchParams.get("days") || "90", 10);
     const county = searchParams.get("county");
+
+    // Check cache before running queries
+    const cacheKey = buildCacheKey("storms", JSON.stringify({ severity, eventType, days, county }));
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
 
     // Calculate date range
     const now = new Date();
@@ -284,7 +292,7 @@ export async function GET(request: Request) {
       }),
     };
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         events: stormEvents.map((e) => ({
@@ -300,7 +308,11 @@ export async function GET(request: Request) {
         },
         filterOptions,
       },
-    });
+    };
+
+    await cacheSet(cacheKey, responseData, CACHE_TTL.storms);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("Storms API error:", error);
     return NextResponse.json(

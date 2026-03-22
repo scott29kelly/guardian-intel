@@ -17,17 +17,31 @@ export const CACHE_NAMESPACES = {
   weather: "guardian:cache:weather",
   analytics: "guardian:cache:analytics",
   context: "guardian:cache:context",
+  customers: "guardian:cache:customers",
+  weatherForecast: "guardian:cache:weatherforecast",
+  storms: "guardian:cache:storms",
+  competitors: "guardian:cache:competitors",
+  playbooks: "guardian:cache:playbooks",
+  claims: "guardian:cache:claims",
+  gamification: "guardian:cache:gamification",
 } as const;
 
 export type CacheNamespace = keyof typeof CACHE_NAMESPACES;
 
 // Default TTLs in seconds
 export const CACHE_TTL = {
-  dashboard: 30,        // 30 seconds - frequently changing data
+  dashboard: 120,       // 2 minutes - SSE handles real-time updates
   streetView: 3600,     // 1 hour - static image URLs
   weather: 300,         // 5 minutes - weather data
-  analytics: 60,        // 1 minute - analytics aggregations
+  analytics: 300,       // 5 minutes - aggregated daily
   context: 300,         // 5 minutes - AI customer context
+  customers: 60,        // 1 minute - customer list queries
+  weatherForecast: 900, // 15 minutes - individual location forecasts
+  storms: 300,          // 5 minutes - storms list queries
+  competitors: 300,     // 5 minutes - competitor data
+  playbooks: 300,       // 5 minutes - playbook list queries
+  claims: 300,          // 5 minutes - claims list queries
+  gamification: 60,     // 1 minute - gamification state (changes frequently)
 } as const;
 
 // In-memory cache for development
