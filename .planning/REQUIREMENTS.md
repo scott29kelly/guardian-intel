@@ -27,7 +27,7 @@
 - [x] **INFOG-009**: Pre-Knock Briefing (internal, 6 modules, "Parking Lot" moment) + Post-Storm Follow-up (internal, 5 modules with web search, "Post-Storm" moment)
 - [x] **INFOG-010**: Insurance Meeting Prep (internal, 5 modules with web search, "Meeting Prep") + Competitive Edge (internal, 5 modules, "Meeting Prep")
 - [x] **INFOG-011**: Customer Leave-Behind (customer-facing, 6 modules, "Leave-Behind" — triggers NB Pro or chain)
-- [ ] **INFOG-012**: Template index with barrel exports, getPresetById(), getPresetsByMoment(), getPresetsForBatch() + Prep My Day batch preset
+- [x] **INFOG-012**: Template index with barrel exports, getPresetById(), getPresetsByMoment(), getPresetsForBatch() + Prep My Day batch preset
 
 ### Generation + Caching
 

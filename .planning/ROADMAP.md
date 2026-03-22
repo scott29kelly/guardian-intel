@@ -56,7 +56,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 03-01-PLAN.md -- All 5 infographic preset templates (INFOG-009, INFOG-010, INFOG-011)
-- [ ] 03-02-PLAN.md -- Template index with barrel exports, helpers, and Prep My Day batch preset (INFOG-012)
+- [x] 03-02-PLAN.md -- Template index with barrel exports, helpers, and Prep My Day batch preset (INFOG-012)
 
 ### Phase 4: Generation Engine
 **Goal**: End-to-end generation pipeline -- a request goes in, an infographic image comes out, cached and accessible via API
@@ -98,7 +98,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation + Model Intelligence | 2/2 | Complete | 2026-03-22 |
 | 2. Data Layer | 2/2 | Complete | 2026-03-22 |
-| 3. Templates | 1/2 | In progress | - |
+| 3. Templates | 2/2 | Complete | 2026-03-22 |
 | 4. Generation Engine | 0/? | Not started | - |
 | 5. Hooks + UI | 0/? | Not started | - |
 | 6. Integration + Polish | 0/? | Not started | - |
