@@ -45,9 +45,9 @@
 
 - [ ] **INFOG-019**: Generator modal — three-mode tabs (Presets | Custom | Ask AI), single Generate button, AnimatePresence, mobile-first bottom sheet
 - [ ] **INFOG-020**: Preset selector (visual cards with usage moment labels) + Topic picker (checkbox grid with web search badges, audience toggle)
-- [ ] **INFOG-021**: Generation progress — animated non-linear progress bar, contextual status messages, NO time estimates, NO model names, background generation support
+- [x] **INFOG-021**: Generation progress — animated non-linear progress bar, contextual status messages, NO time estimates, NO model names, background generation support
 - [ ] **INFOG-022**: Infographic preview (pinch-to-zoom) + Share sheet (SMS/email/link) + Batch day view (swipeable card stack)
-- [ ] **INFOG-023**: Conversational input — text input for natural language, suggested topic chips
+- [x] **INFOG-023**: Conversational input — text input for natural language, suggested topic chips
 
 ### Integration
 
@@ -105,9 +105,9 @@
 | INFOG-018 | Phase 5 | Complete |
 | INFOG-019 | Phase 5 | Pending |
 | INFOG-020 | Phase 5 | Pending |
-| INFOG-021 | Phase 5 | Pending |
+| INFOG-021 | Phase 5 | Complete |
 | INFOG-022 | Phase 5 | Pending |
-| INFOG-023 | Phase 5 | Pending |
+| INFOG-023 | Phase 5 | Complete |
 | INFOG-024 | Phase 6 | Pending |
 | INFOG-025 | Phase 6 | Pending |
 | INFOG-026 | Phase 6 | Pending |
