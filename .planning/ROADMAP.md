@@ -39,7 +39,10 @@ Plans:
   1. Data assembler produces all derived metrics (cumulativeStormExposure, daysSinceLastContact, neighborhoodConversionRate, insuranceDeadlineCountdown) from raw customer data
   2. Prompt composer generates distinct prompt formats for NB2 (with search_types), NB Pro (composition emphasis), and chain mode (split accuracy vs refinement)
   3. Intent parser classifies natural language input (e.g., "prep me for the Johnson meeting") into TopicModules and audience selection
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md -- Data assembler with reused deck-generator functions and 4 derived metrics (INFOG-006)
+- [ ] 02-02-PLAN.md -- Prompt composer with model-specific templates and intent parser for conversational mode (INFOG-007, INFOG-008)
 
 ### Phase 3: Templates
 **Goal**: All five infographic presets defined with module structures, audience targeting, and usage moment tagging -- queryable by ID, moment, and batch
@@ -90,8 +93,8 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Model Intelligence | 0/2 | Planning complete | - |
-| 2. Data Layer | 0/? | Not started | - |
+| 1. Foundation + Model Intelligence | 2/2 | Complete | 2026-03-22 |
+| 2. Data Layer | 0/2 | Planning complete | - |
 | 3. Templates | 0/? | Not started | - |
 | 4. Generation Engine | 0/? | Not started | - |
 | 5. Hooks + UI | 0/? | Not started | - |
@@ -99,4 +102,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-21*
-*Last updated: 2026-03-21*
+*Last updated: 2026-03-22*
