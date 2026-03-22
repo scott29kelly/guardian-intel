@@ -41,8 +41,8 @@ Plans:
   3. Intent parser classifies natural language input (e.g., "prep me for the Johnson meeting") into TopicModules and audience selection
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md -- Data assembler with reused deck-generator functions and 4 derived metrics (INFOG-006)
-- [ ] 02-02-PLAN.md -- Prompt composer with model-specific templates and intent parser for conversational mode (INFOG-007, INFOG-008)
+- [x] 02-01-PLAN.md -- Data assembler with reused deck-generator functions and 4 derived metrics (INFOG-006)
+- [x] 02-02-PLAN.md -- Prompt composer with model-specific templates and intent parser for conversational mode (INFOG-007, INFOG-008)
 
 ### Phase 3: Templates
 **Goal**: All five infographic presets defined with module structures, audience targeting, and usage moment tagging -- queryable by ID, moment, and batch
