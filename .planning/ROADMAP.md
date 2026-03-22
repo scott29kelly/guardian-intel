@@ -53,7 +53,10 @@ Plans:
   2. Insurance Meeting Prep and Competitive Edge presets define their modules with web search flags where needed
   3. Customer Leave-Behind preset targets customer-facing audience and triggers NB Pro or chain strategy via model intelligence
   4. Template index exposes getPresetById(), getPresetsByMoment(), getPresetsForBatch() and the "Prep My Day" batch preset works
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md -- All 5 infographic preset templates (INFOG-009, INFOG-010, INFOG-011)
+- [ ] 03-02-PLAN.md -- Template index with barrel exports, helpers, and Prep My Day batch preset (INFOG-012)
 
 ### Phase 4: Generation Engine
 **Goal**: End-to-end generation pipeline -- a request goes in, an infographic image comes out, cached and accessible via API
@@ -95,7 +98,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation + Model Intelligence | 2/2 | Complete | 2026-03-22 |
 | 2. Data Layer | 0/2 | Planning complete | - |
-| 3. Templates | 0/? | Not started | - |
+| 3. Templates | 0/2 | Planning complete | - |
 | 4. Generation Engine | 0/? | Not started | - |
 | 5. Hooks + UI | 0/? | Not started | - |
 | 6. Integration + Polish | 0/? | Not started | - |
