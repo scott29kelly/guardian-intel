@@ -11,6 +11,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { claimCreateSchema } from "@/lib/validations";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 // =============================================================================
 // GET - List Claims
@@ -24,7 +25,16 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    
+
+    // Check cache first
+    const cacheKey = buildCacheKey("claims", searchParams.toString());
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
+
     // Parse query params
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
@@ -94,7 +104,7 @@ export async function GET(request: NextRequest) {
       prisma.insuranceClaim.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: claims,
       pagination: {
@@ -105,6 +115,13 @@ export async function GET(request: NextRequest) {
         hasNext: page * limit < total,
         hasPrev: page > 1,
       },
+    };
+
+    // Cache the response
+    await cacheSet(cacheKey, responseData, CACHE_TTL.claims);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[Claims API] Error:", error);

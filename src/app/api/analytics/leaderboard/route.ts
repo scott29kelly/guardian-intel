@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export async function GET(request: Request) {
   try {
@@ -11,6 +12,15 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get("timeRange") || "month";
+
+    // Check cache first
+    const cacheKey = buildCacheKey("analytics", "leaderboard", timeRange);
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
 
     // Calculate date range
     const now = new Date();
@@ -159,9 +169,16 @@ export async function GET(request: Request) {
       activeReps: sorted.length,
     };
 
-    return NextResponse.json({
+    const responseData = {
       leaderboard: sorted,
       teamTotals,
+    };
+
+    // Cache the response
+    await cacheSet(cacheKey, responseData, CACHE_TTL.analytics);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("Leaderboard API error:", error);

@@ -16,6 +16,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { playbookQuerySchema, createPlaybookSchema, formatZodErrors } from "@/lib/validations";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,15 @@ export async function GET(request: Request) {
     }
 
     const { page, limit, sortBy, sortOrder, search, category, type, isPublished } = validation.data;
+
+    // Check cache first
+    const cacheKey = buildCacheKey("playbooks", JSON.stringify(validation.data));
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -104,7 +114,7 @@ export async function GET(request: Request) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: parsedPlaybooks,
       pagination: {
@@ -115,6 +125,13 @@ export async function GET(request: Request) {
         hasNext: page < totalPages,
         hasPrev: page > 1,
       },
+    };
+
+    // Cache the response
+    await cacheSet(cacheKey, responseData, CACHE_TTL.playbooks);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[API] GET /api/playbooks error:", error);

@@ -19,6 +19,7 @@ import {
   type DailyGoal,
   type Achievement,
 } from "@/lib/gamification/types";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -352,12 +353,21 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id || "demo-user";
 
+    // Check cache first
+    const cacheKey = buildCacheKey("gamification", userId);
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
+
     const stats = await buildUserStats(userId);
     const levelInfo = calculateLevel(stats.xp);
     const dailyGoals = getDailyGoals(stats);
     const achievements = getAchievementsWithProgress(stats);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         stats: {
@@ -372,6 +382,13 @@ export async function GET() {
         unlockedCount: stats.unlockedAchievements.length,
         totalAchievements: ACHIEVEMENTS.length,
       },
+    };
+
+    // Cache the response
+    await cacheSet(cacheKey, responseData, CACHE_TTL.gamification);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[Gamification] GET error:", error);
