@@ -26,12 +26,12 @@ Reps get actionable visual briefings in one tap — no model pickers, no quality
 - ✓ INFOG-006: Data assembler with derived metrics — Phase 2
 - ✓ INFOG-007: Prompt composer (model-aware prompts) — Phase 2
 - ✓ INFOG-008: Intent parser (conversational → modules + audience) — Phase 2
+- ✓ INFOG-009: Pre-Knock + Post-Storm templates — Phase 3
+- ✓ INFOG-010: Insurance Prep + Competitive Edge templates — Phase 3
+- ✓ INFOG-011: Customer Leave-Behind template — Phase 3
+- ✓ INFOG-012: Template index + helpers — Phase 3
 
 ### Active
-- [ ] INFOG-009: Pre-Knock + Post-Storm templates
-- [ ] INFOG-010: Insurance Prep + Competitive Edge templates
-- [ ] INFOG-011: Customer Leave-Behind template
-- [ ] INFOG-012: Template index + helpers
 - [ ] INFOG-013: Infographic generator service (orchestrator)
 - [ ] INFOG-014: API routes (single + batch + intent parse)
 - [ ] INFOG-015: Cache service (Redis + service worker)
@@ -101,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 2 completion*
+*Last updated: 2026-03-22 after Phase 3 completion*
