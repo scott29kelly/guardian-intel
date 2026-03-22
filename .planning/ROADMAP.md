@@ -55,7 +55,7 @@ Plans:
   4. Template index exposes getPresetById(), getPresetsByMoment(), getPresetsForBatch() and the "Prep My Day" batch preset works
 **Plans:** 2 plans
 Plans:
-- [ ] 03-01-PLAN.md -- All 5 infographic preset templates (INFOG-009, INFOG-010, INFOG-011)
+- [x] 03-01-PLAN.md -- All 5 infographic preset templates (INFOG-009, INFOG-010, INFOG-011)
 - [ ] 03-02-PLAN.md -- Template index with barrel exports, helpers, and Prep My Day batch preset (INFOG-012)
 
 ### Phase 4: Generation Engine
@@ -97,8 +97,8 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation + Model Intelligence | 2/2 | Complete | 2026-03-22 |
-| 2. Data Layer | 0/2 | Planning complete | - |
-| 3. Templates | 0/2 | Planning complete | - |
+| 2. Data Layer | 2/2 | Complete | 2026-03-22 |
+| 3. Templates | 1/2 | In progress | - |
 | 4. Generation Engine | 0/? | Not started | - |
 | 5. Hooks + UI | 0/? | Not started | - |
 | 6. Integration + Polish | 0/? | Not started | - |

@@ -24,9 +24,9 @@
 
 ### Templates
 
-- [ ] **INFOG-009**: Pre-Knock Briefing (internal, 6 modules, "Parking Lot" moment) + Post-Storm Follow-up (internal, 5 modules with web search, "Post-Storm" moment)
-- [ ] **INFOG-010**: Insurance Meeting Prep (internal, 5 modules with web search, "Meeting Prep") + Competitive Edge (internal, 5 modules, "Meeting Prep")
-- [ ] **INFOG-011**: Customer Leave-Behind (customer-facing, 6 modules, "Leave-Behind" — triggers NB Pro or chain)
+- [x] **INFOG-009**: Pre-Knock Briefing (internal, 6 modules, "Parking Lot" moment) + Post-Storm Follow-up (internal, 5 modules with web search, "Post-Storm" moment)
+- [x] **INFOG-010**: Insurance Meeting Prep (internal, 5 modules with web search, "Meeting Prep") + Competitive Edge (internal, 5 modules, "Meeting Prep")
+- [x] **INFOG-011**: Customer Leave-Behind (customer-facing, 6 modules, "Leave-Behind" — triggers NB Pro or chain)
 - [ ] **INFOG-012**: Template index with barrel exports, getPresetById(), getPresetsByMoment(), getPresetsForBatch() + Prep My Day batch preset
 
 ### Generation + Caching
@@ -93,9 +93,9 @@
 | INFOG-006 | Phase 2 | Complete |
 | INFOG-007 | Phase 2 | Complete |
 | INFOG-008 | Phase 2 | Complete |
-| INFOG-009 | Phase 3 | Pending |
-| INFOG-010 | Phase 3 | Pending |
-| INFOG-011 | Phase 3 | Pending |
+| INFOG-009 | Phase 3 | Complete |
+| INFOG-010 | Phase 3 | Complete |
+| INFOG-011 | Phase 3 | Complete |
 | INFOG-012 | Phase 3 | Pending |
 | INFOG-013 | Phase 4 | Pending |
 | INFOG-014 | Phase 4 | Pending |
