@@ -23,11 +23,11 @@ Reps get actionable visual briefings in one tap — no model pickers, no quality
 - ✓ INFOG-003: Model Intelligence Layer (registry, scoring, chain strategies) — Phase 1
 - ✓ INFOG-004: Gemini Flash Image adapter (NB2 with web grounding) — Phase 1
 - ✓ INFOG-005: AI Router updates (image_generation task routing) — Phase 1
+- ✓ INFOG-006: Data assembler with derived metrics — Phase 2
+- ✓ INFOG-007: Prompt composer (model-aware prompts) — Phase 2
+- ✓ INFOG-008: Intent parser (conversational → modules + audience) — Phase 2
 
 ### Active
-- [ ] INFOG-006: Data assembler with derived metrics
-- [ ] INFOG-007: Prompt composer (model-aware prompts)
-- [ ] INFOG-008: Intent parser (conversational → modules + audience)
 - [ ] INFOG-009: Pre-Knock + Post-Storm templates
 - [ ] INFOG-010: Insurance Prep + Competitive Edge templates
 - [ ] INFOG-011: Customer Leave-Behind template
@@ -101,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 1 completion*
+*Last updated: 2026-03-22 after Phase 2 completion*
