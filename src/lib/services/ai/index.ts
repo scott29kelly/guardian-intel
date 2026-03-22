@@ -24,6 +24,8 @@ export { KimiAdapter, createKimiAdapter } from "./adapters/kimi";
 export { PerplexityAdapter, createPerplexityAdapter } from "./adapters/perplexity";
 export { OpenAIAdapter, createOpenAIAdapter } from "./adapters/openai";
 export { GeminiAdapter, createGeminiFlashAdapter, createGeminiProAdapter } from "./adapters/gemini";
+export { GeminiFlashImageAdapter, createGeminiFlashImageAdapter } from "./adapters/gemini-flash-image";
+export { GeminiProImageAdapter, createGeminiProImageAdapter } from "./adapters/gemini-pro-image";
 
 // Tools
 export { AI_TOOLS, executeTool, getToolsByCategory } from "./tools";
@@ -42,6 +44,8 @@ import { createKimiAdapter } from "./adapters/kimi";
 import { createPerplexityAdapter } from "./adapters/perplexity";
 import { createOpenAIAdapter } from "./adapters/openai";
 import { createGeminiFlashAdapter } from "./adapters/gemini";
+import { createGeminiFlashImageAdapter } from "./adapters/gemini-flash-image";
+import { createGeminiProImageAdapter } from "./adapters/gemini-pro-image";
 
 let isInitialized = false;
 
@@ -60,7 +64,9 @@ export function initializeAI(): void {
   const geminiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (geminiKey) {
     adapters.push(createGeminiFlashAdapter(geminiKey));
-    console.log("[AI] ✓ Gemini Flash initialized (primary)");
+    adapters.push(createGeminiFlashImageAdapter(geminiKey));
+    adapters.push(createGeminiProImageAdapter(geminiKey));
+    console.log("[AI] ✓ Gemini Flash + NB2 + NB Pro initialized (primary)");
   }
 
   // Optional: Claude for enhanced reasoning (if configured)
