@@ -16,15 +16,15 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 05 — hooks-ui
+**Current Focus:** Phase 06 — integration-polish
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
 
-Phase: 5
-Plan: 4 (complete)
+Phase: 6
+Plan: 2 (complete)
 
 ### Phase 1 Context
 
@@ -53,6 +53,7 @@ Plan: 4 (complete)
 | Phase 05 P02 | 146s | 2 tasks | 4 files |
 | Phase 05 P03 | 96s | 2 tasks | 2 files |
 | Phase 05 P04 | 120s | 2 tasks | 4 files |
+| Phase 06 P02 | 58s | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Plan: 4 (complete)
 - ShareSheet uses bottom-sheet slide-up pattern with spring animation
 - BatchDayView uses AnimatePresence popLayout for swipeable card transitions
 - Native Web Share API offered as fallback via typeof check
+- Browser Cache API for offline infographic PNG storage (not Upstash Redis)
+- CacheFirst strategy in sw.js for /infographics/cache/* with 7-day max age
+- LRU pruning based on X-Cached-At header capped at 50 entries
 
 ### Discovered TODOs
 
@@ -104,16 +108,16 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 05-04-PLAN.md -- created InfographicPreview, ShareSheet, BatchDayView components
-- **Where we left off:** Phase 05 complete (4/4 plans done)
-- **Next step:** Execute Phase 06 (Integration, Polish, Testing)
+- **What happened:** Completed 06-02-PLAN.md -- offline support for infographic PNG caching
+- **Where we left off:** Phase 06 Plan 02 complete
+- **Next step:** Continue Phase 06 remaining plans
 
 ### Important Context for Next Session
 
-- All 8 infographic generator components complete in src/features/infographic-generator/components/
-- Barrel export has: InfographicGeneratorModal, PresetSelector, TopicPicker, GenerationProgress, ConversationalInput, InfographicPreview, ShareSheet, BatchDayView
-- Phase 05 is fully complete -- all hooks and UI components are built
-- Phase 06 will wire everything together for the final integration
+- offlineSupport.ts provides Cache API-based PNG storage with WiFi awareness
+- sw.js updated with CacheFirst route for /infographics/cache/* URLs
+- Cache name: infographic-images-v1, max 50 items, 7-day expiration
+- All Phase 05 hooks and UI components remain complete
 
 ---
 *State initialized: 2026-03-21*
