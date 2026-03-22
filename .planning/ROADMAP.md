@@ -28,8 +28,8 @@
   5. AI Router routes an image_generation task through Model Intelligence without exposing model choice to callers
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md -- Verify and commit types, branding, and model intelligence (INFOG-001, INFOG-002, INFOG-003)
-- [ ] 01-02-PLAN.md -- Verify and commit Gemini adapter and router updates (INFOG-004, INFOG-005)
+- [x] 01-01-PLAN.md -- Verify and commit types, branding, and model intelligence (INFOG-001, INFOG-002, INFOG-003)
+- [x] 01-02-PLAN.md -- Verify and commit Gemini adapter and router updates (INFOG-004, INFOG-005)
 
 ### Phase 2: Data Layer
 **Goal**: Content pipeline that assembles customer data, composes model-aware prompts, and parses natural language intent into structured generation parameters
