@@ -33,7 +33,7 @@
 
 - [x] **INFOG-013**: Infographic generator service — orchestrates data assembly → model scoring → prompt composition → generation (with chain support), progress callbacks with contextual messages
 - [ ] **INFOG-014**: API routes — POST /api/ai/generate-infographic (single), POST batch/, GET batch/[jobId], POST /api/ai/parse-infographic-intent — all with NextAuth session validation
-- [ ] **INFOG-015**: Cache service — Upstash Redis (24hr standard, 7 days leave-behinds) + service worker layer, getCached/cacheResult/invalidateForCustomer
+- [x] **INFOG-015**: Cache service — Upstash Redis (24hr standard, 7 days leave-behinds) + service worker layer, getCached/cacheResult/invalidateForCustomer
 
 ### Hooks
 
@@ -99,7 +99,7 @@
 | INFOG-012 | Phase 3 | Pending |
 | INFOG-013 | Phase 4 | Pending |
 | INFOG-014 | Phase 4 | Pending |
-| INFOG-015 | Phase 4 | Pending |
+| INFOG-015 | Phase 4 | Complete |
 | INFOG-016 | Phase 5 | Pending |
 | INFOG-017 | Phase 5 | Pending |
 | INFOG-018 | Phase 5 | Pending |

@@ -68,7 +68,7 @@ Plans:
   3. Cache service stores results in Redis with correct TTLs (24hr standard, 7 days for leave-behinds) and supports invalidation per customer
 **Plans:** 3 plans
 Plans:
-- [ ] 04-01-PLAN.md -- Cache service with Redis TTLs and customer invalidation (INFOG-015)
+- [x] 04-01-PLAN.md -- Cache service with Redis TTLs and customer invalidation (INFOG-015)
 - [x] 04-02-PLAN.md -- Generator orchestrator service with chain support and progress callbacks (INFOG-013)
 - [ ] 04-03-PLAN.md -- API routes for generation, batch, status polling, and intent parsing (INFOG-014)
 
@@ -103,7 +103,7 @@ Plans:
 | 1. Foundation + Model Intelligence | 2/2 | Complete | 2026-03-22 |
 | 2. Data Layer | 2/2 | Complete | 2026-03-22 |
 | 3. Templates | 2/2 | Complete | 2026-03-22 |
-| 4. Generation Engine | 1/3 | In Progress | - |
+| 4. Generation Engine | 2/3 | In Progress | - |
 | 5. Hooks + UI | 0/? | Not started | - |
 | 6. Integration + Polish | 0/? | Not started | - |
 
