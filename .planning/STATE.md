@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T02:14:56.825Z"
+last_updated: "2026-03-22T15:11:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 13
+  completed_plans: 10
 ---
 
 # Project State: Infographic Generator
@@ -16,7 +16,7 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 04 — generation-engine
+**Current Focus:** Phase 05 — hooks-ui
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
@@ -24,7 +24,7 @@ progress:
 ## Current Position
 
 Phase: 5
-Plan: Not started
+Plan: 2 (next)
 
 ### Phase 1 Context
 
@@ -49,6 +49,7 @@ Plan: Not started
 | Phase 04 P01 | 53s | 1 tasks | 1 files |
 | Phase 04 P02 | 65s | 1 tasks | 1 files |
 | Phase 04 P03 | 109s | 2 tasks | 4 files |
+| Phase 05 P01 | 97s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,10 @@ Plan: Not started
 - Manual validation over Zod for API routes -- types already well-defined, keeps routes lightweight
 - In-memory Map for batch job store -- sufficient for v1 single-instance; Redis upgrade for production
 - Fire-and-forget async IIFE for background batch generation
+- Simulated progress phases locally since HTTP POST does not stream progress
+- Service worker showNotification for background generation (component unmounted)
+- 2-second polling interval for batch status (matches short-lived job lifecycle)
+- BatchCustomerStatus type exported from barrel for downstream component use
 
 ### Discovered TODOs
 
@@ -90,17 +95,17 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 04-03-PLAN.md -- created 4 API route handlers for infographic generation
-- **Where we left off:** Phase 04 complete (all 3 plans done)
-- **Next step:** Begin Phase 05 (Hooks + UI)
+- **What happened:** Completed 05-01-PLAN.md -- created 3 React hooks + barrel export for infographic generation
+- **Where we left off:** Phase 05, Plan 01 complete (1/4 plans done)
+- **Next step:** Execute 05-02-PLAN.md (Generator modal with three-mode tabs)
 
 ### Important Context for Next Session
 
-- 4 API routes created: single generation, batch POST, batch status GET, intent parsing
-- All routes require NextAuth session (401 pattern)
-- Single generation uses cache-first: getCached() before generateInfographic()
-- Batch uses in-memory Map with fire-and-forget background generation
-- Phase 04 complete -- Phase 05 (Hooks + UI) is next
+- 3 hooks created: useInfographicGeneration, useInfographicBatch, useInfographicPresets
+- All hooks are "use client" components with zero model name references
+- useInfographicGeneration uses simulated progress + service worker background notification
+- useInfographicBatch polls every 2s with progressive result delivery
+- Barrel export at src/features/infographic-generator/hooks/index.ts
 
 ---
 *State initialized: 2026-03-21*

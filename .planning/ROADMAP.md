@@ -82,7 +82,12 @@ Plans:
   3. Generator modal presents three tabs (Presets, Custom, Ask AI) as a mobile-first bottom sheet with a single Generate button
   4. Preview component supports pinch-to-zoom, share sheet offers SMS/email/link, and batch view displays a swipeable card stack
   5. Conversational input accepts natural language with suggested topic chips
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [x] 05-01-PLAN.md -- React hooks: useInfographicGeneration, useInfographicBatch, useInfographicPresets (INFOG-016, INFOG-017, INFOG-018)
+- [ ] 05-02-PLAN.md -- Generator modal with three-mode tabs, PresetSelector, and TopicPicker (INFOG-019, INFOG-020)
+- [ ] 05-03-PLAN.md -- GenerationProgress with animated progress bar, ConversationalInput with topic chips (INFOG-021, INFOG-023)
+- [ ] 05-04-PLAN.md -- InfographicPreview with pinch-to-zoom, ShareSheet, BatchDayView card stack (INFOG-022)
 
 ### Phase 6: Integration + Polish
 **Goal**: Infographic generator is wired into every relevant app surface, works offline, and has test coverage
@@ -104,7 +109,7 @@ Plans:
 | 2. Data Layer | 2/2 | Complete | 2026-03-22 |
 | 3. Templates | 2/2 | Complete | 2026-03-22 |
 | 4. Generation Engine | 3/3 | Complete | 2026-03-22 |
-| 5. Hooks + UI | 0/? | Not started | - |
+| 5. Hooks + UI | 1/4 | In Progress | - |
 | 6. Integration + Polish | 0/? | Not started | - |
 
 ---

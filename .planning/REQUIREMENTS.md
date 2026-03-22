@@ -37,9 +37,9 @@
 
 ### Hooks
 
-- [ ] **INFOG-016**: useInfographicGeneration hook — generation lifecycle, contextual progress messages (no model names), background generation, PWA push notification on complete
-- [ ] **INFOG-017**: useInfographicBatch hook — per-customer autonomous model selection, parallel generation, progressive results
-- [ ] **INFOG-018**: useInfographicPresets hook — template management with presets/getPreset/getByMoment/searchPresets
+- [x] **INFOG-016**: useInfographicGeneration hook — generation lifecycle, contextual progress messages (no model names), background generation, PWA push notification on complete
+- [x] **INFOG-017**: useInfographicBatch hook — per-customer autonomous model selection, parallel generation, progressive results
+- [x] **INFOG-018**: useInfographicPresets hook — template management with presets/getPreset/getByMoment/searchPresets
 
 ### UI Components
 
@@ -96,13 +96,13 @@
 | INFOG-009 | Phase 3 | Complete |
 | INFOG-010 | Phase 3 | Complete |
 | INFOG-011 | Phase 3 | Complete |
-| INFOG-012 | Phase 3 | Pending |
-| INFOG-013 | Phase 4 | Pending |
-| INFOG-014 | Phase 4 | Pending |
+| INFOG-012 | Phase 3 | Complete |
+| INFOG-013 | Phase 4 | Complete |
+| INFOG-014 | Phase 4 | Complete |
 | INFOG-015 | Phase 4 | Complete |
-| INFOG-016 | Phase 5 | Pending |
-| INFOG-017 | Phase 5 | Pending |
-| INFOG-018 | Phase 5 | Pending |
+| INFOG-016 | Phase 5 | Complete |
+| INFOG-017 | Phase 5 | Complete |
+| INFOG-018 | Phase 5 | Complete |
 | INFOG-019 | Phase 5 | Pending |
 | INFOG-020 | Phase 5 | Pending |
 | INFOG-021 | Phase 5 | Pending |
