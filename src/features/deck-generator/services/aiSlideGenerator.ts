@@ -290,9 +290,110 @@ Base actions on their STAGE:
 // AI SLIDE GENERATOR
 // =============================================================================
 
+/**
+ * NotebookLM-enhanced slide content cache.
+ * When generateAllSlidesWithNotebookLM() pre-populates this,
+ * individual generateAISlideContent() calls use cached results
+ * instead of hitting Gemini Flash per-section.
+ */
+let notebookLMCache: Record<string, Record<string, unknown>> = {};
+let notebookLMCacheCustomerId: string | null = null;
+let notebookLMNotebookId: string | null = null;
+
+/**
+ * Pre-generate all slide content using NotebookLM.
+ * Call this once before generating individual slides — it populates the cache
+ * so each section resolves instantly from NotebookLM research.
+ *
+ * Falls back to per-section Gemini Flash if NotebookLM is unavailable.
+ */
+export async function generateAllSlidesWithNotebookLM(
+  context: SlideGenerationContext,
+  options?: {
+    weatherEvents?: WeatherEvent[];
+    onProgress?: (stage: string, detail?: string) => void;
+  }
+): Promise<boolean> {
+  try {
+    options?.onProgress?.("notebooklm-init", "Connecting to NotebookLM...");
+
+    const response = await fetch("/api/decks/generate-notebooklm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer: context.customer,
+        weatherEvents: options?.weatherEvents || context.weatherEvents || [],
+        mode: "research",
+        notebookId: notebookLMNotebookId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      // If NotebookLM is unavailable (503), silently fall back
+      if (response.status === 503 && errorData.fallback) {
+        console.warn("[AISlideGenerator] NotebookLM unavailable, falling back to Gemini Flash");
+        return false;
+      }
+      console.error("[AISlideGenerator] NotebookLM error:", errorData);
+      return false;
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.sections) {
+      console.error("[AISlideGenerator] NotebookLM returned no sections");
+      return false;
+    }
+
+    // Cache all section results
+    notebookLMCache = data.sections;
+    notebookLMCacheCustomerId = context.customer.id;
+    notebookLMNotebookId = data.notebookId || null;
+
+    options?.onProgress?.("notebooklm-complete", `NotebookLM researched ${Object.keys(data.sections).length} sections`);
+
+    console.log(
+      `[AISlideGenerator] NotebookLM pre-generated ${Object.keys(data.sections).length} sections for ${data.customerName}`
+    );
+    return true;
+  } catch (error) {
+    console.error("[AISlideGenerator] NotebookLM bridge error:", error);
+    return false;
+  }
+}
+
+/**
+ * Clear the NotebookLM cache (e.g., when switching customers).
+ */
+export function clearNotebookLMCache() {
+  notebookLMCache = {};
+  notebookLMCacheCustomerId = null;
+  // Intentionally keep notebookLMNotebookId for reuse
+}
+
+/**
+ * Get the cached NotebookLM notebook ID for the current customer.
+ */
+export function getNotebookLMNotebookId(): string | null {
+  return notebookLMNotebookId;
+}
+
 export async function generateAISlideContent(
   context: SlideGenerationContext
 ): Promise<Record<string, unknown>> {
+  // Check NotebookLM cache first
+  const sectionId = context.sectionId;
+  if (
+    notebookLMCacheCustomerId === context.customer.id &&
+    notebookLMCache[sectionId] &&
+    !notebookLMCache[sectionId].error
+  ) {
+    console.log(`[AISlideGenerator] Using NotebookLM cache for section: ${sectionId}`);
+    return notebookLMCache[sectionId];
+  }
+
+  // Fall back to Gemini Flash
   const promptKey = getPromptKey(context.sectionId);
   const promptGenerator = SLIDE_PROMPTS[promptKey];
 
