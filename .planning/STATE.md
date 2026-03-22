@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T02:02:19Z"
+last_updated: "2026-03-22T02:06:34Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State: Infographic Generator
@@ -23,8 +23,8 @@ progress:
 
 ## Current Position
 
-Phase: 04 (generation-engine) — EXECUTING
-Plan: 2 of 3
+Phase: 04 (generation-engine) — COMPLETE
+Plan: 3 of 3 (done)
 
 ### Phase 1 Context
 
@@ -48,6 +48,7 @@ Plan: 2 of 3
 | Phase 03 P02 | 88s | 1 tasks | 2 files |
 | Phase 04 P01 | 53s | 1 tasks | 1 files |
 | Phase 04 P02 | 65s | 1 tasks | 1 files |
+| Phase 04 P03 | 109s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Plan: 2 of 3
 - Local key tracking Set for in-memory fallback invalidation since cache.ts Map is not exported
 - No retry logic in generator service -- AI Router adapter handles retries
 - No caching in generator service -- API route layer (Plan 03) handles cache check/store
+- Manual validation over Zod for API routes -- types already well-defined, keeps routes lightweight
+- In-memory Map for batch job store -- sufficient for v1 single-instance; Redis upgrade for production
+- Fire-and-forget async IIFE for background batch generation
 
 ### Discovered TODOs
 
@@ -86,16 +90,17 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 04-01-PLAN.md -- created infographic cache service with audience-aware TTLs and customer-level invalidation
-- **Where we left off:** Phase 04 Plan 01 complete, continuing with remaining Phase 04 plans
-- **Next step:** Execute 04-03-PLAN.md (API routes)
+- **What happened:** Completed 04-03-PLAN.md -- created 4 API route handlers for infographic generation
+- **Where we left off:** Phase 04 complete (all 3 plans done)
+- **Next step:** Begin Phase 05 (Hooks + UI)
 
 ### Important Context for Next Session
 
-- infographicCache.ts exports getCached, cacheResult, invalidateForCustomer, INFOGRAPHIC_CACHE_TTL
-- Standard TTL: 86400s (24hr), leave-behind TTL: 604800s (7 days)
-- Key format: guardian:cache:infographic:{customerId}:{presetId}:{YYYY-MM-DD}
-- Phase 04 Plan 03 (API routes) still pending
+- 4 API routes created: single generation, batch POST, batch status GET, intent parsing
+- All routes require NextAuth session (401 pattern)
+- Single generation uses cache-first: getCached() before generateInfographic()
+- Batch uses in-memory Map with fire-and-forget background generation
+- Phase 04 complete -- Phase 05 (Hooks + UI) is next
 
 ---
 *State initialized: 2026-03-21*
