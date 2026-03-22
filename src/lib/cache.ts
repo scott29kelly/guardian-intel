@@ -17,6 +17,7 @@ export const CACHE_NAMESPACES = {
   weather: "guardian:cache:weather",
   analytics: "guardian:cache:analytics",
   context: "guardian:cache:context",
+  notebooklm: "guardian:cache:notebooklm",
 } as const;
 
 export type CacheNamespace = keyof typeof CACHE_NAMESPACES;
@@ -28,6 +29,7 @@ export const CACHE_TTL = {
   weather: 300,         // 5 minutes - weather data
   analytics: 60,        // 1 minute - analytics aggregations
   context: 300,         // 5 minutes - AI customer context
+  notebooklm: 86400,   // 24 hours - NotebookLM notebook IDs per customer
 } as const;
 
 // In-memory cache for development
