@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T15:11:00.000Z"
+last_updated: "2026-03-22T15:15:46.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State: Infographic Generator
@@ -50,6 +50,7 @@ Plan: 4 (next)
 | Phase 04 P02 | 65s | 1 tasks | 1 files |
 | Phase 04 P03 | 109s | 2 tasks | 4 files |
 | Phase 05 P01 | 97s | 2 tasks | 4 files |
+| Phase 05 P02 | 146s | 2 tasks | 4 files |
 | Phase 05 P03 | 96s | 2 tasks | 2 files |
 
 ## Accumulated Context
@@ -78,6 +79,8 @@ Plan: 4 (next)
 - Service worker showNotification for background generation (component unmounted)
 - 2-second polling interval for batch status (matches short-lived job lifecycle)
 - BatchCustomerStatus type exported from barrel for downstream component use
+- Conversational tab includes inline textarea placeholder for Plan 03
+- Result state shows simple ready message -- Plan 03 adds GenerationProgress component
 
 ### Discovered TODOs
 
@@ -96,16 +99,17 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 05-03-PLAN.md -- created GenerationProgress and ConversationalInput components
-- **Where we left off:** Phase 05, Plan 03 complete (plans 01+03 done, 02+04 remaining)
+- **What happened:** Completed 05-02-PLAN.md -- created InfographicGeneratorModal, PresetSelector, TopicPicker, barrel export
+- **Where we left off:** Phase 05, Plans 01+02+03 complete (3/4 plans done)
 - **Next step:** Execute 05-04-PLAN.md (Preview, ShareSheet, BatchDayView)
 
 ### Important Context for Next Session
 
-- GenerationProgress: animated non-linear progress bar with phase icons and background dismiss
-- ConversationalInput: natural language textarea with 5 suggested topic chips
-- Both at src/features/infographic-generator/components/
-- Pre-existing TS errors in InfographicGeneratorModal.tsx (imports PresetSelector/TopicPicker from 05-04)
+- InfographicGeneratorModal: three-tab modal (Presets | Custom | Ask AI) with AnimatePresence
+- PresetSelector: grouped cards by usage moment with audience badges
+- TopicPicker: checkbox module grid with audience toggle and web search badges
+- All at src/features/infographic-generator/components/
+- Barrel export re-exports all components
 
 ---
 *State initialized: 2026-03-21*
