@@ -103,17 +103,17 @@
 | INFOG-016 | Phase 5 | Pending |
 | INFOG-017 | Phase 5 | Pending |
 | INFOG-018 | Phase 5 | Pending |
-| INFOG-019 | Phase 6 | Pending |
-| INFOG-020 | Phase 6 | Pending |
-| INFOG-021 | Phase 6 | Pending |
-| INFOG-022 | Phase 6 | Pending |
-| INFOG-023 | Phase 6 | Pending |
-| INFOG-024 | Phase 7 | Pending |
-| INFOG-025 | Phase 7 | Pending |
-| INFOG-026 | Phase 7 | Pending |
-| INFOG-027 | Phase 8 | Pending |
-| INFOG-028 | Phase 8 | Pending |
-| INFOG-029 | Phase 8 | Pending |
+| INFOG-019 | Phase 5 | Pending |
+| INFOG-020 | Phase 5 | Pending |
+| INFOG-021 | Phase 5 | Pending |
+| INFOG-022 | Phase 5 | Pending |
+| INFOG-023 | Phase 5 | Pending |
+| INFOG-024 | Phase 6 | Pending |
+| INFOG-025 | Phase 6 | Pending |
+| INFOG-026 | Phase 6 | Pending |
+| INFOG-027 | Phase 6 | Pending |
+| INFOG-028 | Phase 6 | Pending |
+| INFOG-029 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 29 total
@@ -122,4 +122,4 @@
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 after roadmap phase compression (8 -> 6 phases)*
