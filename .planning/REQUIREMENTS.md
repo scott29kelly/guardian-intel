@@ -18,7 +18,7 @@
 
 ### Data Layer
 
-- [ ] **INFOG-006**: Data assembler extending deck generator patterns — reuse existing functions, add derived metrics (cumulativeStormExposure, daysSinceLastContact, neighborhoodConversionRate, insuranceDeadlineCountdown)
+- [x] **INFOG-006**: Data assembler extending deck generator patterns — reuse existing functions, add derived metrics (cumulativeStormExposure, daysSinceLastContact, neighborhoodConversionRate, insuranceDeadlineCountdown)
 - [x] **INFOG-007**: Prompt composer with model-specific templates — NB2 prompts with search_types, NB Pro prompts emphasizing composition, chain prompts splitting data accuracy vs visual refinement
 - [x] **INFOG-008**: Intent parser for conversational mode — classifies natural language into TopicModules + audience using AI Router classify task
 
@@ -90,7 +90,7 @@
 | INFOG-003 | Phase 1 | Complete |
 | INFOG-004 | Phase 1 | Complete |
 | INFOG-005 | Phase 1 | Complete |
-| INFOG-006 | Phase 2 | Pending |
+| INFOG-006 | Phase 2 | Complete |
 | INFOG-007 | Phase 2 | Complete |
 | INFOG-008 | Phase 2 | Complete |
 | INFOG-009 | Phase 3 | Pending |
