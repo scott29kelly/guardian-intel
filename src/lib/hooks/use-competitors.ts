@@ -143,11 +143,15 @@ async function fetchCompetitors(params: CompetitorQueryParams): Promise<{
 
   const response = await fetch(`/api/competitors?${searchParams.toString()}`);
   if (!response.ok) throw new Error("Failed to fetch competitors");
-  
+
   const result = await response.json();
   if (!result.success) throw new Error(result.error);
-  
-  return result;
+
+  // API returns { competitors: [...] } — normalize to { data: [...] }
+  return {
+    data: result.competitors || result.data || [],
+    pagination: result.pagination,
+  };
 }
 
 async function fetchCompetitor(id: string): Promise<CompetitorDetail> {
@@ -197,11 +201,15 @@ async function fetchActivities(params: ActivityQueryParams): Promise<{
 
   const response = await fetch(`/api/competitors/activity?${searchParams.toString()}`);
   if (!response.ok) throw new Error("Failed to fetch activities");
-  
+
   const result = await response.json();
   if (!result.success) throw new Error(result.error);
-  
-  return result;
+
+  // API returns { activities: [...] } — normalize to { data: [...] }
+  return {
+    data: result.activities || result.data || [],
+    pagination: result.pagination,
+  };
 }
 
 async function createCompetitor(data: CreateCompetitorRequest): Promise<CompetitorListItem> {

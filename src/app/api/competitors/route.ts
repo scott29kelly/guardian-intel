@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL, cacheInvalidateNamespace } from "@/lib/cache";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +21,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await rateLimit(request, "api");
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
@@ -39,6 +45,16 @@ export async function GET(request: Request) {
     const isActiveParam = searchParams.get("isActive");
     const sortBy = searchParams.get("sortBy") || "name";
     const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
+
+    // Check cache
+    const queryParams = { page, limit, search, pricingTier, isActive: isActiveParam, sortBy, sortOrder };
+    const cacheKey = buildCacheKey("competitors", "list", JSON.stringify(queryParams));
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
 
     // Build the where clause
     const where: Prisma.CompetitorWhereInput = {};
@@ -90,7 +106,7 @@ export async function GET(request: Request) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       competitors,
       pagination: {
@@ -101,6 +117,12 @@ export async function GET(request: Request) {
         hasNext: page < totalPages,
         hasPrev: page > 1,
       },
+    };
+
+    await cacheSet(cacheKey, responseData, CACHE_TTL.competitors);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[API] GET /api/competitors error:", error);
@@ -184,6 +206,9 @@ export async function POST(request: Request) {
         isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
       },
     });
+
+    // Invalidate competitors cache on create
+    await cacheInvalidateNamespace("competitors");
 
     return NextResponse.json({ success: true, competitor }, { status: 201 });
   } catch (error) {

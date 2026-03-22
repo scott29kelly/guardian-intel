@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL, cacheInvalidateNamespace } from "@/lib/cache";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,10 @@ const VALID_ACTIVITY_TYPES = [
 
 export async function GET(request: Request) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await rateLimit(request, "api");
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
@@ -51,6 +57,16 @@ export async function GET(request: Request) {
     const state = searchParams.get("state") || undefined;
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
+
+    // Check cache
+    const queryParams = { page, limit, competitorId, customerId, activityType, state, startDate, endDate };
+    const cacheKey = buildCacheKey("competitors", "activity", JSON.stringify(queryParams));
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
 
     // Build where clause
     const where: Prisma.CompetitorActivityWhereInput = {};
@@ -106,7 +122,7 @@ export async function GET(request: Request) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       activities,
       pagination: {
@@ -117,6 +133,12 @@ export async function GET(request: Request) {
         hasNext: page < totalPages,
         hasPrev: page > 1,
       },
+    };
+
+    await cacheSet(cacheKey, responseData, CACHE_TTL.competitors);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[API] GET /api/competitors/activity error:", error);
@@ -222,6 +244,9 @@ export async function POST(request: Request) {
         reportedBy: { select: { id: true, name: true } },
       },
     });
+
+    // Invalidate competitors cache on new activity
+    await cacheInvalidateNamespace("competitors");
 
     return NextResponse.json({ success: true, activity }, { status: 201 });
   } catch (error) {
