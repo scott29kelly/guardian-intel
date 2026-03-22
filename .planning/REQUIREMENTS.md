@@ -31,7 +31,7 @@
 
 ### Generation + Caching
 
-- [ ] **INFOG-013**: Infographic generator service — orchestrates data assembly → model scoring → prompt composition → generation (with chain support), progress callbacks with contextual messages
+- [x] **INFOG-013**: Infographic generator service — orchestrates data assembly → model scoring → prompt composition → generation (with chain support), progress callbacks with contextual messages
 - [ ] **INFOG-014**: API routes — POST /api/ai/generate-infographic (single), POST batch/, GET batch/[jobId], POST /api/ai/parse-infographic-intent — all with NextAuth session validation
 - [ ] **INFOG-015**: Cache service — Upstash Redis (24hr standard, 7 days leave-behinds) + service worker layer, getCached/cacheResult/invalidateForCustomer
 

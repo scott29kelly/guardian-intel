@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T01:44:27.099Z"
+last_updated: "2026-03-22T02:02:19Z"
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
 ---
 
 # Project State: Infographic Generator
@@ -16,15 +16,15 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 03 — templates
+**Current Focus:** Phase 04 — generation-engine
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (generation-engine) — EXECUTING
+Plan: 2 of 3
 
 ### Phase 1 Context
 
@@ -46,6 +46,8 @@ Plan: Not started
 | Phase 02 P01 | 2min | 1 tasks | 2 files |
 | Phase 03 P01 | 2min | 2 tasks | 5 files |
 | Phase 03 P02 | 88s | 1 tasks | 2 files |
+| Phase 04 P01 | 53s | 1 tasks | 1 files |
+| Phase 04 P02 | 65s | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -62,6 +64,10 @@ Plan: Not started
 - Customer Leave-Behind imports getBrandingForInfographic as reference but preset only sets audience flag
 - Prep My Day batch preset: all modules enabled but none required -- Phase 4 orchestrator handles per-customer selection
 - Followed deck-generator barrel export pattern for template index consistency
+- Self-contained infographic cache namespace instead of adding to CACHE_NAMESPACES in cache.ts
+- Local key tracking Set for in-memory fallback invalidation since cache.ts Map is not exported
+- No retry logic in generator service -- AI Router adapter handles retries
+- No caching in generator service -- API route layer (Plan 03) handles cache check/store
 
 ### Discovered TODOs
 
@@ -80,16 +86,16 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-03-22
-- **What happened:** Completed 03-02-PLAN.md -- created Prep My Day batch preset and template index with barrel exports + helpers
-- **Where we left off:** Phase 03 (Templates) fully complete, ready for Phase 04 (Generation Engine)
-- **Next step:** Plan and execute Phase 04
+- **What happened:** Completed 04-01-PLAN.md -- created infographic cache service with audience-aware TTLs and customer-level invalidation
+- **Where we left off:** Phase 04 Plan 01 complete, continuing with remaining Phase 04 plans
+- **Next step:** Execute 04-03-PLAN.md (API routes)
 
 ### Important Context for Next Session
 
-- Complete templates/ directory: 6 presets (5 standard + 1 batch) with barrel exports and 3 query helpers
-- getPresetById, getPresetsByMoment, getPresetsForBatch are the public API for preset access
-- Prep My Day preset has 6 candidate modules, all enabled/none required -- Phase 4 orchestrator will customize per customer
-- Phase 04 will build the generator service, API routes, and cache layer
+- infographicCache.ts exports getCached, cacheResult, invalidateForCustomer, INFOGRAPHIC_CACHE_TTL
+- Standard TTL: 86400s (24hr), leave-behind TTL: 604800s (7 days)
+- Key format: guardian:cache:infographic:{customerId}:{presetId}:{YYYY-MM-DD}
+- Phase 04 Plan 03 (API routes) still pending
 
 ---
 *State initialized: 2026-03-21*
