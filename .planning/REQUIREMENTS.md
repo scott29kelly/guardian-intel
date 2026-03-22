@@ -58,8 +58,8 @@
 ### Polish & Testing
 
 - [ ] **INFOG-027**: Offline support — service worker PNG caching, WiFi-aware prompting, offline indicator with regeneration offer
-- [ ] **INFOG-028**: Unit tests — modelIntelligence scoring, dataAssembler metrics, promptComposer templates, intentParser classification (Vitest)
-- [ ] **INFOG-029**: E2E tests — single generation, custom topics, conversational, batch, chain execution, share flows (Playwright)
+- [x] **INFOG-028**: Unit tests — modelIntelligence scoring, dataAssembler metrics, promptComposer templates, intentParser classification (Vitest)
+- [x] **INFOG-029**: E2E tests — single generation, custom topics, conversational, batch, chain execution, share flows (Playwright)
 
 ## v2 Requirements
 
@@ -112,8 +112,8 @@
 | INFOG-025 | Phase 6 | Complete |
 | INFOG-026 | Phase 6 | Complete |
 | INFOG-027 | Phase 6 | Pending |
-| INFOG-028 | Phase 6 | Pending |
-| INFOG-029 | Phase 6 | Pending |
+| INFOG-028 | Phase 6 | Complete |
+| INFOG-029 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 29 total

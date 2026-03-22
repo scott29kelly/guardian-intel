@@ -12,7 +12,7 @@
 - [ ] **Phase 3: Templates** - All 5 infographic presets plus template index and helpers
 - [ ] **Phase 4: Generation Engine** - Orchestrator service, API routes, and cache layer
 - [x] **Phase 5: Hooks + UI** - React hooks and all UI components for the generation experience
-- [ ] **Phase 6: Integration + Polish** - Wire into existing app surfaces, offline support, and tests
+- [x] **Phase 6: Integration + Polish** - Wire into existing app surfaces, offline support, and tests
 
 ## Phase Details
 
@@ -102,8 +102,8 @@ Plans:
 **Plans:** 3 plans
 Plans:
 - [x] 06-01-PLAN.md -- App surface integration: customer card button, dashboard Prep My Day, profile modal tab (INFOG-024, INFOG-025, INFOG-026)
-- [ ] 06-02-PLAN.md -- Offline support: service worker PNG caching, WiFi awareness utilities (INFOG-027)
-- [ ] 06-03-PLAN.md -- Tests: unit tests for model intelligence, prompt composer, intent parser + E2E generation flows (INFOG-028, INFOG-029)
+- [x] 06-02-PLAN.md -- Offline support: service worker PNG caching, WiFi awareness utilities (INFOG-027)
+- [x] 06-03-PLAN.md -- Tests: unit tests for model intelligence, prompt composer, intent parser + E2E generation flows (INFOG-028, INFOG-029)
 
 ## Progress
 
@@ -114,7 +114,7 @@ Plans:
 | 3. Templates | 2/2 | Complete | 2026-03-22 |
 | 4. Generation Engine | 3/3 | Complete | 2026-03-22 |
 | 5. Hooks + UI | 4/4 | Complete | 2026-03-22 |
-| 6. Integration + Polish | 2/3 | In Progress | - |
+| 6. Integration + Polish | 3/3 | Complete | 2026-03-22 |
 
 ---
 *Roadmap created: 2026-03-21*
