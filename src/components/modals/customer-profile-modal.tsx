@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, History, FileText, Edit, Zap, Bot } from "lucide-react";
+import { X, User, History, FileText, Edit, Zap, Bot, Image } from "lucide-react";
 import { TakeActionModal } from "./take-action-modal";
 import type { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores } from "@/lib/services/scoring";
 import { ActivityTimeline } from "@/components/customer/activity-timeline";
 import { ProfileOverviewTab } from "./customer-profile/profile-overview-tab";
 import { ProfileNotesTab } from "./customer-profile/profile-notes-tab";
+import { InfographicGeneratorModal } from "@/features/infographic-generator/components";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -27,8 +28,9 @@ interface Note {
 }
 
 export function CustomerProfileModal({ customer, intelItems = [], weatherEvents = [], isOpen, onClose, onAskAI }: CustomerProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "notes" | "infographics">("overview");
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showInfographicGenerator, setShowInfographicGenerator] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
 
   const scores = calculateCustomerScores({ customer, intelItems, weatherEvents });
@@ -53,6 +55,7 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
     { id: "overview", label: "Overview", icon: User },
     { id: "timeline", label: "Timeline", icon: History },
     { id: "notes", label: "Notes", icon: FileText },
+    { id: "infographics", label: "Infographics", icon: Image },
   ];
 
   return (
@@ -133,6 +136,38 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
                 {activeTab === "notes" && (
                   <ProfileNotesTab notes={notes} onAddNote={handleAddNote} onDeleteNote={handleDeleteNote} />
                 )}
+                {activeTab === "infographics" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-text-primary">Briefings</h3>
+                      <button
+                        onClick={() => setShowInfographicGenerator(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90"
+                      >
+                        <Zap className="h-3 w-3" />
+                        Generate New
+                      </button>
+                    </div>
+                    <p className="text-sm text-text-muted">
+                      Generated briefings for this customer will appear here.
+                    </p>
+                    {/* Quick-launch presets */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-text-secondary">Quick Launch</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {["Pre-Knock Briefing", "Post-Storm Follow-up", "Insurance Meeting", "Customer Leave-Behind"].map((preset) => (
+                          <button
+                            key={preset}
+                            onClick={() => setShowInfographicGenerator(true)}
+                            className="px-3 py-2 text-xs text-text-secondary bg-surface-secondary border border-border rounded-lg hover:bg-surface-hover transition-colors text-left"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -164,6 +199,16 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
       </AnimatePresence>
 
       <TakeActionModal customer={customer} isOpen={showActionModal} onClose={() => setShowActionModal(false)} />
+
+      {/* Infographic Generator Modal */}
+      {showInfographicGenerator && (
+        <InfographicGeneratorModal
+          isOpen={showInfographicGenerator}
+          onClose={() => setShowInfographicGenerator(false)}
+          customerId={customer.id}
+          customerName={customer.firstName + " " + customer.lastName}
+        />
+      )}
     </>
   );
 }

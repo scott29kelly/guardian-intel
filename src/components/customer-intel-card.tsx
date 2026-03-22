@@ -21,6 +21,7 @@ import {
   DollarSign,
   Bot,
   ClipboardList,
+  Image,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
@@ -30,6 +31,7 @@ import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
 import { DeckGeneratorModal } from "@/features/deck-generator";
+import { InfographicGeneratorModal } from "@/features/infographic-generator/components";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -64,6 +66,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
   const [showDeckGenerator, setShowDeckGenerator] = useState(false);
+  const [showInfographicGenerator, setShowInfographicGenerator] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const handleActivitySaved = (activity: ActivityLog) => {
@@ -460,6 +463,16 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        setShowInfographicGenerator(true);
+                      }}
+                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
+                    >
+                      <Image className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-medium">BRIEFING</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowProfileModal(true);
                       }}
                       className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
@@ -540,6 +553,16 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
           onClose={() => setShowDeckGenerator(false)}
           initialContext={deckGeneratorContext}
           initialTemplateId="customer-cheat-sheet"
+        />
+      )}
+
+      {/* Infographic Generator Modal */}
+      {showInfographicGenerator && (
+        <InfographicGeneratorModal
+          isOpen={showInfographicGenerator}
+          onClose={() => setShowInfographicGenerator(false)}
+          customerId={customer.id}
+          customerName={customer.firstName + " " + customer.lastName}
         />
       )}
     </>

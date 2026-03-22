@@ -25,6 +25,9 @@ import { CustomerIntelCard } from "@/components/customer-intel-card";
 import { useDashboard } from "@/lib/hooks";
 import { useToast } from "@/components/ui/toast";
 import { ReadyDecksWidget } from "@/components/dashboard/ready-decks-widget";
+import { useInfographicBatch } from "@/features/infographic-generator/hooks";
+import { BatchDayView } from "@/features/infographic-generator/components";
+import { Image } from "lucide-react";
 
 // Time-based greeting helper
 const getGreeting = () => {
@@ -67,6 +70,7 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlert, setActiveAlert] = useState(0);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
+  const { isBatching, batchProgress, startBatch, cancelBatch } = useInfographicBatch();
   // Get user's first name for greeting
   const userName = getFirstName(session?.user?.name);
 
@@ -475,7 +479,28 @@ export default function DashboardPage() {
               <Phone className="w-4 h-4" />
               Dial Next Lead
             </button>
+            <button
+              onClick={() => {
+                const customerIds = priorityCustomers?.map((c: any) => c.id) || [];
+                if (customerIds.length > 0) startBatch(customerIds);
+              }}
+              disabled={isBatching}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border bg-transparent text-text-primary hover:bg-surface-hover rounded text-sm transition-colors disabled:opacity-50"
+            >
+              {isBatching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+              <span>{isBatching ? "Generating..." : "Prep My Day"}</span>
+            </button>
           </div>
+
+          {/* Batch Generation Results */}
+          {batchProgress.length > 0 && (
+            <div className="mt-4">
+              <BatchDayView batchProgress={batchProgress.map(bp => ({
+                ...bp,
+                customerName: (() => { const c = priorityCustomers?.find((pc: any) => pc.id === bp.customerId); return c ? `${c.firstName} ${c.lastName}` : bp.customerId; })()
+              }))} />
+            </div>
+          )}
         </div>
       </div>
     </div>
