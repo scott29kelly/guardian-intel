@@ -18,14 +18,13 @@ Reps get actionable visual briefings in one tap — no model pickers, no quality
 - ✓ PWA service worker for offline support — existing
 - ✓ TanStack Query + Radix UI + Framer Motion UI stack — existing
 - ✓ Upstash Redis caching infrastructure — existing
+- ✓ INFOG-001: TypeScript types for infographic generation — Phase 1
+- ✓ INFOG-002: Branding assets (dark + light themes) — Phase 1
+- ✓ INFOG-003: Model Intelligence Layer (registry, scoring, chain strategies) — Phase 1
+- ✓ INFOG-004: Gemini Flash Image adapter (NB2 with web grounding) — Phase 1
+- ✓ INFOG-005: AI Router updates (image_generation task routing) — Phase 1
 
 ### Active
-
-- [ ] INFOG-001: TypeScript types for infographic generation
-- [ ] INFOG-002: Branding assets (dark + light themes)
-- [ ] INFOG-003: Model Intelligence Layer (registry, scoring, chain strategies)
-- [ ] INFOG-004: Gemini Flash Image adapter (NB2 with web grounding)
-- [ ] INFOG-005: AI Router updates (image_generation task routing)
 - [ ] INFOG-006: Data assembler with derived metrics
 - [ ] INFOG-007: Prompt composer (model-aware prompts)
 - [ ] INFOG-008: Intent parser (conversational → modules + audience)
@@ -102,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after initialization*
+*Last updated: 2026-03-22 after Phase 1 completion*
