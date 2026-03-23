@@ -115,14 +115,7 @@ export function DeckGeneratorModal({
     { enabled: !!asyncJobId }
   );
 
-  // When asyncJobId is set during generation, transition to async-processing step
-  useEffect(() => {
-    if (asyncJobId && (step === 'generating' || step === 'customize')) {
-      setStep('async-processing');
-    }
-  }, [asyncJobId, step]);
-
-  // When async job completes, load result into preview
+  // When async job completes or fails, handle transition
   useEffect(() => {
     if (!asyncJobId || step !== 'async-processing') return;
 
@@ -130,15 +123,13 @@ export function DeckGeneratorModal({
     if (!status) return;
 
     if (status.isCompleted && status.deck) {
-      // Deck is ready — parse result payload into GeneratedDeck for preview
       const resultPayload = (status.deck as { resultPayload?: string }).resultPayload;
       if (resultPayload) {
         setDeckFromResult(resultPayload, status.deck.id);
         setStep('preview');
       }
     } else if (status.isFailed && status.deck) {
-      // Generation failed
-      setStep('generating'); // Show error state
+      setStep('customize');
     }
   }, [asyncJobId, step, deckStatus.data, setDeckFromResult]);
 
@@ -170,11 +161,25 @@ export function DeckGeneratorModal({
     };
 
     const deck = await generateDeck(selectedTemplate, request);
-    
+
     if (deck) {
       setStep('preview');
     }
+    // Note: if asyncJobId was set (async path), generateDeck returns null
+    // and we check asyncJobId below to transition step. We can't use the
+    // asyncJobId state directly here because setState is async, so we
+    // read it on the next tick.
   }, [selectedTemplate, context, enabledSections, exportFormat, generateDeck]);
+
+  // After handleGenerate completes, if asyncJobId was set, move to async-processing
+  // This runs once when asyncJobId changes from null to a value
+  const prevAsyncJobId = useRef<string | null>(null);
+  useEffect(() => {
+    if (asyncJobId && !prevAsyncJobId.current) {
+      setStep('async-processing');
+    }
+    prevAsyncJobId.current = asyncJobId;
+  }, [asyncJobId]);
 
   // Handle scheduling for overnight batch processing
   const handleSchedule = useCallback(async () => {
