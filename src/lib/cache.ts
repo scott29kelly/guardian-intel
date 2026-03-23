@@ -30,18 +30,18 @@ export type CacheNamespace = keyof typeof CACHE_NAMESPACES;
 
 // Default TTLs in seconds
 export const CACHE_TTL = {
-  dashboard: 120,       // 2 minutes - SSE handles real-time updates
+  dashboard: 600,       // 10 minutes - SSE handles real-time updates between
   streetView: 3600,     // 1 hour - static image URLs
-  weather: 300,         // 5 minutes - weather data
-  analytics: 300,       // 5 minutes - aggregated daily
-  context: 300,         // 5 minutes - AI customer context
-  customers: 60,        // 1 minute - customer list queries
-  weatherForecast: 900, // 15 minutes - individual location forecasts
-  storms: 300,          // 5 minutes - storms list queries
-  competitors: 300,     // 5 minutes - competitor data
-  playbooks: 300,       // 5 minutes - playbook list queries
-  claims: 300,          // 5 minutes - claims list queries
-  gamification: 60,     // 1 minute - gamification state (changes frequently)
+  weather: 600,         // 10 minutes - weather data
+  analytics: 900,       // 15 minutes - aggregated daily, rarely changes
+  context: 600,         // 10 minutes - AI customer context
+  customers: 600,       // 10 minutes - mutations invalidate cache
+  weatherForecast: 1800,// 30 minutes - individual location forecasts
+  storms: 600,          // 10 minutes - storm data
+  competitors: 1800,    // 30 minutes - competitor data changes rarely
+  playbooks: 900,       // 15 minutes - playbook list queries
+  claims: 600,          // 10 minutes - claims list queries
+  gamification: 300,    // 5 minutes - gamification state
 } as const;
 
 // In-memory cache for development

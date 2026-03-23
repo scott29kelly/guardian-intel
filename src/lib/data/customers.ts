@@ -90,32 +90,32 @@ export async function getCustomers(
   // Map sortBy to actual column names
   const sortColumn = mapSortColumn(sortBy);
 
-  // Get total count
-  const total = await prisma.customer.count({ where });
-
-  // Get paginated data
-  const customers = await prisma.customer.findMany({
-    where,
-    include: {
-      assignedRep: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  // Get total count and paginated data in parallel
+  const [total, customers] = await Promise.all([
+    prisma.customer.count({ where }),
+    prisma.customer.findMany({
+      where,
+      include: {
+        assignedRep: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            interactions: true,
+            weatherEvents: true,
+            intelItems: true,
+          },
         },
       },
-      _count: {
-        select: {
-          interactions: true,
-          weatherEvents: true,
-          intelItems: true,
-        },
-      },
-    },
-    orderBy: { [sortColumn]: sortOrder },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
+      orderBy: { [sortColumn]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
 
   const totalPages = Math.ceil(total / limit);
 

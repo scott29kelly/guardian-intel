@@ -16,6 +16,7 @@ import { authOptions } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { customerQuerySchema, createCustomerSchema, formatZodErrors } from "@/lib/validations";
 import { getCustomers, createCustomer } from "@/lib/data/customers";
+import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL, cacheInvalidateNamespace } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +56,23 @@ export async function GET(request: Request) {
       );
     }
 
+    // Check cache first
+    const cacheKey = buildCacheKey("customers", JSON.stringify(validation.data));
+    const cached = await cacheGet<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT" },
+      });
+    }
+
     // Fetch customers
     const result = await getCustomers(validation.data);
 
-    return NextResponse.json({
-      success: true,
-      ...result,
+    const responseData = { success: true, ...result };
+    await cacheSet(cacheKey, responseData, CACHE_TTL.customers);
+
+    return NextResponse.json(responseData, {
+      headers: { "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("[API] GET /api/customers error:", error);
@@ -103,6 +115,9 @@ export async function POST(request: Request) {
 
     // Create customer
     const customer = await createCustomer(validation.data, assignedRepId);
+
+    // Invalidate customer list cache
+    await cacheInvalidateNamespace("customers");
 
     return NextResponse.json(
       {

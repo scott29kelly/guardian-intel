@@ -98,6 +98,7 @@ export function useDashboard() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const refetchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchDashboard = useCallback(async (silent = false) => {
     try {
@@ -160,9 +161,13 @@ export function useDashboard() {
         if (parsed.type === "heartbeat") return;
         
         // Refetch dashboard on relevant events (storm, intel, customer)
+        // Debounce to collapse burst events into a single refetch
         if (["storm", "intel", "customer"].includes(parsed.type)) {
-          console.log(`[Dashboard SSE] Received ${parsed.type} event, refetching...`);
-          fetchDashboard(true); // Silent refetch
+          console.log(`[Dashboard SSE] Received ${parsed.type} event, scheduling refetch...`);
+          if (refetchDebounceRef.current) clearTimeout(refetchDebounceRef.current);
+          refetchDebounceRef.current = setTimeout(() => {
+            fetchDashboard(true); // Silent refetch
+          }, 3000);
         }
       } catch (err) {
         console.error("[Dashboard SSE] Parse error:", err);
@@ -202,6 +207,9 @@ export function useDashboard() {
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (refetchDebounceRef.current) {
+        clearTimeout(refetchDebounceRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

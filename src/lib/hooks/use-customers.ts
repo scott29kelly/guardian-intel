@@ -176,7 +176,7 @@ export function useCustomers(params: Partial<CustomerQueryInput> = {}) {
   return useQuery({
     queryKey: customerKeys.list(queryParams),
     queryFn: () => fetchCustomers(queryParams),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

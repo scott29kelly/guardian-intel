@@ -9,7 +9,7 @@
  * - Intel items for priority customers
  * - Aggregated metrics
  * 
- * Caching: 30 second TTL with cache-control headers
+ * Caching: 2 minute TTL with cache-control headers
  */
 
 import { NextResponse } from "next/server";
@@ -33,106 +33,86 @@ export async function GET(request: Request) {
     if (cached) {
       return NextResponse.json(cached, {
         headers: {
-          "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=10`,
+          "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=60`,
           "X-Cache": "HIT",
         },
       });
     }
 
-    // Fetch priority customers (top 3 by lead score)
-    const priorityCustomers = await prisma.customer.findMany({
-      where: {
-        status: { in: ["lead", "prospect", "customer"] },
-      },
-      orderBy: { leadScore: "desc" },
-      take: 3,
-      include: {
-        assignedRep: {
-          select: { id: true, name: true },
-        },
-      },
-    });
-
-    // Get intel items for priority customers
-    const customerIds = priorityCustomers.map((c) => c.id);
-    const intelItems = await prisma.intelItem.findMany({
-      where: {
-        customerId: { in: customerIds },
-        isDismissed: false,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Get weather events for priority customers
-    const weatherEvents = await prisma.weatherEvent.findMany({
-      where: {
-        customerId: { in: customerIds },
-      },
-      orderBy: { eventDate: "desc" },
-    });
-
-    // Get recent storm events (for alerts)
-    const recentStorms = await prisma.weatherEvent.findMany({
-      where: {
-        eventDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-      },
-      orderBy: { eventDate: "desc" },
-      take: 5,
-    });
-
-    // Aggregate metrics
-    const [
-      totalCustomers,
-      hotLeads,
-      closedWonThisMonth,
-      stormAffectedCount,
-    ] = await Promise.all([
-      prisma.customer.count(),
-      prisma.customer.count({
-        where: { leadScore: { gte: 80 }, status: { in: ["lead", "prospect"] } },
-      }),
-      prisma.customer.count({
-        where: {
-          status: "closed-won",
-          updatedAt: { gte: new Date(new Date().setDate(1)) }, // This month
-        },
-      }),
-      prisma.customer.count({
-        where: { weatherEvents: { some: {} } },
-      }),
-    ]);
-
-    // Calculate pipeline value
-    const pipelineData = await prisma.customer.aggregate({
-      where: { status: { in: ["lead", "prospect"] } },
-      _sum: { profitPotential: true },
-      _count: true,
-    });
-
-    // Calculate revenue from closed-won (current month)
+    // Date calculations for revenue queries
     const monthStart = new Date(new Date().setDate(1));
     monthStart.setHours(0, 0, 0, 0);
     const lastMonthStart = new Date(monthStart);
     lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
 
-    const [revenueData, thisMonthRevenue, lastMonthRevenue] = await Promise.all([
+    // Batch 1: All independent queries in parallel
+    const [
+      priorityCustomers,
+      recentStorms,
+      totalCustomers,
+      hotLeads,
+      closedWonThisMonth,
+      stormAffectedCount,
+      pipelineData,
+      revenueData,
+      thisMonthRevenue,
+      lastMonthRevenue,
+    ] = await Promise.all([
+      // Priority customers (top 3 by lead score)
+      prisma.customer.findMany({
+        where: { status: { in: ["lead", "prospect", "customer"] } },
+        orderBy: { leadScore: "desc" },
+        take: 3,
+        include: { assignedRep: { select: { id: true, name: true } } },
+      }),
+      // Recent storm events (for alerts)
+      prisma.weatherEvent.findMany({
+        where: { eventDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+        orderBy: { eventDate: "desc" },
+        take: 5,
+      }),
+      // Aggregate metrics
+      prisma.customer.count(),
+      prisma.customer.count({
+        where: { leadScore: { gte: 80 }, status: { in: ["lead", "prospect"] } },
+      }),
+      prisma.customer.count({
+        where: { status: "closed-won", updatedAt: { gte: monthStart } },
+      }),
+      prisma.customer.count({
+        where: { weatherEvents: { some: {} } },
+      }),
+      // Pipeline value
+      prisma.customer.aggregate({
+        where: { status: { in: ["lead", "prospect"] } },
+        _sum: { profitPotential: true },
+        _count: true,
+      }),
+      // Revenue aggregates
       prisma.customer.aggregate({
         where: { status: "closed-won" },
         _sum: { profitPotential: true },
       }),
       prisma.customer.aggregate({
-        where: {
-          status: "closed-won",
-          updatedAt: { gte: monthStart },
-        },
+        where: { status: "closed-won", updatedAt: { gte: monthStart } },
         _sum: { profitPotential: true },
       }),
       prisma.customer.aggregate({
-        where: {
-          status: "closed-won",
-          updatedAt: { gte: lastMonthStart, lt: monthStart },
-        },
+        where: { status: "closed-won", updatedAt: { gte: lastMonthStart, lt: monthStart } },
         _sum: { profitPotential: true },
+      }),
+    ]);
+
+    // Batch 2: Queries that depend on priority customers
+    const customerIds = priorityCustomers.map((c) => c.id);
+    const [intelItems, weatherEvents] = await Promise.all([
+      prisma.intelItem.findMany({
+        where: { customerId: { in: customerIds }, isDismissed: false },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.weatherEvent.findMany({
+        where: { customerId: { in: customerIds } },
+        orderBy: { eventDate: "desc" },
       }),
     ]);
 
@@ -235,7 +215,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(responseData, {
       headers: {
-        "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=10`,
+        "Cache-Control": `private, max-age=${CACHE_TTL.dashboard}, stale-while-revalidate=60`,
         "X-Cache": "MISS",
       },
     });

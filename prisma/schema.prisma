@@ -207,6 +207,10 @@ model Customer {
   @@index([leadScore])
   @@index([status, stage])
   @@index([zipCode])
+  @@index([urgencyScore])
+  @@index([updatedAt])
+  @@index([createdAt])
+  @@index([profitPotential])
 }
 
 // ============================================
@@ -233,6 +237,8 @@ model IntelItem {
   expiresAt     DateTime?
   isRead        Boolean  @default(false)
   isDismissed   Boolean  @default(false)
+
+  @@index([customerId])
 }
 
 model WeatherEvent {
@@ -407,6 +413,8 @@ model Interaction {
   
   // CRM sync
   crmId         String?
+
+  @@index([customerId])
 }
 
 model Task {

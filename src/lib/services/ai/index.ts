@@ -61,7 +61,7 @@ export function initializeAI(): void {
   const adapters: AIAdapter[] = [];
 
   // Gemini - Primary AI (handles all tasks)
-  const geminiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
   if (geminiKey) {
     adapters.push(createGeminiFlashAdapter(geminiKey));
     adapters.push(createGeminiFlashImageAdapter(geminiKey));
