@@ -57,6 +57,7 @@ export async function GET(
         },
         pdfUrl: true,
         pdfStoragePath: true,
+        resultPayload: true,
       },
     });
 
@@ -88,7 +89,7 @@ export async function GET(
       isProcessing: latestDeck.status === "processing",
       isCompleted: latestDeck.status === "completed",
       isFailed: latestDeck.status === "failed",
-      isReady: latestDeck.status === "completed" && !!latestDeck.pdfUrl,
+      isReady: latestDeck.status === "completed",
       pdfUrl: latestDeck.pdfUrl || null,
     });
 

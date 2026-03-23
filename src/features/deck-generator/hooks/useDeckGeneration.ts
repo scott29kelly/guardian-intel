@@ -33,7 +33,9 @@ interface UseDeckGenerationReturn {
   progress: DeckGenerationProgress | null;
   generatedDeck: GeneratedDeck | null;
   error: string | null;
+  asyncJobId: string | null;
   generateDeck: (template: DeckTemplate, request: DeckGenerationRequest) => Promise<GeneratedDeck | null>;
+  setDeckFromResult: (resultPayload: string, deckId: string) => void;
   resetGeneration: () => void;
 }
 
@@ -47,153 +49,94 @@ const AI_ENHANCED_SECTIONS = [
 ];
 
 // =============================================================================
-// NOTEBOOKLM DECK GENERATION
+// NOTEBOOKLM ASYNC DECK GENERATION
 // =============================================================================
 
-interface NotebookLMSlide {
-  pageNumber: number;
-  imageData: string;
-  mimeType: string;
-}
+// Sentinel value indicating an async job was kicked off
+const ASYNC_JOB_MARKER = "__ASYNC_JOB__";
 
-interface NotebookLMDeckResponse {
+interface ScheduleResponse {
   success: boolean;
-  format: "images" | "pdf";
-  slideCount: number;
-  slides: NotebookLMSlide[];
-  pdfData?: string;
+  job?: { id: string };
   error?: string;
-  code?: string;
-  message?: string;
+}
+
+interface ProcessNowResponse {
+  success: boolean;
+  deckId?: string;
+  error?: string;
 }
 
 /**
- * Build NotebookLM instructions from a template and its enabled sections.
+ * Schedule a deck via the async pipeline:
+ * 1. POST /api/decks/schedule — creates a ScheduledDeck (status=pending)
+ * 2. POST /api/decks/process-now — triggers immediate background processing
+ *
+ * Returns the job ID so the UI can poll via useDeckStatus.
  */
-function buildTemplateInstructions(
-  template: DeckTemplate,
-  enabledSections: SlideSection[]
-): string {
-  const sectionDescriptions = enabledSections
-    .map((s, i) => `${i + 1}. ${s.title}${s.description ? ` — ${s.description}` : ""}`)
-    .join("\n");
-
-  return `Create a professional ${template.name} presentation for Guardian Roofing.
-
-This deck is for ${template.audience === "customer" ? "a customer" : `the ${template.audience} team`}.
-
-Include the following sections:
-${sectionDescriptions}
-
-Style requirements:
-- Use a dark navy (#1E3A5F) and gold (#D4A656) color scheme
-- Professional, corporate aesthetic suitable for the roofing industry
-- Include data visualizations where relevant
-- Make it visually impactful and easy to scan quickly`;
-}
-
-/**
- * Generate a deck via the NotebookLM pipeline.
- */
-async function generateDeckViaNotebookLM(
-  template: DeckTemplate,
-  request: DeckGenerationRequest,
-  customerContext: SlideGenerationContext | null,
-  enabledSections: SlideSection[],
+async function scheduleNotebookLMDeck(
+  customerId: string,
+  templateId: string,
+  templateName: string,
   onProgress: (update: Partial<DeckGenerationProgress>) => void
-): Promise<{ slides: GeneratedSlide[] } | null> {
-  if (!customerContext) {
-    console.warn("[NotebookLM] No customer context — cannot generate deck");
-    return null;
-  }
-
-  const c = customerContext.customer;
-  const templateInstructions = buildTemplateInstructions(template, enabledSections);
-
+): Promise<{ asyncJobId: string } | null> {
   onProgress({
     status: "generating-slides",
-    message: "NotebookLM: Creating research notebook...",
-    progress: 15,
+    message: "Scheduling NotebookLM generation...",
+    progress: 10,
   });
 
   try {
-    const response = await fetch("/api/ai/generate-deck-notebooklm", {
+    // Step 1: Schedule the deck
+    const scheduleResponse = await fetch("/api/decks/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerName: `${c.firstName} ${c.lastName}`,
-        customerData: {
-          firstName: c.firstName,
-          lastName: c.lastName,
-          address: c.address,
-          city: c.city,
-          state: c.state,
-          zipCode: c.zipCode,
-          propertyType: c.propertyType,
-          yearBuilt: c.yearBuilt,
-          squareFootage: c.squareFootage,
-          roofType: c.roofType,
-          roofAge: c.roofAge,
-          propertyValue: c.propertyValue,
-          insuranceCarrier: c.insuranceCarrier,
-          policyType: c.policyType,
-          deductible: c.deductible,
-          leadScore: c.leadScore,
-          urgencyScore: c.urgencyScore,
-          stage: c.stage,
-          status: c.status,
-          leadSource: c.leadSource,
-        },
-        weatherEvents: customerContext.weatherEvents,
-        templateInstructions,
-        audience: template.audience === "customer" ? "customer-facing" : "internal",
-      }),
+      body: JSON.stringify({ customerId, templateId, templateName }),
     });
 
-    if (!response.ok) {
-      const responseText = await response.text().catch(() => "");
-      const isRedirect = response.redirected || responseText.includes("login") || responseText.includes("<!DOCTYPE");
-      console.error(`[NotebookLM] API error: status=${response.status}, redirected=${response.redirected}, isHTML=${isRedirect}`);
-      if (!isRedirect) {
-        try { console.error("[NotebookLM] Error body:", JSON.parse(responseText)); } catch { console.error("[NotebookLM] Raw response:", responseText.substring(0, 200)); }
+    if (!scheduleResponse.ok) {
+      const err = await scheduleResponse.json().catch(() => ({}));
+
+      // 409 = existing pending/processing job — join that poll instead of falling back
+      if (scheduleResponse.status === 409 && err.existingJobId) {
+        console.log(`[NotebookLM] Existing job found: ${err.existingJobId} (status: ${err.status})`);
+        return { asyncJobId: err.existingJobId };
       }
+
+      console.error(`[NotebookLM] Schedule failed (${scheduleResponse.status}):`, err);
       return null;
     }
 
-    const data: NotebookLMDeckResponse = await response.json();
-
-    if (!data.success) {
-      console.error("[NotebookLM] Generation failed:", data.error);
+    const scheduleData: ScheduleResponse = await scheduleResponse.json();
+    if (!scheduleData.success || !scheduleData.job?.id) {
+      console.error("[NotebookLM] Schedule returned no job:", scheduleData);
       return null;
     }
+
+    const jobId = scheduleData.job.id;
 
     onProgress({
-      message: `NotebookLM: Processing ${data.slideCount} slides...`,
-      progress: 75,
+      message: "Starting NotebookLM processing...",
+      progress: 15,
     });
 
-    // Map NotebookLM slides to GeneratedSlide format
-    const slides: GeneratedSlide[] = data.slides.map((nlmSlide, index) => {
-      // Map page numbers to section IDs where possible
-      const section = enabledSections[index] || enabledSections[enabledSections.length - 1];
-
-      return {
-        id: generateId(),
-        type: section?.type || "image",
-        sectionId: section?.id || `nlm-slide-${nlmSlide.pageNumber}`,
-        content: {
-          title: section?.title || `Slide ${nlmSlide.pageNumber}`,
-          nlmGenerated: true,
-        },
-        aiGenerated: true,
-        generatedAt: new Date().toISOString(),
-        imageData: nlmSlide.imageData,
-      };
+    // Step 2: Trigger immediate processing
+    const processResponse = await fetch("/api/decks/process-now", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deckId: jobId }),
     });
 
-    return { slides };
+    if (!processResponse.ok) {
+      const err = await processResponse.json().catch(() => ({}));
+      console.warn("[NotebookLM] Process-now failed (cron will pick it up):", err);
+      // Don't return null — the job is still scheduled, cron will process it
+    }
+
+    console.log(`[NotebookLM] Async job started: ${jobId}`);
+    return { asyncJobId: jobId };
   } catch (error) {
-    console.error("[NotebookLM] Fetch error:", error);
+    console.error("[NotebookLM] Schedule error:", error);
     return null;
   }
 }
@@ -413,6 +356,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
   const [progress, setProgress] = useState<DeckGenerationProgress | null>(null);
   const [generatedDeck, setGeneratedDeck] = useState<GeneratedDeck | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [asyncJobId, setAsyncJobId] = useState<string | null>(null);
 
   const updateProgress = useCallback((update: Partial<DeckGenerationProgress>) => {
     setProgress(prev => prev ? { ...prev, ...update } : null);
@@ -426,6 +370,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
     setIsGenerating(true);
     setError(null);
     setGeneratedDeck(null);
+    setAsyncJobId(null);
 
     const enabledSections = template.sections.filter(
       s => request.options.enabledSections.includes(s.id)
@@ -434,7 +379,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
     const totalSteps = enabledSections.length * 2 + 2;
 
     try {
-      // Step 1: Initialize and fetch customer context
+      // Step 1: Initialize
       setProgress({
         status: 'initializing',
         currentStep: 1,
@@ -442,6 +387,37 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         message: 'Loading customer intelligence...',
         progress: 5,
       });
+
+      // Step 2: Try async NotebookLM pipeline first
+      if (request.context.customerId) {
+        const nlmResult = await scheduleNotebookLMDeck(
+          request.context.customerId,
+          template.id,
+          template.name,
+          updateProgress
+        );
+
+        if (nlmResult?.asyncJobId) {
+          // Async job started — store job ID and return early.
+          // The UI should use useDeckStatus (from src/lib/hooks/use-deck-generation.ts)
+          // to poll for completion. That hook auto-polls every 10s while pending/processing.
+          setAsyncJobId(nlmResult.asyncJobId);
+          setIsGenerating(false);
+          setProgress({
+            status: 'generating-slides',
+            currentStep: 2,
+            totalSteps,
+            message: 'NotebookLM is generating your deck in the background. You can navigate away — we\'ll notify you when it\'s ready.',
+            progress: 20,
+          });
+
+          console.log(`[DeckGeneration] Async NotebookLM job started: ${nlmResult.asyncJobId}`);
+          return null; // No synchronous deck — poll via useDeckStatus
+        }
+      }
+
+      // Fallback to Gemini pipeline if NotebookLM scheduling failed
+      console.log("[DeckGeneration] NotebookLM scheduling failed, falling back to Gemini pipeline");
 
       let customerContext: SlideGenerationContext | null = null;
       if (request.context.customerId) {
@@ -486,46 +462,19 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         }
       }
 
-      // Step 2: Try NotebookLM pipeline first
-      let slides: GeneratedSlide[] = [];
-      let usedNotebookLM = false;
-
-      setProgress({
-        status: 'generating-slides',
-        currentStep: 2,
-        totalSteps,
-        message: 'NotebookLM: Generating research-backed deck...',
+      updateProgress({
+        message: "Falling back to Gemini pipeline...",
         progress: 10,
       });
 
-      const nlmResult = await generateDeckViaNotebookLM(
+      const slides = await generateDeckViaGemini(
         template,
         request,
         customerContext,
         enabledSections,
-        updateProgress
+        updateProgress,
+        totalSteps
       );
-
-      if (nlmResult && nlmResult.slides.length > 0) {
-        slides = nlmResult.slides;
-        usedNotebookLM = true;
-        console.log(`[DeckGeneration] NotebookLM generated ${slides.length} slides`);
-      } else {
-        // Fallback to Gemini pipeline
-        console.log("[DeckGeneration] NotebookLM unavailable, falling back to Gemini pipeline");
-        updateProgress({
-          message: "Falling back to Gemini pipeline...",
-          progress: 10,
-        });
-        slides = await generateDeckViaGemini(
-          template,
-          request,
-          customerContext,
-          enabledSections,
-          updateProgress,
-          totalSteps
-        );
-      }
 
       // Step 3: Finalize
       updateProgress({
@@ -537,7 +486,6 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
 
       const generationTimeMs = Date.now() - startTime;
       const imageSlidesCount = slides.filter(s => s.imageData).length;
-      const pipeline = usedNotebookLM ? "NotebookLM" : "Gemini";
 
       const deck: GeneratedDeck = {
         id: generateId(),
@@ -586,11 +534,74 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
     }
   }, [updateProgress]);
 
+  /**
+   * Parse an async result payload (from ScheduledDeck) into a GeneratedDeck for preview.
+   */
+  const setDeckFromResult = useCallback((resultPayload: string, deckId: string) => {
+    try {
+      const result = JSON.parse(resultPayload);
+      const deck: GeneratedDeck = {
+        id: result.id || deckId,
+        templateId: result.templateId || "",
+        templateName: result.templateName || "NotebookLM Deck",
+        generatedAt: result.generatedAt || new Date().toISOString(),
+        generatedBy: "current-user",
+        context: result.context || {},
+        slides: (result.slides || []).map((s: { id: string; pageNumber?: number; imageData?: string; generatedAt?: string }) => ({
+          id: s.id || generateId(),
+          type: "image" as const,
+          sectionId: s.id || `slide-${s.pageNumber}`,
+          content: { title: `Slide ${s.pageNumber || 1}`, nlmGenerated: true },
+          aiGenerated: true,
+          generatedAt: s.generatedAt || new Date().toISOString(),
+          imageData: s.imageData,
+        })),
+        branding: {
+          colors: {
+            primary: "#1E3A5F",
+            secondary: "#D4A656",
+            accent: "#4A90A4",
+            background: "#1E3A5F",
+            backgroundAlt: "#162D4A",
+            text: "#F9FAFB",
+            textMuted: "#9CA3AF",
+            success: "#10B981",
+            warning: "#F59E0B",
+            danger: "#EF4444",
+          },
+          fonts: { heading: "Inter", body: "Inter", mono: "JetBrains Mono" },
+          logo: "/logo.png",
+          footer: "Guardian Roofing",
+          borderRadius: "8px",
+        },
+        metadata: {
+          totalSlides: result.metadata?.totalSlides || result.slides?.length || 0,
+          aiSlidesCount: result.slides?.length || 0,
+          generationTimeMs: result.metadata?.generationTimeMs || 0,
+          version: "2.0.0",
+        },
+      };
+      setGeneratedDeck(deck);
+      setAsyncJobId(null);
+      setProgress({
+        status: "complete",
+        currentStep: 1,
+        totalSteps: 1,
+        message: `Generated ${deck.slides.length} slides via NotebookLM`,
+        progress: 100,
+      });
+    } catch (err) {
+      console.error("[DeckGeneration] Failed to parse result payload:", err);
+      setError("Failed to load completed deck");
+    }
+  }, []);
+
   const resetGeneration = useCallback(() => {
     setIsGenerating(false);
     setProgress(null);
     setGeneratedDeck(null);
     setError(null);
+    setAsyncJobId(null);
   }, []);
 
   return {
@@ -598,7 +609,9 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
     progress,
     generatedDeck,
     error,
+    asyncJobId,
     generateDeck,
+    setDeckFromResult,
     resetGeneration,
   };
 }

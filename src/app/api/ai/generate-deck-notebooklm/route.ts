@@ -14,6 +14,11 @@ import {
   healthCheck,
 } from "@/lib/services/notebooklm/index";
 import type { CustomerDeckRequest } from "@/lib/services/notebooklm/index";
+import {
+  formatCustomerDataForNotebook,
+  formatWeatherHistoryForNotebook,
+  pdfToImages,
+} from "@/lib/services/notebooklm/formatters";
 import * as fs from "fs/promises";
 
 export const runtime = "nodejs";
@@ -61,88 +66,8 @@ interface DeckGenerationRequestBody {
   audience: "internal" | "customer-facing";
 }
 
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function formatCustomerDataForNotebook(body: DeckGenerationRequestBody): string {
-  const c = body.customerData;
-  const lines = [
-    `# Customer Profile: ${c.firstName} ${c.lastName}`,
-    "",
-    "## Property Information",
-    `- Address: ${c.address}, ${c.city}, ${c.state} ${c.zipCode}`,
-    c.propertyType ? `- Property Type: ${c.propertyType}` : null,
-    c.yearBuilt ? `- Year Built: ${c.yearBuilt}` : null,
-    c.squareFootage ? `- Square Footage: ${c.squareFootage.toLocaleString()} sq ft` : null,
-    c.propertyValue ? `- Property Value: $${c.propertyValue.toLocaleString()}` : null,
-    "",
-    "## Roof Details",
-    c.roofType ? `- Roof Type: ${c.roofType}` : null,
-    c.roofAge ? `- Roof Age: ${c.roofAge} years` : null,
-    "",
-    "## Insurance Information",
-    c.insuranceCarrier ? `- Carrier: ${c.insuranceCarrier}` : null,
-    c.policyType ? `- Policy Type: ${c.policyType}` : null,
-    c.deductible ? `- Deductible: $${c.deductible.toLocaleString()}` : null,
-    "",
-    "## Sales Intelligence",
-    c.leadScore != null ? `- Lead Score: ${c.leadScore}/100` : null,
-    c.urgencyScore != null ? `- Urgency Score: ${c.urgencyScore}/100` : null,
-    c.stage ? `- Pipeline Stage: ${c.stage}` : null,
-    c.status ? `- Status: ${c.status}` : null,
-    c.leadSource ? `- Lead Source: ${c.leadSource}` : null,
-  ].filter(Boolean);
-
-  return lines.join("\n");
-}
-
-function formatWeatherHistoryForNotebook(
-  events: DeckGenerationRequestBody["weatherEvents"]
-): string {
-  if (!events || events.length === 0) return "";
-
-  const lines = [
-    "# Weather & Storm History",
-    "",
-    ...events.map((e) => {
-      const parts = [
-        `## ${e.eventType} — ${new Date(e.eventDate).toLocaleDateString()}`,
-        e.severity ? `- Severity: ${e.severity}` : null,
-        e.hailSize ? `- Hail Size: ${e.hailSize} inches` : null,
-        e.windSpeed ? `- Wind Speed: ${e.windSpeed} mph` : null,
-        `- Damage Reported: ${e.damageReported ? "Yes" : "No"}`,
-        `- Claim Filed: ${e.claimFiled ? "Yes" : "No"}`,
-        "",
-      ];
-      return parts.filter(Boolean).join("\n");
-    }),
-  ];
-
-  return lines.join("\n");
-}
-
-/**
- * Convert a PDF file to an array of base64 PNG images (one per page).
- */
-async function pdfToImages(pdfPath: string): Promise<string[]> {
-  // Dynamic import for ESM module
-  const { pdf } = await import("pdf-to-img");
-
-  const images: string[] = [];
-  const pdfBuffer = await fs.readFile(pdfPath);
-
-  const document = await pdf(pdfBuffer, {
-    scale: 2, // 2x for crisp images at 1280x720-ish
-  });
-
-  for await (const page of document) {
-    // page is a Buffer (PNG)
-    images.push(Buffer.from(page).toString("base64"));
-  }
-
-  return images;
-}
+// Helpers (formatCustomerDataForNotebook, formatWeatherHistoryForNotebook, pdfToImages)
+// are imported from @/lib/services/notebooklm/formatters
 
 // =============================================================================
 // ROUTE HANDLER
@@ -178,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Format data for NotebookLM
-    const customerDataText = formatCustomerDataForNotebook(body);
+    const customerDataText = formatCustomerDataForNotebook(body.customerData);
     const weatherHistoryText = formatWeatherHistoryForNotebook(body.weatherEvents);
 
     const deckRequest: CustomerDeckRequest = {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { DeckTemplate, DeckGenerationRequest, ExportFormat } from '../types/deck.types';
 import { useDeckGeneration } from '../hooks/useDeckGeneration';
+import { useDeckStatus } from '@/lib/hooks/use-deck-generation';
 import { useDeckTemplates } from '../hooks/useDeckTemplates';
 import { DeckTemplateSelector } from './DeckTemplateSelector';
 import { DeckCustomizer } from './DeckCustomizer';
@@ -35,7 +36,7 @@ interface DeckGeneratorModalProps {
   initialTemplateId?: string;
 }
 
-type Step = 'select-template' | 'customize' | 'generating' | 'preview';
+type Step = 'select-template' | 'customize' | 'generating' | 'async-processing' | 'preview';
 
 export function DeckGeneratorModal({
   isOpen,
@@ -44,13 +45,15 @@ export function DeckGeneratorModal({
   initialTemplateId,
 }: DeckGeneratorModalProps) {
   const { templates, getTemplate } = useDeckTemplates();
-  const { 
-    isGenerating, 
-    progress, 
-    generatedDeck, 
-    error, 
+  const {
+    isGenerating,
+    progress,
+    generatedDeck,
+    error,
+    asyncJobId,
     generateDeck,
-    resetGeneration 
+    setDeckFromResult,
+    resetGeneration
   } = useDeckGeneration();
 
   // State
@@ -105,6 +108,39 @@ export function DeckGeneratorModal({
       hasInitialized.current = false;
     }
   }, [isOpen, initialTemplateId, initialContext, getTemplate]);
+
+  // Poll for async job status (auto-polls every 10s while pending/processing)
+  const deckStatus = useDeckStatus(
+    asyncJobId ? context.customerId : undefined,
+    { enabled: !!asyncJobId }
+  );
+
+  // When asyncJobId is set during generation, transition to async-processing step
+  useEffect(() => {
+    if (asyncJobId && (step === 'generating' || step === 'customize')) {
+      setStep('async-processing');
+    }
+  }, [asyncJobId, step]);
+
+  // When async job completes, load result into preview
+  useEffect(() => {
+    if (!asyncJobId || step !== 'async-processing') return;
+
+    const status = deckStatus.data;
+    if (!status) return;
+
+    if (status.isCompleted && status.deck) {
+      // Deck is ready — parse result payload into GeneratedDeck for preview
+      const resultPayload = (status.deck as { resultPayload?: string }).resultPayload;
+      if (resultPayload) {
+        setDeckFromResult(resultPayload, status.deck.id);
+        setStep('preview');
+      }
+    } else if (status.isFailed && status.deck) {
+      // Generation failed
+      setStep('generating'); // Show error state
+    }
+  }, [asyncJobId, step, deckStatus.data, setDeckFromResult]);
 
   // Initialize enabled sections when template changes
   const handleTemplateSelect = useCallback((template: DeckTemplate) => {
@@ -290,7 +326,7 @@ export function DeckGeneratorModal({
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-surface-secondary">
             <div className="flex items-center gap-3">
-              {step !== 'select-template' && step !== 'generating' && (
+              {step !== 'select-template' && step !== 'generating' && step !== 'async-processing' && (
                 <button
                   onClick={handleBack}
                   className="p-1 rounded-lg hover:bg-surface-hover transition-colors"
@@ -302,6 +338,7 @@ export function DeckGeneratorModal({
                 {step === 'select-template' && 'Generate Slide Deck'}
                 {step === 'customize' && selectedTemplate?.name}
                 {step === 'generating' && 'Generating Deck...'}
+                {step === 'async-processing' && 'Generating via NotebookLM...'}
                 {step === 'preview' && 'Deck Preview'}
               </h2>
             </div>
@@ -381,6 +418,48 @@ export function DeckGeneratorModal({
                   className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
                 >
                   Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Step 3b: Async Processing (NotebookLM background job) */}
+            {step === 'async-processing' && (
+              <div className="flex flex-col items-center justify-center py-16 px-8">
+                <div className="relative mb-6">
+                  <motion.div
+                    className="w-16 h-16 rounded-full border-4 border-intel-400/30"
+                    style={{ borderTopColor: 'var(--gradient-start)' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                  />
+                </div>
+                <h3 className="text-xl font-semibold text-text-primary mb-2">
+                  NotebookLM is generating your deck
+                </h3>
+                <p className="text-text-muted mb-4 text-center max-w-md">
+                  {deckStatus.data?.isProcessing
+                    ? "Research and slide generation in progress..."
+                    : deckStatus.data?.isPending
+                    ? "Queued for processing..."
+                    : "Starting generation..."}
+                </p>
+                {/* Indeterminate progress bar */}
+                <div className="w-full max-w-md h-2 bg-surface-secondary rounded-full overflow-hidden mb-4">
+                  <motion.div
+                    className="h-full w-1/3 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
+                    animate={{ x: ["0%", "200%", "0%"] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  />
+                </div>
+                <p className="text-sm text-text-muted mb-6">
+                  This typically takes 3-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
+                </p>
+                <button
+                  onClick={handleClose}
+                  className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
+                >
+                  Close &amp; Notify Me
                 </button>
               </div>
             )}

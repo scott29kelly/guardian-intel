@@ -77,7 +77,7 @@ const deckQueryKeys = {
 /**
  * Check deck generation status for a customer
  */
-function useDeckStatus(customerId: string | undefined, options?: {
+export function useDeckStatus(customerId: string | undefined, options?: {
   enabled?: boolean;
   refetchInterval?: number | false;
 }) {

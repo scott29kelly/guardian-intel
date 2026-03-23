@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { processSlidesSynchronously, type BatchSlideRequest } from "@/features/deck-generator/services/batchImageGenerator";
+import { processDeckWithNotebookLM } from "@/lib/services/deck-processing";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes max for batch processing
@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
       errors: [] as string[],
     };
 
-    // Process each deck
+    // Process each deck via NotebookLM
     for (const deck of pendingDecks) {
-      const startTime = Date.now();
+      console.log(`[Cron] Processing deck ${deck.id} for ${deck.customerName}`);
 
       try {
         // Mark as processing
@@ -77,88 +77,19 @@ export async function GET(request: NextRequest) {
           data: { status: "processing" },
         });
 
-        // Parse the request payload
-        const requestData = JSON.parse(deck.requestPayload);
-        const { templateId, options } = requestData;
+        // Process via shared NotebookLM pipeline
+        const result = await processDeckWithNotebookLM(deck.id);
 
-        console.log(`[Cron] Processing deck ${deck.id} for ${deck.customerName}`);
-
-        // Fetch template sections (simplified - would normally fetch from DB/config)
-        const enabledSections = options?.enabledSections || [];
-
-        // Build slide requests for batch processing
-        const slideRequests: BatchSlideRequest[] = enabledSections.map(
-          (sectionId: string, index: number) => ({
-            slideId: `${deck.id}-slide-${index}`,
-            slide: {
-              type: getSectionType(sectionId),
-              sectionId,
-              content: { title: formatSectionTitle(sectionId) }, // Simplified content
-            },
-            branding: getDefaultBranding(),
-            slideNumber: index + 1,
-            totalSlides: enabledSections.length,
-          })
-        );
-
-        // Process slides (using synchronous method for now)
-        const slideResults = await processSlidesSynchronously(slideRequests);
-
-        // Build generated deck result
-        const slides = slideResults.map((result, index) => ({
-          id: result.slideId,
-          type: slideRequests[index].slide.type,
-          sectionId: slideRequests[index].slide.sectionId,
-          content: slideRequests[index].slide.content,
-          imageData: result.success ? result.imageData : undefined,
-          imageError: result.success ? undefined : result.error,
-          generatedAt: new Date().toISOString(),
-        }));
-
-        const generatedDeck = {
-          id: deck.id,
-          templateId,
-          templateName: deck.templateName,
-          generatedAt: new Date().toISOString(),
-          context: { customerId: deck.customerId, customerName: deck.customerName },
-          slides,
-          branding: getDefaultBranding(),
-          metadata: {
-            totalSlides: slides.length,
-            aiSlidesCount: slides.filter((s) => s.imageData).length,
-            generationTimeMs: Date.now() - startTime,
-            version: "1.0.0",
-            batchProcessed: true,
-          },
-        };
-
-        // Update deck with results
-        await prisma.scheduledDeck.update({
-          where: { id: deck.id },
-          data: {
-            status: "completed",
-            resultPayload: JSON.stringify(generatedDeck),
-            completedAt: new Date(),
-            actualSlides: slides.length,
-            processingTimeMs: Date.now() - startTime,
-          },
-        });
-
-        console.log(`[Cron] Completed deck ${deck.id} in ${Date.now() - startTime}ms`);
-        results.successful++;
+        if (result.success) {
+          console.log(`[Cron] Completed deck ${deck.id} in ${result.processingTimeMs}ms`);
+          results.successful++;
+        } else {
+          console.error(`[Cron] Failed deck ${deck.id}: ${result.error}`);
+          results.failed++;
+          results.errors.push(`${deck.id}: ${result.error}`);
+        }
       } catch (error) {
-        console.error(`[Cron] Failed to process deck ${deck.id}:`, error);
-
-        // Mark as failed
-        await prisma.scheduledDeck.update({
-          where: { id: deck.id },
-          data: {
-            status: "failed",
-            errorMessage: error instanceof Error ? error.message : "Unknown error",
-            retryCount: { increment: 1 },
-          },
-        });
-
+        console.error(`[Cron] Unexpected error processing deck ${deck.id}:`, error);
         results.failed++;
         results.errors.push(`${deck.id}: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
@@ -187,43 +118,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper to determine section type
-function getSectionType(sectionId: string): "title" | "stats" | "list" | "timeline" | "talking-points" | "chart" | "image" {
-  const typeMap: Record<string, "title" | "stats" | "list" | "timeline" | "talking-points" | "chart" | "image"> = {
-    "cover": "title",
-    "customer-overview": "stats",
-    "talking-points": "talking-points",
-    "objection-handling": "list",
-    "storm-exposure": "timeline",
-    "recommended-actions": "list",
-  };
-  return typeMap[sectionId] || "list";
-}
-
-// Helper to format section title
-function formatSectionTitle(sectionId: string): string {
-  return sectionId
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-// Default branding config
-function getDefaultBranding() {
-  return {
-    colors: {
-      primary: "#3B82F6",
-      secondary: "#F59E0B",
-      background: "#1F2937",
-      text: "#F9FAFB",
-      textMuted: "#9CA3AF",
-      success: "#10B981",
-      warning: "#F59E0B",
-      danger: "#EF4444",
-    },
-    fonts: {
-      heading: "Inter",
-      body: "Inter",
-    },
-  };
-}
