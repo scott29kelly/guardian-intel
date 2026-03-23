@@ -38,28 +38,25 @@ const navigation = [
     href: "/", 
     icon: LayoutDashboard,
   },
-  { 
-    name: "Customers", 
-    href: "/customers", 
+  {
+    name: "Customers",
+    href: "/customers",
     icon: Users,
-    badge: "127"
   },
-  { 
-    name: "Claims", 
-    href: "/claims", 
+  {
+    name: "Claims",
+    href: "/claims",
     icon: FileCheck,
   },
-  { 
-    name: "Storms", 
-    href: "/storms", 
+  {
+    name: "Storms",
+    href: "/storms",
     icon: CloudLightning,
-    badge: "2"
   },
-  { 
-    name: "Trade Terrain", 
-    href: "/terrain", 
+  {
+    name: "Trade Terrain",
+    href: "/terrain",
     icon: Target,
-    badge: "NEW"
   },
   { 
     name: "Competitors", 

@@ -177,6 +177,14 @@ export async function POST(request: NextRequest) {
       templateId,
     };
 
+    // Resolve user ID — demo bypass sessions use fake IDs like "demo-rep"
+    // that don't exist in the User table. Fall back to assigned rep or first user.
+    let userId = session.user.id;
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      userId = customer.assignedRepId || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+    }
+
     // Create the scheduled deck job
     const scheduledDeck = await prisma.scheduledDeck.create({
       data: {
@@ -184,8 +192,8 @@ export async function POST(request: NextRequest) {
         customerName: `${customer.firstName} ${customer.lastName}`,
         templateId,
         templateName,
-        requestedById: session.user.id,
-        assignedToId: assignedToId || customer.assignedRepId || session.user.id,
+        requestedById: userId,
+        assignedToId: assignedToId || customer.assignedRepId || userId,
         status: "pending",
         requestPayload: JSON.stringify(requestPayload),
         scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(),
