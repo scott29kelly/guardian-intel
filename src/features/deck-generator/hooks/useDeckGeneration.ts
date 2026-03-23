@@ -92,22 +92,43 @@ async function scheduleNotebookLMDeck(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customerId, templateId, templateName }),
+      redirect: "manual", // Don't follow auth redirects — treat as failure
     });
 
+    // Check for redirect (auth middleware sends to /login)
+    if (scheduleResponse.status >= 300 && scheduleResponse.status < 400) {
+      console.error("[NotebookLM] Schedule redirected (auth issue) — status:", scheduleResponse.status);
+      return null;
+    }
+
     if (!scheduleResponse.ok) {
-      const err = await scheduleResponse.json().catch(() => ({}));
+      const responseText = await scheduleResponse.text();
+      let err: Record<string, unknown> = {};
+      try { err = JSON.parse(responseText); } catch {
+        console.error("[NotebookLM] Schedule returned non-JSON:", responseText.substring(0, 200));
+        return null;
+      }
 
       // 409 = existing pending/processing job — join that poll instead of falling back
       if (scheduleResponse.status === 409 && err.existingJobId) {
         console.log(`[NotebookLM] Existing job found: ${err.existingJobId} (status: ${err.status})`);
-        return { asyncJobId: err.existingJobId };
+        return { asyncJobId: err.existingJobId as string };
       }
 
       console.error(`[NotebookLM] Schedule failed (${scheduleResponse.status}):`, err);
       return null;
     }
 
-    const scheduleData: ScheduleResponse = await scheduleResponse.json();
+    // Parse response — guard against HTML login pages that slipped through
+    const responseText = await scheduleResponse.text();
+    let scheduleData: ScheduleResponse;
+    try {
+      scheduleData = JSON.parse(responseText);
+    } catch {
+      console.error("[NotebookLM] Schedule returned non-JSON response:", responseText.substring(0, 200));
+      return null;
+    }
+
     if (!scheduleData.success || !scheduleData.job?.id) {
       console.error("[NotebookLM] Schedule returned no job:", scheduleData);
       return null;
@@ -414,10 +435,15 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
           console.log(`[DeckGeneration] Async NotebookLM job started: ${nlmResult.asyncJobId}`);
           return null; // No synchronous deck — poll via useDeckStatus
         }
+
+        // Scheduling failed — don't silently fall back to Gemini (takes 30+ min).
+        // Show error so user can retry or check browser console for details.
+        console.error("[DeckGeneration] NotebookLM async scheduling failed — check console for [NotebookLM] errors above");
+        throw new Error("NotebookLM scheduling failed. Check browser console for details, then retry.");
       }
 
-      // Fallback to Gemini pipeline if NotebookLM scheduling failed
-      console.log("[DeckGeneration] NotebookLM scheduling failed, falling back to Gemini pipeline");
+      // No customerId — fall back to Gemini pipeline (only for non-customer decks)
+      console.log("[DeckGeneration] No customerId — using Gemini pipeline");
 
       let customerContext: SlideGenerationContext | null = null;
       if (request.context.customerId) {

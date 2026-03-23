@@ -59,6 +59,6 @@ export const config = {
      * - /favicon.ico, /robots.txt, /manifest.json, /sw*.js (PWA assets)
      * - /icons/* (PWA icons)
      */
-    "/((?!login|api/auth|api/notifications/vapid-key|_next/static|_next/image|favicon\\.ico|favicon\\.svg|robots\\.txt|manifest\\.json|sw.*\\.js|icons/).*)",
+    "/((?!login|api/|_next/static|_next/image|favicon\\.ico|favicon\\.svg|robots\\.txt|manifest\\.json|sw.*\\.js|icons/).*)",
   ],
 };
