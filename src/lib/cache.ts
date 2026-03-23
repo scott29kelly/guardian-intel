@@ -24,6 +24,7 @@ export const CACHE_NAMESPACES = {
   playbooks: "guardian:cache:playbooks",
   claims: "guardian:cache:claims",
   gamification: "guardian:cache:gamification",
+  notebooklm: "guardian:cache:notebooklm",
 } as const;
 
 export type CacheNamespace = keyof typeof CACHE_NAMESPACES;
@@ -42,6 +43,7 @@ export const CACHE_TTL = {
   playbooks: 900,       // 15 minutes - playbook list queries
   claims: 600,          // 10 minutes - claims list queries
   gamification: 300,    // 5 minutes - gamification state
+  notebooklm: 86400,   // 24 hours - NotebookLM notebook IDs per customer
 } as const;
 
 // In-memory cache for development

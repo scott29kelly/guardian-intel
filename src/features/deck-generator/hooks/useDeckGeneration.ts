@@ -12,6 +12,8 @@ import type {
 import { fetchDataForSlide } from '../utils/dataAggregator';
 import {
   generateAISlideContent,
+  generateAllSlidesWithNotebookLM,
+  clearNotebookLMCache,
   fetchCustomerContext,
   type SlideGenerationContext,
 } from '../services/aiSlideGenerator';
@@ -452,6 +454,35 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
             sectionId: '',
             sectionTitle: '',
           };
+
+          // Pre-generate all slide content via NotebookLM (deep research)
+          // Falls back to per-section Gemini Flash if unavailable
+          clearNotebookLMCache();
+          updateProgress({
+            status: 'ai-enhancement',
+            message: 'NotebookLM deep research in progress...',
+            progress: 8,
+          });
+
+          const notebookLMSuccess = await generateAllSlidesWithNotebookLM(
+            customerContext,
+            {
+              weatherEvents: contextData.weatherEvents,
+              onProgress: (stage, detail) => {
+                updateProgress({
+                  message: detail || `NotebookLM: ${stage}...`,
+                  progress: stage === 'notebooklm-complete' ? 15 : 10,
+                });
+              },
+            }
+          );
+
+          if (notebookLMSuccess) {
+            updateProgress({
+              message: 'NotebookLM research complete — generating slides...',
+              progress: 18,
+            });
+          }
         }
       }
 
@@ -532,7 +563,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         status: 'complete',
         currentStep: totalSteps,
         totalSteps,
-        message: `Generated ${slides.length} slides via ${pipeline} with ${imageSlidesCount} visuals (${(generationTimeMs / 1000).toFixed(1)}s)`,
+        message: `Generated ${slides.length} slides via Gemini with ${imageSlidesCount} visuals (${(generationTimeMs / 1000).toFixed(1)}s)`,
         progress: 100,
       });
 

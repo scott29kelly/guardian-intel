@@ -254,50 +254,122 @@ ${payload.customer.scores.profitPotential > 15000 ? "- Premium materials and war
 }
 
 /**
- * Run NotebookLM CLI to generate the deck
+ * Run NotebookLM via Python bridge to generate the deck.
+ * Uses notebooklm-py for deep research and slide deck generation.
  */
 async function runNotebookLM(contextFilePath: string, job: ScheduledDeck): Promise<string> {
   const outputDir = path.join(CONFIG.tempDir, `output-${job.id}`);
   ensureDir(outputDir);
 
-  log(`Running NotebookLM CLI for job ${job.id}...`);
+  log(`Running NotebookLM Python bridge for job ${job.id}...`);
 
-  // The notebooklm CLI command structure (adjust based on actual CLI)
-  // This assumes the CLI can:
-  // 1. Add a source to an existing notebook
-  // 2. Generate a document/deck from the notebook
-  
-  const commands = [
-    // Add customer context as a source
-    `${CONFIG.notebooklmCli} source add --notebook ${CONFIG.notebookId} --file "${contextFilePath}" --title "Customer: ${job.customerName}"`,
-    
-    // Generate the deck (this might vary based on CLI capabilities)
-    `${CONFIG.notebooklmCli} generate --notebook ${CONFIG.notebookId} --type slides --output "${outputDir}" --format pdf`,
-  ];
+  const payload = JSON.parse(job.requestPayload) as {
+    customer: CustomerContext["customer"];
+    weatherEvents: CustomerContext["weatherEvents"];
+    intelItems: CustomerContext["intelItems"];
+  };
 
-  try {
-    for (const cmd of commands) {
-      log(`Executing: ${cmd}`);
-      execSync(cmd, {
-        encoding: "utf-8",
-        timeout: CONFIG.processingTimeout * 60 * 1000,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-    }
+  // Build the request for the Python bridge
+  const bridgeRequest = {
+    action: "generate",
+    customer: {
+      id: job.customerId,
+      firstName: payload.customer.name.split(" ")[0],
+      lastName: payload.customer.name.split(" ").slice(1).join(" "),
+      address: "",
+      city: payload.customer.address.city,
+      state: payload.customer.address.state,
+      zipCode: "",
+      propertyType: payload.customer.property.type,
+      yearBuilt: payload.customer.property.yearBuilt,
+      squareFootage: payload.customer.property.squareFootage,
+      roofType: payload.customer.roof.type,
+      roofAge: payload.customer.roof.age,
+      insuranceCarrier: payload.customer.insurance.carrier,
+      deductible: payload.customer.insurance.deductible,
+      leadScore: payload.customer.scores.lead,
+      urgencyScore: payload.customer.scores.urgency,
+    },
+    weatherEvents: payload.weatherEvents || [],
+    intelItems: payload.intelItems || [],
+    notebookId: CONFIG.notebookId !== "ed6b52aa-95a6-41b7-9d8a-b8135afcd490"
+      ? CONFIG.notebookId
+      : undefined,
+  };
 
-    // Find the generated PDF
-    const files = fs.readdirSync(outputDir);
-    const pdfFile = files.find(f => f.endsWith(".pdf"));
-    
-    if (!pdfFile) {
-      throw new Error("No PDF file generated");
-    }
+  const bridgeScript = path.join(process.cwd(), "scripts", "notebooklm-bridge.py");
+  const pythonCmd = process.env.NOTEBOOKLM_PYTHON_CMD || "python3";
 
-    return path.join(outputDir, pdfFile);
-  } catch (error) {
-    log(`NotebookLM CLI error: ${error}`, "error");
-    throw error;
-  }
+  return new Promise((resolve, reject) => {
+    const proc = spawn(pythonCmd, [bridgeScript], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+    });
+
+    let stdout = "";
+
+    proc.stdout.on("data", (data: Buffer) => {
+      stdout += data.toString();
+    });
+
+    proc.stderr.on("data", (data: Buffer) => {
+      const lines = data.toString().split("\n").filter(Boolean);
+      for (const line of lines) {
+        try {
+          const progress = JSON.parse(line);
+          if (progress.stage) {
+            log(`NotebookLM progress: ${progress.stage} ${progress.section || ""}`);
+          }
+        } catch {
+          log(`NotebookLM: ${line}`);
+        }
+      }
+    });
+
+    proc.on("close", (code) => {
+      if (code !== 0 && !stdout.trim()) {
+        reject(new Error(`NotebookLM bridge exited with code ${code}`));
+        return;
+      }
+
+      try {
+        const result = JSON.parse(stdout.trim());
+
+        if (!result.success) {
+          reject(new Error(result.error || "NotebookLM generation failed"));
+          return;
+        }
+
+        // Write the research results as JSON for downstream processing
+        const resultPath = path.join(outputDir, "notebooklm-result.json");
+        fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
+
+        // Generate a simple PDF from the NotebookLM research
+        // The actual PDF rendering happens via the slide image generator
+        const pdfPath = path.join(outputDir, `${job.customerName.replace(/\s+/g, "-")}-deck.json`);
+        fs.writeFileSync(pdfPath, JSON.stringify({
+          notebookId: result.notebookId,
+          sections: result.sections,
+          deckArtifact: result.deckArtifact,
+          customerName: result.customerName,
+          generatedAt: new Date().toISOString(),
+          jobId: job.id,
+        }, null, 2));
+
+        resolve(pdfPath);
+      } catch (e) {
+        reject(new Error(`Failed to parse NotebookLM output: ${e}`));
+      }
+    });
+
+    proc.on("error", (err) => {
+      reject(new Error(`Failed to spawn NotebookLM bridge: ${err.message}`));
+    });
+
+    // Send request via stdin
+    proc.stdin.write(JSON.stringify(bridgeRequest));
+    proc.stdin.end();
+  });
 }
 
 /**
@@ -470,13 +542,13 @@ async function main() {
     process.exit(1);
   }
 
-  // Check NotebookLM CLI availability
+  // Check NotebookLM Python bridge availability
+  const pythonCmd = process.env.NOTEBOOKLM_PYTHON_CMD || "python3";
   try {
-    execSync(`which ${CONFIG.notebooklmCli}`, { stdio: "pipe" });
-    log(`NotebookLM CLI found: ${CONFIG.notebooklmCli}`);
+    execSync(`${pythonCmd} -c "import notebooklm"`, { stdio: "pipe" });
+    log(`NotebookLM Python bridge ready (${pythonCmd})`);
   } catch {
-    log(`NotebookLM CLI not found at: ${CONFIG.notebooklmCli}`, "warn");
-    log("Make sure the CLI is installed and in your PATH");
+    log(`notebooklm-py not installed. Run: pip3 install notebooklm-py`, "warn");
   }
 
   ensureDir(CONFIG.tempDir);

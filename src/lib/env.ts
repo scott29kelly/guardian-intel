@@ -59,9 +59,12 @@ const envSchema = z.object({
   COMPANY_PHONE: z.string().optional().default("(555) 123-4567"),
   COMPANY_WEBSITE: z.string().optional().default("guardianroofing.com"),
 
-  // Deck Generation
+  // Deck Generation - NotebookLM Integration
   NOTEBOOKLM_NOTEBOOK_ID: z.string().optional(),
-  NOTEBOOKLM_CLI: z.string().optional().default("notebooklm"),
+  NOTEBOOKLM_PYTHON_CMD: z.string().optional().default("python3"),
+  NOTEBOOKLM_BRIDGE_SCRIPT: z.string().optional().default("scripts/notebooklm-bridge.py"),
+  NOTEBOOKLM_TIMEOUT_MS: z.string().optional().default("300000"),
+  NOTEBOOKLM_STORAGE_PATH: z.string().optional(), // Path to NotebookLM credentials (~/.notebooklm)
 
   // Cron Jobs (Vercel Cron or self-hosted)
   CRON_SECRET: z.string().optional(), // Shared secret for authenticating cron requests

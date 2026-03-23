@@ -261,7 +261,7 @@ export interface DeckGenerationRequest {
 }
 
 export interface DeckGenerationProgress {
-  status: 'initializing' | 'fetching-data' | 'generating-slides' | 'ai-enhancement' | 'rendering' | 'complete' | 'error';
+  status: 'initializing' | 'fetching-data' | 'generating-slides' | 'ai-enhancement' | 'notebooklm-research' | 'rendering' | 'complete' | 'error';
   currentStep: number;
   totalSteps: number;
   currentSlide?: string;
