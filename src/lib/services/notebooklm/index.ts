@@ -213,7 +213,7 @@ export async function generateSlideDeck(
   console.log(`[NotebookLM] Generation started: ${startResult.stdout.trim().substring(0, 200)}`);
 
   // Step 2: Poll for completion using download --dry-run
-  const maxWaitMs = 540_000; // 9 minutes polling
+  const maxWaitMs = 720_000; // 12 minutes polling (some decks take 8+ min)
   const pollIntervalMs = 15_000; // Check every 15 seconds
   const startTime = Date.now();
   let artifactReady = false;
@@ -229,24 +229,40 @@ export async function generateSlideDeck(
       15_000
     );
 
-    if (dlCheck.exitCode === 0 && dlCheck.stdout.toLowerCase().includes("would download")) {
+    // Log every poll attempt for diagnostics
+    console.log(`[NotebookLM] Poll @${elapsed}s: exit=${dlCheck.exitCode} stdout="${dlCheck.stdout.trim().substring(0, 120)}"`);
+
+    // Broaden success detection: exitCode 0 means the CLI found a downloadable artifact.
+    // The "would download" string is expected, but exitCode 0 alone is sufficient.
+    if (dlCheck.exitCode === 0) {
       console.log(`[NotebookLM] Slide deck ready after ${elapsed}s`);
       artifactReady = true;
       break;
     }
-
-    // Log progress periodically
-    if (elapsed % 60 < pollIntervalMs / 1000) {
-      console.log(`[NotebookLM] Still generating... (${elapsed}s elapsed)`);
-    }
-  }
-
-  if (!artifactReady) {
-    return { success: false, error: `Slide deck generation timed out after ${maxWaitMs / 1000}s` };
   }
 
   // Step 3: Download the generated deck
   const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-deck-${Date.now()}.pdf`);
+
+  if (!artifactReady) {
+    // Fallback: try one real download before giving up — the dry-run text may not match
+    // but the artifact might still be ready
+    console.log(`[NotebookLM] Polling timed out — attempting fallback download...`);
+    const fallbackDl = await execCLI(["download", "slide-deck", outputPath, "--latest"], 30_000);
+    if (fallbackDl.exitCode === 0) {
+      // Check the file actually exists and has content
+      try {
+        const stat = await fs.stat(outputPath);
+        if (stat.size > 0) {
+          console.log(`[NotebookLM] Fallback download succeeded (${Math.round(stat.size / 1024)}KB)`);
+          return { success: true, outputPath };
+        }
+      } catch {}
+    }
+    console.error(`[NotebookLM] Fallback download also failed: ${fallbackDl.stdout.substring(0, 200)}`);
+    return { success: false, error: `Slide deck generation timed out after ${maxWaitMs / 1000}s` };
+  }
+
   const dlResult = await execCLI(["download", "slide-deck", outputPath, "--latest"]);
 
   if (dlResult.exitCode !== 0) {
@@ -296,7 +312,7 @@ export async function generateInfographic(
   console.log(`[NotebookLM] Infographic generation started: ${startResult.stdout.trim().substring(0, 200)}`);
 
   // Step 2: Poll for completion
-  const maxWaitMs = 540_000;
+  const maxWaitMs = 720_000; // 12 minutes
   const pollIntervalMs = 15_000;
   const startTime = Date.now();
   let artifactReady = false;
@@ -304,25 +320,40 @@ export async function generateInfographic(
   while (Date.now() - startTime < maxWaitMs) {
     await new Promise(r => setTimeout(r, pollIntervalMs));
 
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
     const dlCheck = await execCLI(
       ["download", "infographic", "--dry-run", "--latest"],
       15_000
     );
 
-    if (dlCheck.exitCode === 0 && dlCheck.stdout.toLowerCase().includes("would download")) {
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
+    console.log(`[NotebookLM] Infographic poll @${elapsed}s: exit=${dlCheck.exitCode} stdout="${dlCheck.stdout.trim().substring(0, 120)}"`);
+
+    if (dlCheck.exitCode === 0) {
       console.log(`[NotebookLM] Infographic ready after ${elapsed}s`);
       artifactReady = true;
       break;
     }
   }
 
+  // Step 3: Download
+  const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-infographic-${Date.now()}.png`);
+
   if (!artifactReady) {
+    // Fallback: try one real download before giving up
+    console.log(`[NotebookLM] Infographic polling timed out — attempting fallback download...`);
+    const fallbackDl = await execCLI(["download", "infographic", outputPath, "--latest"], 30_000);
+    if (fallbackDl.exitCode === 0) {
+      try {
+        const stat = await fs.stat(outputPath);
+        if (stat.size > 0) {
+          console.log(`[NotebookLM] Infographic fallback download succeeded (${Math.round(stat.size / 1024)}KB)`);
+          return { success: true, outputPath };
+        }
+      } catch {}
+    }
     return { success: false, error: `Infographic generation timed out after ${maxWaitMs / 1000}s` };
   }
 
-  // Step 3: Download
-  const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-infographic-${Date.now()}.png`);
   const dlResult = await execCLI(["download", "infographic", outputPath, "--latest"]);
 
   if (dlResult.exitCode !== 0) {
@@ -458,13 +489,30 @@ export async function generateCustomerInfographic(
  * If auth has expired (PSIDRTS cookies rotate every ~12h), attempts
  * an automatic headless cookie refresh using Playwright before failing.
  */
-export async function healthCheck(): Promise<{ ok: boolean; error?: string }> {
+export async function healthCheck(): Promise<{ ok: boolean; error?: string; cookieAgeHours?: number }> {
   try {
+    // Pre-flight: check cookie freshness before hitting the CLI
+    let cookieAgeHours: number | undefined;
+    try {
+      const storageStatePath = path.join(os.homedir(), ".notebooklm", "storage_state.json");
+      const stat = await fs.stat(storageStatePath);
+      cookieAgeHours = Math.round((Date.now() - stat.mtimeMs) / 3_600_000 * 10) / 10;
+      if (cookieAgeHours > 10) {
+        console.warn(`[NotebookLM] Cookie file is ${cookieAgeHours}h old — auth may expire soon`);
+      }
+    } catch {
+      // storage_state.json doesn't exist — CLI is not authenticated
+      console.warn("[NotebookLM] No storage_state.json found — CLI may not be authenticated");
+    }
+
     const result = await execCLI(["list"], 10_000);
 
     if (result.exitCode === 0) {
-      return { ok: true };
+      return { ok: true, cookieAgeHours };
     }
+
+    // Log raw CLI output for diagnostics
+    console.error(`[NotebookLM] healthCheck failed: exit=${result.exitCode} stdout="${result.stdout.substring(0, 300)}" stderr="${result.stderr.substring(0, 300)}"`);
 
     // Pass stdout to parseError — the CLI writes errors to stdout, not stderr
     const error = parseError(result.stderr, result.exitCode, result.stdout);

@@ -132,18 +132,26 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
       }
     }), [deck.slides.length, captureSlide]);
 
-    // === PDF RENDERING PATHS ===
-    // Priority: 1) Supabase pdfUrl (native embed), 2) pdfjs-dist (client render), 3) download link
+    // === RENDERING PRIORITY ===
+    // 1) Slide images (imageData) — best UX, individual slide cards
+    // 2) Supabase pdfUrl — native browser PDF embed (instant)
+    // 3) pdfjs-dist client render from base64 pdfData
+    // 4) Download link only
+
+    const hasSlideImages = deck.slides.some(s => s.imageData);
 
     const pdfSlide = deck.slides.find(s => s.content?.pdfData);
     const pdfBase64 = pdfSlide?.content?.pdfData as string | undefined;
     const { pages: pdfPages, loading: pdfLoading, error: pdfError } = usePdfSlides(
-      // Only use pdfjs if no pdfUrl — avoid decoding 6MB+ base64 unnecessarily
-      deck.pdfUrl ? undefined : pdfBase64
+      // Only use pdfjs if no slide images and no pdfUrl
+      hasSlideImages || deck.pdfUrl ? undefined : pdfBase64
     );
 
-    // Path 1: Supabase PDF URL available — use native browser PDF embed (instant, no JS rendering)
-    if (deck.pdfUrl) {
+    // Path 1: Individual slide images available — skip PDF paths entirely
+    // (falls through to the slide rendering at the bottom of the component)
+
+    // Path 2: Supabase PDF URL available — use native browser PDF embed
+    if (!hasSlideImages && deck.pdfUrl) {
       return (
         <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50 flex items-center justify-between shadow-lg">
@@ -176,8 +184,8 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
       );
     }
 
-    // Path 2: pdfjs-dist client-side rendering (base64 data, no URL)
-    if (pdfBase64) {
+    // Path 3: pdfjs-dist client-side rendering (base64 data, no URL, no slide images)
+    if (!hasSlideImages && pdfBase64) {
       const pdfDataUri = `data:application/pdf;base64,${pdfBase64}`;
 
       if (pdfLoading) {

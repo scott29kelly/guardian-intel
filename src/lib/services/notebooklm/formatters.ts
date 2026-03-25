@@ -439,6 +439,7 @@ export function formatMultiCustomerDigestForNotebook(
  * Retries at lower scale if the first attempt fails (memory/compat issues).
  */
 export async function pdfToImages(pdfPath: string): Promise<string[]> {
+  const conversionStart = Date.now();
   const pdfBuffer = await fs.readFile(pdfPath);
   console.log(`[pdfToImages] PDF file size: ${Math.round(pdfBuffer.length / 1024)}KB, path: ${pdfPath}`);
 
@@ -449,15 +450,21 @@ export async function pdfToImages(pdfPath: string): Promise<string[]> {
     try {
       console.log(`[pdfToImages] Attempting conversion at scale=${scale}...`);
       const { pdf } = await import("pdf-to-img");
+      console.log(`[pdfToImages] pdf-to-img loaded successfully (serverExternalPackages working)`);
       const images: string[] = [];
       const document = await pdf(pdfBuffer, { scale });
 
+      let pageNum = 0;
       for await (const page of document) {
-        images.push(Buffer.from(page).toString("base64"));
+        pageNum++;
+        const b64 = Buffer.from(page).toString("base64");
+        images.push(b64);
+        console.log(`[pdfToImages] Page ${pageNum} converted (${Math.round(b64.length / 1024)}KB base64)`);
       }
 
       if (images.length > 0) {
-        console.log(`[pdfToImages] Converted ${images.length} pages at scale=${scale}`);
+        const elapsed = Date.now() - conversionStart;
+        console.log(`[pdfToImages] Converted ${images.length} pages at scale=${scale} in ${elapsed}ms`);
         return images;
       }
       console.warn(`[pdfToImages] scale=${scale} returned 0 pages`);
@@ -468,5 +475,7 @@ export async function pdfToImages(pdfPath: string): Promise<string[]> {
     }
   }
 
+  const elapsed = Date.now() - conversionStart;
+  console.error(`[pdfToImages] All scale levels failed after ${elapsed}ms`);
   throw new Error(`PDF-to-image conversion failed at all scale levels: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
