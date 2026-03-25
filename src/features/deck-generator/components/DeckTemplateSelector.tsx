@@ -18,6 +18,15 @@ import {
   CloudLightning,
   FileCheck,
   TrendingUp,
+  Zap,
+  ShieldCheck,
+  Crosshair,
+  Coffee,
+  Swords,
+  ClipboardCheck,
+  Kanban,
+  Sunrise,
+  FileSignature,
 } from 'lucide-react';
 import type { DeckTemplate } from '../types/deck.types';
 import { templateCategories } from '../templates';
@@ -34,6 +43,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileCheck,
   TrendingUp,
   FileText,
+  Zap,
+  ShieldCheck,
+  Crosshair,
+  Coffee,
+  Swords,
+  ClipboardCheck,
+  Kanban,
+  Sunrise,
+  FileSignature,
 };
 
 interface DeckTemplateSelectorProps {

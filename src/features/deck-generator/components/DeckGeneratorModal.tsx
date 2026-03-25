@@ -56,11 +56,9 @@ export function DeckGeneratorModal({
     resetGeneration
   } = useDeckGeneration();
 
-  // State
-  const [step, setStep] = useState<Step>(initialTemplateId ? 'customize' : 'select-template');
-  const [selectedTemplate, setSelectedTemplate] = useState<DeckTemplate | null>(
-    initialTemplateId ? getTemplate(initialTemplateId) || null : null
-  );
+  // State — always start at template selection so users see all options
+  const [step, setStep] = useState<Step>('select-template');
+  const [selectedTemplate, setSelectedTemplate] = useState<DeckTemplate | null>(null);
   const [context, setContext] = useState<DeckGenerationRequest['context']>(
     initialContext || {}
   );
@@ -86,21 +84,10 @@ export function DeckGeneratorModal({
     if (isOpen && !hasInitialized.current) {
       // Only initialize once per modal open
       hasInitialized.current = true;
-      setStep(initialTemplateId ? 'customize' : 'select-template');
-      setSelectedTemplate(initialTemplateId ? getTemplate(initialTemplateId) || null : null);
+      // Always show template selector first so users can browse all options
+      setStep('select-template');
+      setSelectedTemplate(null);
       setContext(initialContext || {});
-
-      // Initialize enabled sections from template
-      if (initialTemplateId) {
-        const template = getTemplate(initialTemplateId);
-        if (template) {
-          setEnabledSections(
-            template.sections
-              .filter(s => s.defaultEnabled !== false)
-              .map(s => s.id)
-          );
-        }
-      }
     }
 
     // Reset the flag when modal closes so next open will reinitialize
@@ -110,9 +97,11 @@ export function DeckGeneratorModal({
   }, [isOpen, initialTemplateId, initialContext, getTemplate]);
 
   // Poll for async job status (auto-polls every 10s while pending/processing)
+  // Pass asyncJobId as deckId so we poll the SPECIFIC deck, not the latest for this customer.
+  // This prevents stale/failed decks from triggering a false isFailed transition.
   const deckStatus = useDeckStatus(
     asyncJobId ? context.customerId : undefined,
-    { enabled: !!asyncJobId }
+    { enabled: !!asyncJobId, deckId: asyncJobId || undefined }
   );
 
   // When async job completes or fails, handle transition
@@ -124,12 +113,14 @@ export function DeckGeneratorModal({
 
     if (status.isCompleted && status.deck) {
       const resultPayload = (status.deck as { resultPayload?: string }).resultPayload;
+      const pdfUrl = (status.deck as { pdfUrl?: string }).pdfUrl;
       if (resultPayload) {
-        setDeckFromResult(resultPayload, status.deck.id);
+        setDeckFromResult(resultPayload, status.deck.id, pdfUrl || undefined);
         setStep('preview');
       }
     } else if (status.isFailed && status.deck) {
-      setStep('customize');
+      // Don't silently revert — stay on async-processing so the user sees the error
+      // The async-processing UI checks for isFailed and shows the error message
     }
   }, [asyncJobId, step, deckStatus.data, setDeckFromResult]);
 
@@ -248,10 +239,35 @@ export function DeckGeneratorModal({
     alert('Share link copied to clipboard!');
   }, [generatedDeck]);
 
-  // Handle download - export as ZIP with PNG slides
-  // Uses pre-generated Nano Banana Pro images when available
+  // Handle download - export as ZIP with PNG slides or direct PDF download
   const handleDownload = useCallback(async () => {
     if (!generatedDeck) return;
+
+    // Check if this is a PDF deck (pdfUrl from Supabase or base64 fallback)
+    if (generatedDeck.pdfUrl) {
+      // Download from Supabase Storage URL
+      window.open(generatedDeck.pdfUrl, "_blank");
+      return;
+    }
+    const pdfSlide = generatedDeck.slides.find(s => s.content?.pdfData);
+    if (pdfSlide?.content?.pdfData) {
+      // Direct PDF download from base64 — better quality than re-capturing rendered pages
+      try {
+        const pdfBase64 = pdfSlide.content.pdfData as string;
+        const byteChars = atob(pdfBase64);
+        const byteArray = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteArray[i] = byteChars.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const { saveAs } = await import("file-saver");
+        saveAs(blob, `${generatedDeck.templateName || "deck"}.pdf`);
+      } catch (error) {
+        console.error("PDF download failed:", error);
+        alert("Failed to download PDF. Please try again.");
+      }
+      return;
+    }
 
     setIsExporting(true);
     setExportProgress(null);
@@ -378,8 +394,8 @@ export function DeckGeneratorModal({
               />
             )}
 
-            {/* Step 3: Generating */}
-            {step === 'generating' && progress && (
+            {/* Step 3: Generating (hide if error is set — error block renders instead) */}
+            {step === 'generating' && progress && !error && (
               <div className="flex flex-col items-center justify-center py-16 px-8">
                 <div className="relative mb-6">
                   <Loader2 className="w-16 h-16 text-intel-400 animate-spin" />
@@ -408,8 +424,8 @@ export function DeckGeneratorModal({
               </div>
             )}
 
-            {/* Error State */}
-            {error && (
+            {/* Error State (not during async-processing — that step has its own error UI) */}
+            {error && step !== 'async-processing' && (
               <div className="flex flex-col items-center justify-center py-16 px-8">
                 <AlertCircle className="w-16 h-16 text-damage-500 mb-4" />
                 <h3 className="text-xl font-semibold text-text-primary mb-2">
@@ -430,42 +446,70 @@ export function DeckGeneratorModal({
             {/* Step 3b: Async Processing (NotebookLM background job) */}
             {step === 'async-processing' && (
               <div className="flex flex-col items-center justify-center py-16 px-8">
-                <div className="relative mb-6">
-                  <motion.div
-                    className="w-16 h-16 rounded-full border-4 border-intel-400/30"
-                    style={{ borderTopColor: 'var(--gradient-start)' }}
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                  />
-                </div>
-                <h3 className="text-xl font-semibold text-text-primary mb-2">
-                  NotebookLM is generating your deck
-                </h3>
-                <p className="text-text-muted mb-4 text-center max-w-md">
-                  {deckStatus.data?.isProcessing
-                    ? "Research and slide generation in progress..."
-                    : deckStatus.data?.isPending
-                    ? "Queued for processing..."
-                    : "Starting generation..."}
-                </p>
-                {/* Indeterminate progress bar */}
-                <div className="w-full max-w-md h-2 bg-surface-secondary rounded-full overflow-hidden mb-4">
-                  <motion.div
-                    className="h-full w-1/3 rounded-full"
-                    style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
-                    animate={{ x: ["0%", "200%", "0%"] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  />
-                </div>
-                <p className="text-sm text-text-muted mb-6">
-                  This typically takes 3-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
-                </p>
-                <button
-                  onClick={handleClose}
-                  className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
-                >
-                  Close &amp; Notify Me
-                </button>
+                {deckStatus.data?.isFailed ? (
+                  <>
+                    <AlertCircle className="w-16 h-16 text-damage-500 mb-4" />
+                    <h3 className="text-xl font-semibold text-text-primary mb-2">
+                      Generation Failed
+                    </h3>
+                    <p className="text-text-muted mb-6 text-center max-w-md">
+                      {deckStatus.data.deck?.errorMessage || "NotebookLM generation failed. Please try again."}
+                    </p>
+                    {/* Auth-specific guidance when the error mentions authentication */}
+                    {deckStatus.data.deck?.errorMessage?.toLowerCase().includes("authentication") && (
+                      <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300 max-w-md text-center">
+                        NotebookLM session expired. Auto-refresh was attempted but failed.
+                        <br />
+                        Run <code className="px-1 py-0.5 bg-black/30 rounded">notebooklm login</code> in your terminal to re-authenticate.
+                      </div>
+                    )}
+                    <button
+                      onClick={() => { resetGeneration(); setStep('customize'); }}
+                      className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
+                    >
+                      Try Again
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative mb-6">
+                      <motion.div
+                        className="w-16 h-16 rounded-full border-4 border-intel-400/30"
+                        style={{ borderTopColor: 'var(--gradient-start)' }}
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                      />
+                    </div>
+                    <h3 className="text-xl font-semibold text-text-primary mb-2">
+                      NotebookLM is generating your deck
+                    </h3>
+                    <p className="text-text-muted mb-4 text-center max-w-md">
+                      {deckStatus.data?.isProcessing
+                        ? "Research and slide generation in progress..."
+                        : deckStatus.data?.isPending
+                        ? "Queued for processing..."
+                        : "Starting generation..."}
+                    </p>
+                    {/* Indeterminate progress bar */}
+                    <div className="w-full max-w-md h-2 bg-surface-secondary rounded-full overflow-hidden mb-4">
+                      <motion.div
+                        className="h-full w-1/3 rounded-full"
+                        style={{ background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))' }}
+                        animate={{ x: ["0%", "200%", "0%"] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      />
+                    </div>
+                    <p className="text-sm text-text-muted mb-6">
+                      This typically takes 3-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
+                    </p>
+                    <button
+                      onClick={handleClose}
+                      className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
+                    >
+                      Close &amp; Notify Me
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -485,7 +529,7 @@ export function DeckGeneratorModal({
               )}
               {step === 'preview' && generatedDeck && (
                 <>
-                  {generatedDeck.metadata.totalSlides} slides •
+                  {generatedDeck.slides.length} slides •
                   Generated in {(generatedDeck.metadata.generationTimeMs / 1000).toFixed(1)}s
                 </>
               )}
@@ -573,7 +617,9 @@ export function DeckGeneratorModal({
                     )}
                     {isExporting
                       ? (exportProgress ? `${exportProgress.current}/${exportProgress.total}` : 'Exporting...')
-                      : 'Download ZIP'
+                      : (generatedDeck?.pdfUrl || generatedDeck?.slides.some(s => s.content?.pdfData))
+                        ? 'Download PDF'
+                        : 'Download ZIP'
                     }
                   </button>
                 </>

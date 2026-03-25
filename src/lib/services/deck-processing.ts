@@ -15,8 +15,15 @@ import type { CustomerDeckRequest } from "@/lib/services/notebooklm/index";
 import {
   formatCustomerDataForNotebook,
   formatWeatherHistoryForNotebook,
+  formatClaimsForNotebook,
+  formatIntelItemsForNotebook,
+  formatPhotosForNotebook,
+  formatCarrierIntelForNotebook,
+  formatNeighborhoodCustomersForNotebook,
+  formatMultiCustomerDigestForNotebook,
   pdfToImages,
 } from "@/lib/services/notebooklm/formatters";
+import { getTemplateById } from "@/features/deck-generator/templates";
 import * as fs from "fs/promises";
 
 // =============================================================================
@@ -89,15 +96,23 @@ export async function processDeckWithNotebookLM(
       squareFootage: customer.property?.squareFootage,
       roofType: customer.roof?.type,
       roofAge: customer.roof?.age,
+      roofCondition: customer.roof?.condition,
+      roofPitch: customer.roof?.pitch,
+      roofSquares: customer.roof?.squares,
       propertyValue: customer.property?.value,
       insuranceCarrier: customer.insurance?.carrier,
       policyType: customer.insurance?.policyType,
       deductible: customer.insurance?.deductible,
+      claimHistory: customer.insurance?.claimHistory,
       leadScore: customer.scores?.lead,
       urgencyScore: customer.scores?.urgency,
+      profitPotential: customer.scores?.profitPotential,
+      churnRisk: customer.scores?.churnRisk,
+      engagementScore: customer.scores?.engagement,
       stage: customer.pipeline?.stage,
       status: customer.pipeline?.status,
       leadSource: customer.pipeline?.leadSource,
+      estimatedJobValue: customer.pipeline?.estimatedJobValue,
     });
 
     const weatherHistoryText = formatWeatherHistoryForNotebook(
@@ -112,22 +127,52 @@ export async function processDeckWithNotebookLM(
       }))
     );
 
-    // Step 3: Build template instructions
-    const templateInstructions = `Create a professional ${deck.templateName} presentation for Guardian Roofing.
-This deck is for ${deck.customerName}.
+    // Format additional context available in requestPayload
+    const claimsText = formatClaimsForNotebook(requestData.recentClaims);
+    const intelText = formatIntelItemsForNotebook(requestData.intelItems);
 
-Style requirements:
-- Use a dark navy (#1E3A5F) and gold (#D4A656) color scheme
-- Professional, corporate aesthetic suitable for the roofing industry
-- Include data visualizations where relevant
-- Make it visually impactful and easy to scan quickly`;
+    // Format template-specific data when present
+    const photosText = requestData.photos
+      ? formatPhotosForNotebook(requestData.photos)
+      : "";
+    const carrierIntelText = requestData.carrierStats
+      ? formatCarrierIntelForNotebook(requestData.carrierStats, requestData.comparableClaims)
+      : "";
+    const neighborhoodText = requestData.neighborhoodCustomers
+      ? formatNeighborhoodCustomersForNotebook(requestData.neighborhoodCustomers)
+      : "";
+    const digestText = requestData.customers
+      ? formatMultiCustomerDigestForNotebook(requestData.customers, requestData.repName)
+      : "";
+
+    // Append all available context for richer notebook source
+    const fullCustomerData = [
+      customerDataText,
+      claimsText,
+      intelText,
+      photosText,
+      carrierIntelText,
+      neighborhoodText,
+      digestText,
+    ].filter(Boolean).join("\n\n");
+
+    // Step 3: Build template-aware instructions
+    const templateInstructions = buildTemplateInstructions(
+      deck.templateId,
+      deck.templateName,
+      deck.customerName,
+      requestData
+    );
+
+    const template = getTemplateById(deck.templateId);
+    const audience = template?.audience === "customer" ? "customer-facing" as const : "internal" as const;
 
     const deckRequest: CustomerDeckRequest = {
       customerName: deck.customerName,
-      customerData: customerDataText,
+      customerData: fullCustomerData,
       weatherHistory: weatherHistoryText || undefined,
       templateInstructions,
-      audience: "internal",
+      audience,
     };
 
     // Step 4: Generate via NotebookLM
@@ -139,16 +184,19 @@ Style requirements:
     }
 
     // Step 5: Convert PDF to slide images
-    console.log(`[DeckProcessing] Converting PDF to images...`);
+    console.log(`[DeckProcessing] Converting PDF to images from: ${result.outputPath}`);
     let slideImages: string[] = [];
     let pdfData: string | undefined;
 
     try {
       slideImages = await pdfToImages(result.outputPath);
+      console.log(`[DeckProcessing] Converted ${slideImages.length} slide images`);
     } catch (conversionError) {
-      console.warn("[DeckProcessing] PDF-to-image conversion failed, storing PDF as base64:", conversionError);
+      console.error("[DeckProcessing] PDF-to-image conversion failed:", conversionError);
+      console.error("[DeckProcessing] PDF path preserved for debugging:", result.outputPath);
       const pdfBuffer = await fs.readFile(result.outputPath);
       pdfData = pdfBuffer.toString("base64");
+      console.log(`[DeckProcessing] Stored PDF as base64 fallback (${Math.round(pdfBuffer.length / 1024)}KB)`);
     }
 
     // Step 6: Upload PDF to Supabase Storage (if configured)
@@ -188,8 +236,12 @@ Style requirements:
       console.warn("[DeckProcessing] Supabase upload error:", uploadErr);
     }
 
-    // Clean up temp PDF
-    fs.unlink(result.outputPath).catch(() => {});
+    // Clean up temp PDF (only if images were extracted successfully)
+    if (slideImages.length > 0) {
+      fs.unlink(result.outputPath).catch(() => {});
+    } else {
+      console.log(`[DeckProcessing] Keeping PDF for debugging: ${result.outputPath}`);
+    }
 
     // Step 7: Build result payload
     const processingTimeMs = Date.now() - startTime;
@@ -207,7 +259,9 @@ Style requirements:
         mimeType: "image/png",
         generatedAt: new Date().toISOString(),
       })),
-      pdfData, // base64 PDF fallback if image conversion failed
+      // Only embed pdfData in resultPayload if Supabase upload failed (no pdfUrl).
+      // Otherwise the DB row balloons to 10MB+ and every status poll transfers it.
+      ...(pdfData && !pdfUrl ? { pdfData } : {}),
       metadata: {
         totalSlides: slideImages.length,
         generationTimeMs: processingTimeMs,
@@ -242,8 +296,12 @@ Style requirements:
       processingTimeMs,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[DeckProcessing] Failed to process deck ${deckId}:`, errorMessage);
+    const errorMessage = error instanceof Error
+      ? error.message
+      : (typeof error === "object" && error !== null && "message" in error)
+        ? String((error as { message: unknown }).message)
+        : `Non-Error thrown: ${JSON.stringify(error)}`;
+    console.error(`[DeckProcessing] Failed to process deck ${deckId}:`, errorMessage, error);
 
     // Mark as failed
     await prisma.scheduledDeck.update({
@@ -261,6 +319,82 @@ Style requirements:
 
     return { success: false, deckId, error: errorMessage };
   }
+}
+
+// =============================================================================
+// TEMPLATE INSTRUCTION BUILDER
+// =============================================================================
+
+/** Slide-type to prompting guidance — tells NotebookLM what KIND of content to produce */
+const SLIDE_TYPE_GUIDANCE: Record<string, string> = {
+  title: "Create a bold title slide with the deck name, customer/topic, date, and Guardian Roofing branding.",
+  stats: "Present 3-5 headline metrics as large, scannable numbers. Include trend direction (up/down) and brief context for each stat. Prioritize the most actionable data point.",
+  list: "Provide a concise, prioritized list. Each item should have a clear headline and a one-line supporting detail. Highlight the most critical items.",
+  timeline: "Show events in chronological order with dates, descriptions, and severity/impact markers. Emphasize patterns and escalation.",
+  chart: "Visualize the data trend. Include axis labels, a clear title, and a one-sentence insight about what the data shows.",
+  image: "Summarize the key visual information. Frame it as what someone needs to know at a glance before taking action.",
+  "talking-points": "Generate 3-5 specific, actionable talking points. Each should have: a topic headline, a suggested script (2-3 sentences a rep could say verbatim), and a data point that supports it. Make these feel like they were written by a seasoned sales coach.",
+  comparison: "Create a side-by-side comparison with clear column headers and aligned rows. Highlight differentiators.",
+  map: "Describe the geographic context — affected areas, proximity, density of activity.",
+  quote: "Feature a compelling testimonial or key statement with attribution.",
+};
+
+const AUDIENCE_CONTEXT: Record<string, string> = {
+  rep: "This is an internal briefing for a field sales rep. Be direct, actionable, and focused on what they need to say and do at the door. Skip corporate fluff.",
+  manager: "This is for a sales manager. Balance tactical detail with strategic overview. Highlight coaching opportunities and resource allocation decisions.",
+  leadership: "This is for executive leadership. Lead with business impact, revenue implications, and strategic recommendations. Keep tactical details in supporting data.",
+  customer: "This is customer-facing. Use professional, reassuring language. Focus on value, expertise, and next steps. Never expose internal scoring or competitive intelligence.",
+};
+
+function buildTemplateInstructions(
+  templateId: string,
+  templateName: string,
+  customerName: string,
+  requestData: Record<string, unknown>
+): string {
+  const template = getTemplateById(templateId);
+
+  // Fallback if template not found — still better than the old generic prompt
+  if (!template) {
+    return `Create a detailed "${templateName}" presentation for Guardian Roofing about ${customerName}.
+
+For each slide:
+- Lead with the most important insight, not just restated data
+- Include specific numbers, dates, and actionable recommendations
+- Make every slide useful enough that a rep could act on it immediately
+
+Style: Dark navy (#1E3A5F) and gold (#D4A656) color scheme. Professional, data-rich, easy to scan.`;
+  }
+
+  const enabledSections = template.sections.filter(
+    (s) => s.defaultEnabled !== false
+  );
+
+  const sectionInstructions = enabledSections
+    .map((section, i) => {
+      const guidance = SLIDE_TYPE_GUIDANCE[section.type] || "Present the information clearly with actionable detail.";
+      const aiNote = section.aiEnhanced ? " Use the source data to generate original analysis — do not just reformat what's given." : "";
+      return `Slide ${i + 1} — "${section.title}" (${section.type}):
+${guidance}${aiNote}`;
+    })
+    .join("\n\n");
+
+  const audienceNote = AUDIENCE_CONTEXT[template.audience] || AUDIENCE_CONTEXT.rep;
+
+  return `Create a "${templateName}" presentation for Guardian Roofing about ${customerName}.
+
+AUDIENCE: ${audienceNote}
+
+Generate exactly ${enabledSections.length} slides with this structure:
+
+${sectionInstructions}
+
+QUALITY REQUIREMENTS:
+- Every slide must contain ANALYSIS, not just restated data. Transform raw numbers into insights.
+- Talking points should sound like a seasoned sales coach wrote them — specific, conversational, backed by data.
+- When storm/weather data is provided, connect it to damage likelihood, urgency, and insurance claim potential.
+- When lead/urgency scores are high, explain WHY and what action to take.
+- Style: Dark navy (#1E3A5F) and gold (#D4A656) color scheme. Clean, data-rich, scannable.`;
 }
 
 // =============================================================================

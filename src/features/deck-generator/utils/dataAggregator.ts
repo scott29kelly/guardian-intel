@@ -6,14 +6,15 @@
  */
 
 import type {
-  TitleSlideContent, 
-  StatsSlideContent, 
+  TitleSlideContent,
+  StatsSlideContent,
   ListSlideContent,
   TimelineSlideContent,
   ImageSlideContent,
   TalkingPointsSlideContent,
   ChartSlideContent,
   ComparisonSlideContent,
+  MapSlideContent,
 } from '../types/deck.types';
 
 // =============================================================================
@@ -2488,6 +2489,485 @@ export async function generateStormPostmortemRecommendations(): Promise<TalkingP
 }
 
 // =============================================================================
+// STORM RESPONSE COMMAND CENTER
+// =============================================================================
+
+export async function getStormCommandTitleData(regionId?: string): Promise<TitleSlideContent> {
+  void regionId;
+
+  return {
+    title: 'Storm Response Command Center',
+    subtitle: 'Your Territory Battle Plan',
+    date: new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    preparedFor: 'Field Sales Rep',
+    preparedBy: 'Guardian Intel Storm Watch',
+  };
+}
+
+export async function getStormVulnerabilityStats(regionId?: string): Promise<StatsSlideContent> {
+  void regionId;
+
+  // In production, fetches from /api/storms/active + /api/customers by region
+  // and computes vulnerability = f(roofAge, stormSeverity, hailSize)
+  return {
+    title: 'Storm Damage Scorecard',
+    stats: [
+      { label: 'Properties in Zone', value: 47, trend: 'up', icon: 'Home' },
+      { label: 'Avg Roof Age', value: '16 yrs', trend: 'neutral', icon: 'Clock' },
+      { label: 'Severity Rating', value: 'Severe', icon: 'AlertTriangle' },
+      { label: 'Total Opportunity', value: '$1.2M', trend: 'up', icon: 'DollarSign' },
+      { label: 'High Vulnerability', value: 23, trend: 'up', change: '49%', icon: 'Target' },
+    ],
+    footnote: 'Vulnerability = roof age × storm severity × hail size correlation',
+  };
+}
+
+export async function getPrioritizedKnockList(regionId?: string): Promise<ListSlideContent> {
+  void regionId;
+
+  // In production, queries customers by region, sorts by vulnerability × leadScore × profitPotential
+  return {
+    title: 'Prioritized Knock List',
+    numbered: true,
+    items: [
+      { primary: 'Johnson, 142 Oak St', secondary: '22yr roof, State Farm, severe hail exposure — $18K opportunity', highlight: true, icon: '🔴' },
+      { primary: 'Williams, 305 Elm Ave', secondary: '18yr roof, Allstate, moderate hail — $15K opportunity', highlight: true, icon: '🔴' },
+      { primary: 'Garcia, 89 Pine Rd', secondary: '15yr roof, USAA, wind + hail damage reported — $14K opportunity', highlight: true, icon: '🟡' },
+      { primary: 'Brown, 211 Maple Dr', secondary: '20yr roof, Liberty Mutual, no claim filed yet — $12K opportunity', icon: '🟡' },
+      { primary: 'Davis, 567 Cedar Ln', secondary: '12yr roof, Farmers, hail damage likely — $10K opportunity', icon: '🟡' },
+    ],
+  };
+}
+
+export async function getInsuranceDeadlineStats(regionId?: string): Promise<StatsSlideContent> {
+  void regionId;
+
+  // In production, groups customers by carrier, looks up filing windows
+  return {
+    title: 'Insurance Filing Deadlines',
+    stats: [
+      { label: 'State Farm (12 properties)', value: '45 days left', trend: 'down', icon: 'Clock' },
+      { label: 'Allstate (8 properties)', value: '30 days left', trend: 'down', change: 'Urgent', icon: 'AlertTriangle' },
+      { label: 'USAA (6 properties)', value: '60 days left', trend: 'neutral', icon: 'Clock' },
+      { label: 'Liberty Mutual (5 properties)', value: '90 days left', trend: 'neutral', icon: 'Shield' },
+    ],
+    footnote: 'Filing deadline = date of loss + carrier-specific window. Missing the deadline means denied claims.',
+  };
+}
+
+export async function getStormCanvassRouteMap(regionId?: string): Promise<MapSlideContent> {
+  void regionId;
+
+  // In production, takes knock list addresses and plots on map
+  return {
+    title: 'Your Route Today',
+    center: { lat: 40.0583, lng: -74.4057 },
+    zoom: 13,
+    markers: [
+      { lat: 40.062, lng: -74.410, label: '#1 Johnson — 22yr roof', color: 'danger' },
+      { lat: 40.058, lng: -74.402, label: '#2 Williams — 18yr roof', color: 'danger' },
+      { lat: 40.055, lng: -74.398, label: '#3 Garcia — wind + hail', color: 'warning' },
+      { lat: 40.060, lng: -74.412, label: '#4 Brown — no claim yet', color: 'warning' },
+      { lat: 40.053, lng: -74.405, label: '#5 Davis — hail likely', color: 'warning' },
+    ],
+    footnote: 'Red = high priority, Yellow = medium priority. Route optimized for proximity.',
+  };
+}
+
+export async function generateStormDoorScripts(): Promise<TalkingPointsSlideContent> {
+  // AI-enhanced: generates scripts per storm type and carrier
+  return {
+    title: 'Door Scripts',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Opening (Hail Storm)',
+        script: "Hi, I'm [Name] with Guardian Storm Repair. We're in the neighborhood because last week's hailstorm caused significant damage to several roofs on this street. I noticed some signs on yours — would you mind if I took a quick look? It's completely free and takes about 10 minutes.",
+        notes: 'Lead with concern, not sales. Mention specific street for social proof.',
+        priority: 'high',
+      },
+      {
+        topic: 'Insurance Filing Urgency',
+        script: "One important thing — your carrier [Carrier] has a [X]-day filing window from the date of the storm. If we find damage today, we can help you get the claim started before that deadline. After that, they can deny the claim entirely.",
+        notes: 'Use carrier-specific deadline from the Insurance Deadlines slide.',
+        priority: 'high',
+      },
+      {
+        topic: 'Roof Age Angle',
+        script: "Based on county records, your roof is about [X] years old. With [material] shingles, that puts it right in the zone where hail damage is most likely — the granules have worn down enough that even moderate hail can cause cracking.",
+        notes: 'Use roof age and type from customer data. Be factual, not alarmist.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+export async function getStormPhotoChecklist(): Promise<ListSlideContent> {
+  return {
+    title: 'What To Photograph',
+    numbered: true,
+    items: [
+      { primary: 'Roof surface (multiple angles)', secondary: 'Capture hail hits, cracked shingles, missing granules. Include a coin or ruler for scale.' },
+      { primary: 'Gutters & downspouts', secondary: 'Show granule buildup in gutters — indicates shingle degradation.' },
+      { primary: 'Soft metals (vents, flashing, AC units)', secondary: 'Hail dents on soft metals prove impact force — adjusters look for this.' },
+      { primary: 'Siding & windows', secondary: 'Document any siding cracks, window seal damage, or screen tears.' },
+      { primary: 'Wide-angle property shot', secondary: 'Full property view showing overall condition and context.' },
+      { primary: 'Close-up damage details', secondary: 'Minimum 5 close-ups per damage type with measurement reference.' },
+    ],
+  };
+}
+
+// =============================================================================
+// HOMEOWNER TRUST BUILDER
+// =============================================================================
+
+export async function getTrustBuilderTitleData(customerId?: string): Promise<TitleSlideContent> {
+  void customerId;
+
+  return {
+    title: 'Your Home, Our Priority',
+    subtitle: 'A Personal Assessment from Guardian Storm Repair',
+    date: new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    preparedBy: 'Guardian Storm Repair',
+  };
+}
+
+export async function getRoofStoryStats(customerId?: string): Promise<StatsSlideContent> {
+  void customerId;
+
+  // In production, translates roof data + weather into homeowner-friendly narrative
+  return {
+    title: "Your Roof's Story",
+    stats: [
+      { label: 'Roof Age', value: '18 years', icon: 'Calendar', change: 'Approaching typical lifespan' },
+      { label: 'Recent Storm Exposure', value: '2 events', trend: 'up', icon: 'CloudRain', change: 'In the last 6 months' },
+      { label: 'Condition Assessment', value: 'Fair', icon: 'ClipboardCheck', change: 'Based on age and storm exposure' },
+      { label: 'What This Means', value: 'Action Recommended', trend: 'up', icon: 'Info' },
+    ],
+    footnote: 'Assessment based on property records, recent weather data, and roof age. A professional inspection can confirm specifics.',
+  };
+}
+
+export async function getInitialAssessmentFindings(customerId?: string): Promise<ListSlideContent> {
+  void customerId;
+
+  // In production, pulls IntelItems + Photos and translates to homeowner language
+  return {
+    title: 'What We Found',
+    items: [
+      { primary: 'Storm Exposure Detected', secondary: 'Recent severe weather in your area is known to cause hidden roof damage that may not be visible from the ground.', icon: 'CloudLightning' },
+      { primary: 'Roof Age Consideration', secondary: "Your roof is reaching the age where storm damage is more likely to compromise its protective integrity.", icon: 'Clock' },
+      { primary: 'Insurance Coverage Available', secondary: 'Your policy type typically covers storm damage repairs. Most homeowners pay only their deductible.', icon: 'Shield' },
+      { primary: 'No Immediate Emergency', secondary: "While action is recommended, there's no sign of active leaking or structural concern at this time.", icon: 'CheckCircle' },
+    ],
+  };
+}
+
+export async function getInsuranceProcessExplainer(customerId?: string): Promise<ComparisonSlideContent> {
+  void customerId;
+
+  return {
+    title: 'Insurance Made Simple',
+    columns: [
+      {
+        header: 'Handling It Alone',
+        items: [
+          'Navigate complex insurance forms yourself',
+          'Risk missing filing deadlines',
+          'Adjuster may undervalue damage',
+          'No leverage for supplements',
+          'Out-of-pocket if claim denied',
+        ],
+      },
+      {
+        header: 'With Guardian By Your Side',
+        items: [
+          'We handle all paperwork and filing',
+          'We track every deadline for you',
+          'Our team meets with the adjuster on-site',
+          'We fight for every dollar you deserve',
+          'No cost to you beyond your deductible',
+        ],
+      },
+    ],
+  };
+}
+
+export async function getTrustBuilderNextSteps(): Promise<TimelineSlideContent> {
+  return {
+    title: 'What Happens Next',
+    events: [
+      {
+        date: 'Step 1',
+        title: 'Free Professional Inspection',
+        description: 'Our certified inspector examines your roof in detail — photos, measurements, and a written report. Takes about 30 minutes.',
+        status: 'upcoming',
+        icon: 'Search',
+      },
+      {
+        date: 'Step 2',
+        title: 'Insurance Claim Filing',
+        description: "If damage is found, we help file your claim with your carrier. We handle all the paperwork and meet with the adjuster on your behalf.",
+        status: 'upcoming',
+        icon: 'FileText',
+      },
+      {
+        date: 'Step 3',
+        title: 'Quality Repair or Replacement',
+        description: 'Once approved, our crew completes the work. We use premium materials, and your roof is backed by our warranty.',
+        status: 'upcoming',
+        icon: 'Hammer',
+      },
+    ],
+  };
+}
+
+// =============================================================================
+// ADJUSTER MEETING WAR ROOM
+// =============================================================================
+
+export async function getWarRoomTitleData(customerId?: string): Promise<TitleSlideContent> {
+  void customerId;
+
+  return {
+    title: 'Adjuster Meeting War Room',
+    subtitle: 'Data-Driven Negotiation Prep',
+    date: new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    preparedBy: 'Guardian Intel Claims Division',
+  };
+}
+
+export async function getCarrierApprovalStats(customerId?: string): Promise<StatsSlideContent> {
+  void customerId;
+
+  // In production, aggregates InsuranceClaim by carrier + zipCode from requestPayload.carrierStats
+  return {
+    title: 'Carrier Approval Landscape',
+    stats: [
+      { label: 'Approval Rate (This Zip)', value: '72%', trend: 'neutral', icon: 'CheckCircle' },
+      { label: 'Avg Approved Value', value: '$14,200', trend: 'up', icon: 'DollarSign' },
+      { label: 'Supplement Success Rate', value: '68%', trend: 'up', icon: 'TrendingUp' },
+      { label: 'Avg Supplement Amount', value: '$3,400', icon: 'Plus' },
+      { label: 'Claims Analyzed', value: 34, icon: 'Database' },
+    ],
+    footnote: 'Based on historical claim data for this carrier in the customer\'s zip code area.',
+  };
+}
+
+export async function getComparableApprovals(customerId?: string): Promise<ListSlideContent> {
+  void customerId;
+
+  // In production, queries approved claims with same carrier in same zip
+  return {
+    title: 'Comparable Approved Properties',
+    numbered: true,
+    items: [
+      { primary: '305 Elm Ave — Approved $16,200', secondary: 'Same carrier, 20yr asphalt roof, hail claim, approved 3 months ago', highlight: true },
+      { primary: '142 Oak St — Approved $14,800', secondary: 'Same carrier, 18yr architectural shingle, wind + hail, supplement approved', highlight: true },
+      { primary: '89 Pine Rd — Approved $12,500', secondary: 'Same carrier, 15yr 3-tab, hail damage, initial + 1 supplement' },
+      { primary: '211 Maple Dr — Approved $11,900', secondary: 'Same carrier, 16yr asphalt, hail claim, no supplement needed' },
+      { primary: '567 Cedar Ln — Approved $15,600', secondary: 'Same carrier, 22yr architectural, full replacement approved' },
+    ],
+  };
+}
+
+export async function getClaimVsAverageComparison(customerId?: string): Promise<ComparisonSlideContent> {
+  void customerId;
+
+  return {
+    title: 'Your Claim vs Carrier Averages',
+    columns: [
+      {
+        header: 'This Claim',
+        items: [
+          'Roof Age: 18 years',
+          'Damage Type: Hail + Wind',
+          'Roof Size: 28 squares',
+          'Material: Architectural Shingle',
+          'Claim Filed: Within 14 days',
+          'Documentation: Photos + Inspection',
+        ],
+      },
+      {
+        header: 'Carrier Avg (Approved)',
+        items: [
+          'Avg Approved Roof Age: 16 years',
+          'Most Common: Hail (78%)',
+          'Avg Roof Size: 24 squares',
+          'Most Common: Architectural (65%)',
+          'Avg Filing Time: 21 days',
+          'Approval Rate: 72%',
+        ],
+      },
+    ],
+  };
+}
+
+export async function generateAdjusterNegotiationPoints(): Promise<TalkingPointsSlideContent> {
+  return {
+    title: 'Negotiation Ammunition',
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Comparable Properties Leverage',
+        script: "We have 5 approved claims from your company in this same zip code in the last 6 months. The average approved value was $14,200 for similar roof profiles. This property's damage is consistent with those approvals.",
+        notes: 'Reference specific comparable addresses from the previous slide.',
+        priority: 'high',
+      },
+      {
+        topic: 'Code Upgrade Requirement',
+        script: "Per current building code, a partial repair isn't compliant for a roof of this age. The full replacement brings the property to code, which is a covered cost under the policy.",
+        notes: 'Check local code requirements before the meeting.',
+        priority: 'high',
+      },
+      {
+        topic: 'Hidden Damage Documentation',
+        script: "Our inspection found damage in areas not visible from a ground-level assessment — specifically at the ridge caps and around penetrations. We have detailed close-up documentation.",
+        notes: 'Ensure photo evidence is organized and accessible during the meeting.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+export async function getSupplementStrategy(customerId?: string): Promise<ListSlideContent> {
+  void customerId;
+
+  return {
+    title: 'Supplement Strategy',
+    items: [
+      { primary: 'Drip Edge Replacement', secondary: 'Success rate: 85% with this carrier. Document existing condition before removal.', highlight: true },
+      { primary: 'Ice & Water Shield', secondary: 'Code requirement in this zone. Reference local ordinance if adjuster pushes back.', highlight: true },
+      { primary: 'Ridge Vent Upgrade', secondary: 'Success rate: 72%. Photograph existing ventilation inadequacy.' },
+      { primary: 'Flashing Replacement', secondary: 'Often overlooked in initial scope. Document corrosion and separation.' },
+      { primary: 'Starter Strip', secondary: 'Manufacturer warranty requires specific starter. Include spec sheet.' },
+    ],
+  };
+}
+
+export async function getWarRoomChecklist(): Promise<ListSlideContent> {
+  return {
+    title: 'Pre-Meeting Checklist',
+    items: [
+      { primary: 'Damage photos organized by area', secondary: 'Roof, gutters, soft metals, siding — minimum 20 photos', icon: 'Camera' },
+      { primary: 'Measurement report ready', secondary: 'Roof dimensions, pitch, and waste factor documented', icon: 'Ruler' },
+      { primary: 'Material spec sheets', secondary: 'Matching manufacturer specs for replacement materials', icon: 'FileText' },
+      { primary: 'Local code requirements', secondary: 'Print relevant building code sections for ice/water, ventilation', icon: 'BookOpen' },
+      { primary: 'Comparable approvals list', secondary: 'Print carrier approval data from this deck for reference', icon: 'ClipboardList' },
+      { primary: 'Supplement documentation', secondary: 'Pre-prepared supplement items with supporting evidence', icon: 'Plus' },
+    ],
+  };
+}
+
+// =============================================================================
+// MORNING BRIEFING DIGEST
+// =============================================================================
+
+export async function getDigestTitleData(repId?: string): Promise<TitleSlideContent> {
+  void repId;
+
+  const today = new Date();
+  const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+
+  return {
+    title: `${dayName} Morning Digest`,
+    subtitle: 'Your Priority Customers & Action Items',
+    date: today.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    preparedBy: 'Guardian Intel AI',
+  };
+}
+
+export async function getDigestOverviewStats(repId?: string): Promise<StatsSlideContent> {
+  void repId;
+
+  // In production, aggregates across rep's assigned customers
+  return {
+    title: "Today's Numbers",
+    stats: [
+      { label: 'Active Pipeline', value: '$187K', trend: 'up', change: '+$12K this week', icon: 'DollarSign' },
+      { label: 'Customers Need Action', value: 8, trend: 'up', icon: 'AlertCircle' },
+      { label: 'New Intel Since Yesterday', value: 5, trend: 'up', icon: 'Lightbulb' },
+      { label: 'Follow-ups Due Today', value: 3, icon: 'Phone' },
+    ],
+  };
+}
+
+export async function getCustomerBriefingSlide(context?: Record<string, unknown>): Promise<ListSlideContent> {
+  void context;
+
+  // In production, dense per-customer intel from interactions + intel + weather + scores
+  return {
+    title: 'Priority Customer Briefing',
+    items: [
+      { primary: 'Urgency Score: 87/100', secondary: '22yr roof + recent hail + claim window closing', icon: 'AlertTriangle', highlight: true },
+      { primary: 'Last Contact: 3 days ago (call)', secondary: 'Outcome: Interested, requested follow-up this week', icon: 'Phone' },
+      { primary: 'New Intel', secondary: 'Neighbor at 305 Elm had roof replaced last week — social proof opportunity', icon: 'Lightbulb' },
+      { primary: 'Insurance: State Farm', secondary: '$1,000 deductible, no prior claims — clean history helps approval', icon: 'Shield' },
+      { primary: 'Est. Job Value: $16,500', secondary: 'Profit potential: High — architectural shingle upgrade likely', icon: 'DollarSign' },
+      { primary: 'Recommended Action', secondary: 'Schedule inspection this week. Lead with neighbor social proof. Filing deadline: 32 days.', icon: 'Target', highlight: true },
+    ],
+  };
+}
+
+export async function getQuickHitsDigest(repId?: string): Promise<ListSlideContent> {
+  void repId;
+
+  // In production, remaining priority customers as one-liners
+  return {
+    title: 'Quick Hits',
+    items: [
+      { primary: 'Thompson, 89 Birch St', secondary: 'Follow-up call due today — proposal sent 5 days ago, no response yet', icon: '📞' },
+      { primary: 'Martinez, 421 Spruce Ave', secondary: 'New storm intel — moderate hail reported in their zip yesterday', icon: '⛈️' },
+      { primary: 'Anderson, 15 Willow Ct', secondary: 'Churn risk increasing — 12 days since last contact, was very interested', icon: '⚠️' },
+      { primary: 'Lee, 302 Ash Dr', secondary: 'Contract sent 2 days ago — follow up to close', icon: '📋' },
+      { primary: 'Wilson, 77 Dogwood Ln', secondary: 'New lead from referral — high property value, 19yr roof', icon: '🆕' },
+    ],
+  };
+}
+
+export async function generateDigestPlaybook(): Promise<TalkingPointsSlideContent> {
+  return {
+    title: "Today's Playbook",
+    aiGenerated: true,
+    points: [
+      {
+        topic: 'Morning Priority: Close the Hot Deals',
+        script: 'Start with Thompson (proposal pending) and Lee (contract sent). These are closest to closing — a quick call before 10am catches people before their day gets busy.',
+        priority: 'high',
+      },
+      {
+        topic: 'Midday: Storm Follow-Up Blitz',
+        script: "Yesterday's storm intel gives you a fresh opening for Martinez and 2 other properties in that zip. Lead with 'checking on your home after yesterday\'s weather' — it's genuine concern, not a cold call.",
+        priority: 'high',
+      },
+      {
+        topic: 'Afternoon: Prevent the Churn',
+        script: 'Anderson is going cold — 12 days is the tipping point. A brief, value-add touchpoint (share a relevant article or neighbor update) keeps the relationship warm without being pushy.',
+        priority: 'medium',
+      },
+    ],
+  };
+}
+
+// =============================================================================
 // UTILITY: Data Source Registry
 // =============================================================================
 
@@ -2592,6 +3072,38 @@ export const dataSourceRegistry: Record<string, (context: Record<string, unknown
   getHistoricalStormComparison: () => getHistoricalStormComparison(),
   getStormLessonsLearned: () => getStormLessonsLearned(),
   generateStormPostmortemRecommendations: () => generateStormPostmortemRecommendations(),
+
+  // Storm Command Center
+  getStormCommandTitleData: (ctx) => getStormCommandTitleData(ctx.regionId as string | undefined),
+  getStormVulnerabilityStats: (ctx) => getStormVulnerabilityStats(ctx.regionId as string | undefined),
+  getPrioritizedKnockList: (ctx) => getPrioritizedKnockList(ctx.regionId as string | undefined),
+  getInsuranceDeadlineStats: (ctx) => getInsuranceDeadlineStats(ctx.regionId as string | undefined),
+  getStormCanvassRouteMap: (ctx) => getStormCanvassRouteMap(ctx.regionId as string | undefined),
+  generateStormDoorScripts: () => generateStormDoorScripts(),
+  getStormPhotoChecklist: () => getStormPhotoChecklist(),
+
+  // Homeowner Trust Builder
+  getTrustBuilderTitleData: (ctx) => getTrustBuilderTitleData(ctx.customerId as string),
+  getRoofStoryStats: (ctx) => getRoofStoryStats(ctx.customerId as string),
+  getInitialAssessmentFindings: (ctx) => getInitialAssessmentFindings(ctx.customerId as string),
+  getInsuranceProcessExplainer: (ctx) => getInsuranceProcessExplainer(ctx.customerId as string),
+  getTrustBuilderNextSteps: () => getTrustBuilderNextSteps(),
+
+  // Adjuster War Room
+  getWarRoomTitleData: (ctx) => getWarRoomTitleData(ctx.customerId as string),
+  getCarrierApprovalStats: (ctx) => getCarrierApprovalStats(ctx.customerId as string),
+  getComparableApprovals: (ctx) => getComparableApprovals(ctx.customerId as string),
+  getClaimVsAverageComparison: (ctx) => getClaimVsAverageComparison(ctx.customerId as string),
+  generateAdjusterNegotiationPoints: () => generateAdjusterNegotiationPoints(),
+  getSupplementStrategy: (ctx) => getSupplementStrategy(ctx.customerId as string),
+  getWarRoomChecklist: () => getWarRoomChecklist(),
+
+  // Morning Digest
+  getDigestTitleData: (ctx) => getDigestTitleData(ctx.repId as string | undefined),
+  getDigestOverviewStats: (ctx) => getDigestOverviewStats(ctx.repId as string | undefined),
+  getCustomerBriefingSlide: (ctx) => getCustomerBriefingSlide(ctx as Record<string, unknown>),
+  getQuickHitsDigest: (ctx) => getQuickHitsDigest(ctx.repId as string | undefined),
+  generateDigestPlaybook: () => generateDigestPlaybook(),
 };
 
 // Helper to call any data source by name
