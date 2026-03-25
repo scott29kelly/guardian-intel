@@ -365,16 +365,239 @@ export async function generateInfographic(
   return { success: true, outputPath };
 }
 
+/**
+ * Configure a notebook's persona, mode, and response length.
+ *
+ * These settings affect ALL artifacts generated from the notebook,
+ * so call this once after creating the notebook and adding sources.
+ */
+export async function configureNotebook(
+  notebookId: string,
+  options: { mode?: string; persona?: string; responseLength?: string }
+): Promise<void> {
+  await useNotebook(notebookId);
+
+  const args = ["configure"];
+  if (options.mode) args.push("--mode", options.mode);
+  if (options.persona) args.push("--persona", options.persona);
+  if (options.responseLength) args.push("--response-length", options.responseLength);
+
+  const result = await execCLI(args, 15_000);
+  if (result.exitCode !== 0) {
+    console.warn(`[NotebookLM] Configure warning: ${result.stderr || result.stdout}`);
+  } else {
+    console.log(`[NotebookLM] Configured notebook: mode=${options.mode || "default"}`);
+  }
+}
+
+/**
+ * Generate an audio briefing from the notebook's sources.
+ *
+ * Uses --no-wait + polling pattern identical to generateSlideDeck.
+ * Audio generation typically takes 3-8 minutes.
+ */
+export async function generateAudio(
+  notebookId: string,
+  options: { instructions?: string; format?: string; length?: string; outputPath?: string } = {}
+): Promise<GenerateResult> {
+  await useNotebook(notebookId);
+
+  // Step 1: Start generation
+  const args = ["generate", "audio"];
+  if (options.instructions) {
+    args.push(options.instructions);
+  }
+  if (options.format) {
+    args.push("--format", options.format);
+  }
+  if (options.length) {
+    args.push("--length", options.length);
+  }
+  args.push("--retry", "2");
+
+  console.log(`[NotebookLM] Starting audio generation (no-wait)...`);
+  const startResult = await execCLI(args, 60_000);
+
+  if (startResult.exitCode !== 0) {
+    console.error(`[NotebookLM] audio start failed (code ${startResult.exitCode})`);
+    console.error(`[NotebookLM] stdout: ${startResult.stdout.substring(0, 500)}`);
+    console.error(`[NotebookLM] stderr: ${startResult.stderr.substring(0, 500)}`);
+    const error = parseError(startResult.stderr, startResult.exitCode, startResult.stdout);
+    return { success: false, error: error.message };
+  }
+
+  console.log(`[NotebookLM] Audio generation started: ${startResult.stdout.trim().substring(0, 200)}`);
+
+  // Step 2: Poll for completion using download --dry-run
+  const maxWaitMs = 720_000; // 12 minutes
+  const pollIntervalMs = 15_000;
+  const startTime = Date.now();
+  let artifactReady = false;
+
+  console.log(`[NotebookLM] Polling for audio completion (up to ${maxWaitMs / 1000}s)...`);
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const dlCheck = await execCLI(
+      ["download", "audio", "--dry-run", "--latest"],
+      15_000
+    );
+
+    console.log(`[NotebookLM] Audio poll @${elapsed}s: exit=${dlCheck.exitCode} stdout="${dlCheck.stdout.trim().substring(0, 120)}"`);
+
+    if (dlCheck.exitCode === 0) {
+      console.log(`[NotebookLM] Audio ready after ${elapsed}s`);
+      artifactReady = true;
+      break;
+    }
+  }
+
+  // Step 3: Download
+  const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-audio-${Date.now()}.mp3`);
+
+  if (!artifactReady) {
+    console.log(`[NotebookLM] Audio polling timed out — attempting fallback download...`);
+    const fallbackDl = await execCLI(["download", "audio", outputPath, "--latest"], 30_000);
+    if (fallbackDl.exitCode === 0) {
+      try {
+        const stat = await fs.stat(outputPath);
+        if (stat.size > 0) {
+          console.log(`[NotebookLM] Audio fallback download succeeded (${Math.round(stat.size / 1024)}KB)`);
+          return { success: true, outputPath };
+        }
+      } catch {}
+    }
+    return { success: false, error: `Audio generation timed out after ${maxWaitMs / 1000}s` };
+  }
+
+  const dlResult = await execCLI(["download", "audio", outputPath, "--latest"]);
+
+  if (dlResult.exitCode !== 0) {
+    console.error(`[NotebookLM] audio download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
+    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+  }
+
+  console.log(`[NotebookLM] Audio saved to: ${outputPath}`);
+  return { success: true, outputPath };
+}
+
+/**
+ * Generate a written report from the notebook's sources.
+ *
+ * Supports formats: briefing-doc, study-guide, blog-post, custom.
+ * Uses --no-wait + polling pattern identical to generateSlideDeck.
+ */
+export async function generateReport(
+  notebookId: string,
+  options: { format?: string; appendInstructions?: string; description?: string; outputPath?: string } = {}
+): Promise<GenerateResult> {
+  await useNotebook(notebookId);
+
+  // Step 1: Start generation
+  const args = ["generate", "report"];
+  if (options.format) {
+    args.push("--format", options.format);
+  }
+  if (options.appendInstructions) {
+    args.push("--append", options.appendInstructions);
+  }
+  if (options.description) {
+    args.push(options.description);
+  }
+  args.push("--retry", "2");
+
+  console.log(`[NotebookLM] Starting report generation (no-wait)...`);
+  const startResult = await execCLI(args, 60_000);
+
+  if (startResult.exitCode !== 0) {
+    console.error(`[NotebookLM] report start failed (code ${startResult.exitCode})`);
+    console.error(`[NotebookLM] stdout: ${startResult.stdout.substring(0, 500)}`);
+    console.error(`[NotebookLM] stderr: ${startResult.stderr.substring(0, 500)}`);
+    const error = parseError(startResult.stderr, startResult.exitCode, startResult.stdout);
+    return { success: false, error: error.message };
+  }
+
+  console.log(`[NotebookLM] Report generation started: ${startResult.stdout.trim().substring(0, 200)}`);
+
+  // Step 2: Poll for completion
+  const maxWaitMs = 720_000; // 12 minutes
+  const pollIntervalMs = 15_000;
+  const startTime = Date.now();
+  let artifactReady = false;
+
+  console.log(`[NotebookLM] Polling for report completion (up to ${maxWaitMs / 1000}s)...`);
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const dlCheck = await execCLI(
+      ["download", "report", "--dry-run", "--latest"],
+      15_000
+    );
+
+    console.log(`[NotebookLM] Report poll @${elapsed}s: exit=${dlCheck.exitCode} stdout="${dlCheck.stdout.trim().substring(0, 120)}"`);
+
+    if (dlCheck.exitCode === 0) {
+      console.log(`[NotebookLM] Report ready after ${elapsed}s`);
+      artifactReady = true;
+      break;
+    }
+  }
+
+  // Step 3: Download
+  const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-report-${Date.now()}.md`);
+
+  if (!artifactReady) {
+    console.log(`[NotebookLM] Report polling timed out — attempting fallback download...`);
+    const fallbackDl = await execCLI(["download", "report", outputPath, "--latest"], 30_000);
+    if (fallbackDl.exitCode === 0) {
+      try {
+        const stat = await fs.stat(outputPath);
+        if (stat.size > 0) {
+          console.log(`[NotebookLM] Report fallback download succeeded (${Math.round(stat.size / 1024)}KB)`);
+          return { success: true, outputPath };
+        }
+      } catch {}
+    }
+    return { success: false, error: `Report generation timed out after ${maxWaitMs / 1000}s` };
+  }
+
+  const dlResult = await execCLI(["download", "report", outputPath, "--latest"]);
+
+  if (dlResult.exitCode !== 0) {
+    console.error(`[NotebookLM] report download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
+    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+  }
+
+  console.log(`[NotebookLM] Report saved to: ${outputPath}`);
+  return { success: true, outputPath };
+}
+
 // =============================================================================
 // HIGH-LEVEL DECK GENERATION PIPELINE
 // =============================================================================
 
 export interface CustomerDeckRequest {
   customerName: string;
-  customerData: string; // Formatted text summary of customer data
+  customerData: string; // Primary customer profile text
+  additionalSources?: Array<{ title: string; content: string }>; // Extra source documents
   weatherHistory?: string; // Formatted weather events
   templateInstructions: string; // What kind of deck to generate
   audience: "internal" | "customer-facing";
+  persona?: string; // Notebook persona prompt
+  artifactConfigs?: Array<{
+    type: string;
+    format?: string;
+    length?: string;
+    style?: string;
+    detail?: string;
+    orientation?: string;
+    description?: string;
+    appendInstructions?: string;
+  }>;
 }
 
 /**
@@ -397,8 +620,9 @@ export async function generateCustomerDeck(
     return { success: false, error: `Failed to create notebook: ${error}` };
   }
 
-  // Step 2: Add customer data as sources
+  // Step 2: Add customer data as individual sources for richer cross-referencing
   try {
+    // Source 1: Primary customer profile
     const sources: NotebookSource[] = [
       {
         type: "text",
@@ -407,6 +631,7 @@ export async function generateCustomerDeck(
       },
     ];
 
+    // Source 2: Weather history (if available)
     if (request.weatherHistory) {
       sources.push({
         type: "text",
@@ -415,10 +640,36 @@ export async function generateCustomerDeck(
       });
     }
 
+    // Sources 3+: Additional data facets (claims, intel, carrier, neighborhood, etc.)
+    if (request.additionalSources) {
+      for (const extra of request.additionalSources) {
+        sources.push({
+          type: "text",
+          content: extra.content,
+          title: extra.title,
+        });
+      }
+    }
+
     await addSources(notebookId, sources);
+    console.log(`[NotebookLM] Added ${sources.length} sources to notebook`);
   } catch (error) {
     console.error(`[NotebookLM] Warning: Source addition issue: ${error}`);
     // Continue — notebook may still have enough context
+  }
+
+  // Step 2b: Configure notebook persona for Guardian-quality output
+  if (request.persona) {
+    try {
+      await configureNotebook(notebookId, {
+        mode: "detailed",
+        persona: request.persona,
+        responseLength: "longer",
+      });
+    } catch (error) {
+      console.warn(`[NotebookLM] Warning: Persona configuration failed: ${error}`);
+      // Continue — generation will still work with default persona
+    }
   }
 
   // Step 3: Generate slide deck
@@ -432,9 +683,12 @@ export async function generateCustomerDeck(
     console.error(`[NotebookLM] Deck generation failed: ${result.error}`);
     // Clean up the notebook on failure
     try { await deleteNotebook(notebookId); } catch {}
+    return result;
   }
 
-  return result;
+  // Return notebookId so the caller can reuse it for multi-artifact generation
+  // Caller is responsible for deleting the notebook after all artifacts are done
+  return { ...result, notebookId };
 }
 
 /**

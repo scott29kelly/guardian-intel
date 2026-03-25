@@ -38,6 +38,8 @@ export interface GenerateResult {
   success: boolean;
   outputPath?: string;
   error?: string;
+  /** Notebook ID — returned by high-level pipelines so callers can reuse the notebook for multi-artifact generation */
+  notebookId?: string;
 }
 
 export interface CLIExecResult {

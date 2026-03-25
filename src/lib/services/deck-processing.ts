@@ -9,6 +9,10 @@
 import { prisma } from "@/lib/prisma";
 import {
   generateCustomerDeck,
+  generateAudio,
+  generateInfographic,
+  generateReport,
+  deleteNotebook,
   healthCheck,
 } from "@/lib/services/notebooklm/index";
 import type { CustomerDeckRequest } from "@/lib/services/notebooklm/index";
@@ -37,6 +41,19 @@ interface ProcessingResult {
   slideCount?: number;
   processingTimeMs?: number;
 }
+
+/** Guardian Roofing notebook persona — shapes all artifacts from the notebook */
+const GUARDIAN_PERSONA = `You are an elite tactical sales intelligence analyst for Guardian Roofing. Your audience is experienced field sales reps who need actionable, data-driven briefings to close high-value roofing contracts.
+
+When creating content:
+- Lead with the most surprising or high-impact insight from the data
+- Cross-reference insurance, weather, and property data to surface non-obvious risks
+- Use specific dollar amounts, dates, scores, and percentages — never vague
+- Frame everything through a sales lens: what should the rep SAY and DO
+- Include objection handlers with psychological reasoning
+- Provide step-by-step action timelines with specific deadlines
+- Use professional, strategic language — think military intelligence briefing
+- Color scheme: dark navy (#1E3A5F) and gold (#D4A656) with teal (#4A90A4) accents`;
 
 // =============================================================================
 // MAIN PROCESSING FUNCTION
@@ -145,16 +162,15 @@ export async function processDeckWithNotebookLM(
       ? formatMultiCustomerDigestForNotebook(requestData.customers, requestData.repName)
       : "";
 
-    // Append all available context for richer notebook source
-    const fullCustomerData = [
-      customerDataText,
-      claimsText,
-      intelText,
-      photosText,
-      carrierIntelText,
-      neighborhoodText,
-      digestText,
-    ].filter(Boolean).join("\n\n");
+    // Build separate sources for richer cross-referencing in NotebookLM
+    // Each becomes its own source in the notebook (vs one giant concatenated blob)
+    const additionalSources: Array<{ title: string; content: string }> = [];
+    if (claimsText) additionalSources.push({ title: `${deck.customerName} - Insurance & Claims`, content: claimsText });
+    if (intelText) additionalSources.push({ title: `${deck.customerName} - Intelligence Items`, content: intelText });
+    if (carrierIntelText) additionalSources.push({ title: `${deck.customerName} - Carrier Intel`, content: carrierIntelText });
+    if (neighborhoodText) additionalSources.push({ title: `${deck.customerName} - Market & Neighborhood`, content: neighborhoodText });
+    if (photosText) additionalSources.push({ title: `${deck.customerName} - Property Photos`, content: photosText });
+    if (digestText) additionalSources.push({ title: `${deck.customerName} - Multi-Customer Digest`, content: digestText });
 
     // Step 3: Build template-aware instructions
     const templateInstructions = buildTemplateInstructions(
@@ -167,12 +183,18 @@ export async function processDeckWithNotebookLM(
     const template = getTemplateById(deck.templateId);
     const audience = template?.audience === "customer" ? "customer-facing" as const : "internal" as const;
 
+    // Parse artifact configs from request (if user selected additional artifacts)
+    const artifactConfigs = requestData.artifactConfigs || [];
+
     const deckRequest: CustomerDeckRequest = {
       customerName: deck.customerName,
-      customerData: fullCustomerData,
+      customerData: customerDataText,
+      additionalSources,
       weatherHistory: weatherHistoryText || undefined,
       templateInstructions,
       audience,
+      persona: GUARDIAN_PERSONA,
+      artifactConfigs,
     };
 
     // Step 4: Generate via NotebookLM
@@ -243,6 +265,147 @@ export async function processDeckWithNotebookLM(
       console.log(`[DeckProcessing] Keeping PDF for debugging: ${result.outputPath}`);
     }
 
+    // =========================================================================
+    // Step 6b: Generate additional requested artifacts (reuse the same notebook)
+    // =========================================================================
+    const notebookId = result.notebookId;
+    let audioUrl: string | undefined;
+    let audioStoragePath: string | undefined;
+    let infographicUrl: string | undefined;
+    let infographicStoragePath: string | undefined;
+    let reportMarkdown: string | undefined;
+
+    if (notebookId && artifactConfigs.length > 0) {
+      // Multi-artifact path: generate additional artifacts, then clean up notebook
+      console.log(`[DeckProcessing] Processing ${artifactConfigs.length} additional artifact configs...`);
+
+      // Helper: upload a file to Supabase and return { url, storagePath }
+      const uploadToSupabase = async (
+        filePath: string,
+        storageName: string,
+        contentType: string
+      ): Promise<{ url?: string; storagePath?: string }> => {
+        try {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (!supabaseUrl || !supabaseKey) return {};
+
+          const { createClient } = await import("@supabase/supabase-js");
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
+          const path = `decks/${deckId}/${storageName}`;
+
+          const buffer = await fs.readFile(filePath);
+          const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(path, buffer, { contentType, upsert: true });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+            return { url: urlData.publicUrl, storagePath: path };
+          }
+          console.warn(`[DeckProcessing] Upload failed for ${storageName}:`, uploadError.message);
+        } catch (err) {
+          console.warn(`[DeckProcessing] Supabase upload error for ${storageName}:`, err);
+        }
+        return {};
+      };
+
+      // Generate audio if requested
+      const audioConfig = artifactConfigs.find((c: { type: string }) => c.type === "audio");
+      if (audioConfig) {
+        console.log(`[DeckProcessing] Generating audio briefing...`);
+        try {
+          const audioResult = await generateAudio(notebookId, {
+            instructions: audioConfig.description,
+            format: audioConfig.format,
+            length: audioConfig.length,
+          });
+          if (audioResult.success && audioResult.outputPath) {
+            const uploaded = await uploadToSupabase(
+              audioResult.outputPath,
+              `${deck.customerName.replace(/\s+/g, "-")}-audio.mp3`,
+              "audio/mpeg"
+            );
+            audioUrl = uploaded.url;
+            audioStoragePath = uploaded.storagePath;
+            console.log(`[DeckProcessing] Audio uploaded: ${audioUrl || "upload skipped (no Supabase)"}`);
+            fs.unlink(audioResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Audio generation failed: ${audioResult.error}`);
+          }
+        } catch (audioErr) {
+          console.warn("[DeckProcessing] Audio generation error:", audioErr);
+        }
+      }
+
+      // Generate infographic if requested
+      const infographicConfig = artifactConfigs.find((c: { type: string }) => c.type === "infographic");
+      if (infographicConfig) {
+        console.log(`[DeckProcessing] Generating infographic...`);
+        try {
+          const infoResult = await generateInfographic(notebookId, {
+            instructions: infographicConfig.description,
+            orientation: infographicConfig.orientation as "landscape" | "portrait" | "square" | undefined,
+            detail: infographicConfig.detail as "brief" | "standard" | "detailed" | undefined,
+          });
+          if (infoResult.success && infoResult.outputPath) {
+            const uploaded = await uploadToSupabase(
+              infoResult.outputPath,
+              `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
+              "image/png"
+            );
+            infographicUrl = uploaded.url;
+            infographicStoragePath = uploaded.storagePath;
+            console.log(`[DeckProcessing] Infographic uploaded: ${infographicUrl || "upload skipped (no Supabase)"}`);
+            fs.unlink(infoResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Infographic generation failed: ${infoResult.error}`);
+          }
+        } catch (infoErr) {
+          console.warn("[DeckProcessing] Infographic generation error:", infoErr);
+        }
+      }
+
+      // Generate report if requested
+      const reportConfig = artifactConfigs.find((c: { type: string }) => c.type === "report");
+      if (reportConfig) {
+        console.log(`[DeckProcessing] Generating written report...`);
+        try {
+          const reportResult = await generateReport(notebookId, {
+            format: reportConfig.format,
+            appendInstructions: reportConfig.appendInstructions,
+            description: reportConfig.description,
+          });
+          if (reportResult.success && reportResult.outputPath) {
+            reportMarkdown = await fs.readFile(reportResult.outputPath, "utf-8");
+            console.log(`[DeckProcessing] Report generated (${reportMarkdown.length} chars)`);
+            fs.unlink(reportResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Report generation failed: ${reportResult.error}`);
+          }
+        } catch (reportErr) {
+          console.warn("[DeckProcessing] Report generation error:", reportErr);
+        }
+      }
+
+      // Clean up the notebook now that all artifacts are generated
+      try {
+        await deleteNotebook(notebookId);
+        console.log(`[DeckProcessing] Cleaned up notebook ${notebookId}`);
+      } catch {
+        console.warn(`[DeckProcessing] Failed to clean up notebook ${notebookId}`);
+      }
+    } else if (notebookId) {
+      // No additional artifacts requested — clean up notebook from slide deck generation
+      try {
+        await deleteNotebook(notebookId);
+        console.log(`[DeckProcessing] Cleaned up notebook ${notebookId}`);
+      } catch {
+        console.warn(`[DeckProcessing] Failed to clean up notebook ${notebookId}`);
+      }
+    }
+
     // Step 7: Build result payload
     const processingTimeMs = Date.now() - startTime;
     const resultPayload = {
@@ -262,6 +425,10 @@ export async function processDeckWithNotebookLM(
       // Only embed pdfData in resultPayload if Supabase upload failed (no pdfUrl).
       // Otherwise the DB row balloons to 10MB+ and every status poll transfers it.
       ...(pdfData && !pdfUrl ? { pdfData } : {}),
+      // Multi-artifact URLs (included in payload so DeckPreview can render them)
+      ...(audioUrl ? { audioUrl } : {}),
+      ...(infographicUrl ? { infographicUrl } : {}),
+      ...(reportMarkdown ? { reportMarkdown } : {}),
       metadata: {
         totalSlides: slideImages.length,
         generationTimeMs: processingTimeMs,
@@ -270,7 +437,7 @@ export async function processDeckWithNotebookLM(
       },
     };
 
-    // Step 8: Update ScheduledDeck
+    // Step 8: Update ScheduledDeck with all artifact URLs
     await prisma.scheduledDeck.update({
       where: { id: deckId },
       data: {
@@ -281,6 +448,11 @@ export async function processDeckWithNotebookLM(
         processingTimeMs,
         ...(pdfUrl ? { pdfUrl } : {}),
         ...(pdfStoragePath ? { pdfStoragePath } : {}),
+        ...(audioUrl ? { audioUrl } : {}),
+        ...(audioStoragePath ? { audioStoragePath } : {}),
+        ...(infographicUrl ? { infographicUrl } : {}),
+        ...(infographicStoragePath ? { infographicStoragePath } : {}),
+        ...(reportMarkdown ? { reportMarkdown } : {}),
       },
     });
 
