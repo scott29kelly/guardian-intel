@@ -24,7 +24,7 @@ interface UseDeckGenerationReturn {
   error: string | null;
   asyncJobId: string | null;
   generateDeck: (template: DeckTemplate, request: DeckGenerationRequest) => Promise<GeneratedDeck | null>;
-  setDeckFromResult: (resultPayload: string, deckId: string, pdfUrl?: string) => void;
+  setDeckFromResult: (resultPayload: string, deckId: string, pdfUrl?: string, extras?: { audioUrl?: string; infographicUrl?: string; reportMarkdown?: string }) => void;
   resetGeneration: () => void;
 }
 
@@ -230,7 +230,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
   /**
    * Parse an async result payload (from ScheduledDeck) into a GeneratedDeck for preview.
    */
-  const setDeckFromResult = useCallback((resultPayload: string, deckId: string, pdfUrl?: string) => {
+  const setDeckFromResult = useCallback((resultPayload: string, deckId: string, pdfUrl?: string, extras?: { audioUrl?: string; infographicUrl?: string; reportMarkdown?: string }) => {
     try {
       const result = JSON.parse(resultPayload);
 
@@ -272,6 +272,9 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
         context: result.context || {},
         slides,
         pdfUrl: pdfUrl || undefined,
+        audioUrl: extras?.audioUrl || undefined,
+        infographicUrl: extras?.infographicUrl || undefined,
+        reportMarkdown: extras?.reportMarkdown || undefined,
         branding: {
           colors: {
             primary: "#1E3A5F",

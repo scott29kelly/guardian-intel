@@ -24,6 +24,23 @@ const PHOTO_TEMPLATES = ["homeowner-trust-builder"];
 const NEIGHBORHOOD_TEMPLATES = ["storm-command-center"];
 
 // Request validation schema
+// Artifact config validation (matches ArtifactConfig type from deck.types.ts)
+const artifactConfigSchema = z.object({
+  type: z.enum(["slide-deck", "audio", "infographic", "report"]),
+  enabled: z.boolean(),
+  format: z.enum(["detailed", "presenter"]).optional(),
+  length: z.enum(["default", "short"]).optional(),
+  downloadFormat: z.enum(["pdf", "pptx"]).optional(),
+  audioFormat: z.enum(["deep-dive", "brief", "critique", "debate"]).optional(),
+  audioLength: z.enum(["short", "default", "long"]).optional(),
+  style: z.enum(["auto", "professional", "bento-grid", "editorial", "sketch-note", "instructional", "scientific", "bricks", "clay", "anime", "kawaii"]).optional(),
+  detail: z.enum(["concise", "standard", "detailed"]).optional(),
+  orientation: z.enum(["landscape", "portrait", "square"]).optional(),
+  reportFormat: z.enum(["briefing-doc", "study-guide", "blog-post", "custom"]).optional(),
+  appendInstructions: z.string().optional(),
+  description: z.string().optional(),
+});
+
 const scheduleRequestSchema = z.object({
   customerId: z.string().min(1).optional(), // Optional for rep-scoped templates
   repId: z.string().optional(), // For rep-scoped templates (defaults to session user)
@@ -31,6 +48,9 @@ const scheduleRequestSchema = z.object({
   templateName: z.string().default("Sales Presentation"),
   assignedToId: z.string().optional(), // For manager bulk scheduling
   scheduledFor: z.string().datetime().optional(), // Schedule for later
+  // Multi-artifact support
+  requestedArtifacts: z.array(z.string()).optional(), // e.g. ["slide-deck", "audio"]
+  artifactConfigs: z.array(artifactConfigSchema).optional(), // Per-artifact settings
 }).refine(
   (data) => {
     // customerId required unless it's a rep-scoped template
@@ -64,7 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { customerId, repId, templateId, templateName, assignedToId, scheduledFor } = validationResult.data;
+    const { customerId, repId, templateId, templateName, assignedToId, scheduledFor, requestedArtifacts, artifactConfigs } = validationResult.data;
     const isRepScoped = REP_SCOPED_TEMPLATES.includes(templateId);
 
     // =========================================================================
@@ -166,6 +186,11 @@ export async function POST(request: NextRequest) {
         userId = rep?.id || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
       }
 
+      // Include artifact configs in the request payload for the worker
+      if (artifactConfigs) {
+        requestPayload.artifactConfigs = artifactConfigs;
+      }
+
       const scheduledDeck = await prisma.scheduledDeck.create({
         data: {
           customerId: repCustomers[0]?.id || "rep-digest",
@@ -178,6 +203,7 @@ export async function POST(request: NextRequest) {
           requestPayload: JSON.stringify(requestPayload),
           scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(),
           estimatedSlides: 7,
+          requestedArtifacts: requestedArtifacts || ["slide-deck"],
         },
       });
 
@@ -481,6 +507,11 @@ export async function POST(request: NextRequest) {
       userId = customer.assignedRepId || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
     }
 
+    // Include artifact configs in the request payload for the worker
+    if (artifactConfigs) {
+      requestPayload.artifactConfigs = artifactConfigs;
+    }
+
     // Create the scheduled deck job
     const scheduledDeck = await prisma.scheduledDeck.create({
       data: {
@@ -494,6 +525,7 @@ export async function POST(request: NextRequest) {
         requestPayload: JSON.stringify(requestPayload),
         scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(),
         estimatedSlides: 8, // Default estimate for sales deck
+        requestedArtifacts: requestedArtifacts || ["slide-deck"],
       },
     });
 

@@ -64,6 +64,13 @@ export async function GET(
         pdfUrl: true,
         pdfStoragePath: true,
         resultPayload: true,
+        // Multi-artifact fields
+        requestedArtifacts: true,
+        audioUrl: true,
+        audioStoragePath: true,
+        infographicUrl: true,
+        infographicStoragePath: true,
+        reportMarkdown: true,
       },
     });
 

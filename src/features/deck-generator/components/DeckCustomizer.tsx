@@ -11,8 +11,14 @@ import {
   FileText,
   Presentation,
   Link,
+  Mic,
+  Image,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import type { DeckTemplate, ExportFormat } from '../types/deck.types';
+import type { DeckTemplate, ExportFormat, ArtifactConfig } from '../types/deck.types';
+import { DEFAULT_ARTIFACT_CONFIGS } from '../types/deck.types';
 
 interface Customer {
   id: string;
@@ -31,7 +37,16 @@ interface DeckCustomizerProps {
   onSectionsChange: (sections: string[]) => void;
   exportFormat: ExportFormat;
   onExportFormatChange: (format: ExportFormat) => void;
+  artifactConfigs?: ArtifactConfig[];
+  onArtifactConfigsChange?: (configs: ArtifactConfig[]) => void;
 }
+
+const ARTIFACT_META: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; description: string }> = {
+  'slide-deck': { icon: Presentation, label: 'Slide Deck', description: 'Visual presentation with data-driven slides' },
+  'audio': { icon: Mic, label: 'Audio Briefing', description: 'Podcast-style briefing to listen on the go' },
+  'infographic': { icon: Image, label: 'Infographic', description: 'One-page visual summary for leave-behinds' },
+  'report': { icon: BookOpen, label: 'Written Report', description: 'Detailed strategic analysis document' },
+};
 
 export function DeckCustomizer({
   template,
@@ -232,6 +247,14 @@ export function DeckCustomizer({
         </div>
       </div>
 
+      {/* Output Types */}
+      {onArtifactConfigsChange && (
+        <ArtifactSelector
+          configs={artifactConfigs || DEFAULT_ARTIFACT_CONFIGS}
+          onChange={onArtifactConfigsChange}
+        />
+      )}
+
       {/* Export Format */}
       <div>
         <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
@@ -259,6 +282,192 @@ export function DeckCustomizer({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// ARTIFACT SELECTOR SUB-COMPONENT
+// =============================================================================
+
+function ArtifactSelector({
+  configs,
+  onChange,
+}: {
+  configs: ArtifactConfig[];
+  onChange: (configs: ArtifactConfig[]) => void;
+}) {
+  const [expandedArtifact, setExpandedArtifact] = useState<string | null>(null);
+
+  const updateConfig = (type: string, updates: Partial<ArtifactConfig>) => {
+    onChange(configs.map(c => c.type === type ? { ...c, ...updates } : c));
+  };
+
+  const toggleArtifact = (type: string) => {
+    // slide-deck is always enabled
+    if (type === 'slide-deck') return;
+    const config = configs.find(c => c.type === type);
+    if (config) {
+      updateConfig(type, { enabled: !config.enabled });
+      if (!config.enabled) setExpandedArtifact(type);
+    }
+  };
+
+  return (
+    <div>
+      <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
+        <Sparkles className="w-4 h-4" />
+        Output Types
+      </h3>
+      <div className="space-y-2">
+        {configs.map(config => {
+          const meta = ARTIFACT_META[config.type];
+          if (!meta) return null;
+          const Icon = meta.icon;
+          const isExpanded = expandedArtifact === config.type;
+          const isAlwaysOn = config.type === 'slide-deck';
+
+          return (
+            <div
+              key={config.type}
+              className={`rounded-lg border transition-colors ${
+                config.enabled
+                  ? 'bg-surface-secondary/80 border-intel-500/30'
+                  : 'bg-surface-secondary/30 border-border'
+              }`}
+            >
+              {/* Toggle row */}
+              <div className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => toggleArtifact(config.type)}
+                    disabled={isAlwaysOn}
+                    className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                      config.enabled
+                        ? 'bg-intel-500 text-void-900'
+                        : 'bg-surface-hover text-text-muted'
+                    } ${isAlwaysOn ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-intel-400'}`}
+                  >
+                    {config.enabled && <Check className="w-3 h-3" />}
+                  </button>
+                  <Icon className={`w-4 h-4 ${config.enabled ? 'text-intel-400' : 'text-text-muted'}`} />
+                  <div>
+                    <span className={`text-sm font-medium ${config.enabled ? 'text-text-primary' : 'text-text-muted'}`}>
+                      {meta.label}
+                    </span>
+                    <p className="text-xs text-text-muted">{meta.description}</p>
+                  </div>
+                </div>
+                {config.enabled && (
+                  <button
+                    onClick={() => setExpandedArtifact(isExpanded ? null : config.type)}
+                    className="p-1 rounded hover:bg-surface-hover text-text-muted"
+                  >
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+
+              {/* Settings panel */}
+              {config.enabled && isExpanded && (
+                <div className="px-3 pb-3 pt-1 border-t border-border/50 space-y-3">
+                  {config.type === 'slide-deck' && (
+                    <>
+                      <SettingSelect label="Format" value={config.format || 'detailed'}
+                        options={[['detailed', 'Detailed'], ['presenter', 'Presenter']]}
+                        onChange={v => updateConfig('slide-deck', { format: v as ArtifactConfig['format'] })} />
+                      <SettingSelect label="Length" value={config.length || 'default'}
+                        options={[['default', 'Default'], ['short', 'Short']]}
+                        onChange={v => updateConfig('slide-deck', { length: v as ArtifactConfig['length'] })} />
+                      <SettingSelect label="Download As" value={config.downloadFormat || 'pdf'}
+                        options={[['pdf', 'PDF'], ['pptx', 'PowerPoint']]}
+                        onChange={v => updateConfig('slide-deck', { downloadFormat: v as ArtifactConfig['downloadFormat'] })} />
+                      <SettingText label="Custom Instructions" value={config.description || ''}
+                        placeholder="e.g., include speaker notes, focus on insurance risks..."
+                        onChange={v => updateConfig('slide-deck', { description: v })} />
+                    </>
+                  )}
+                  {config.type === 'audio' && (
+                    <>
+                      <SettingSelect label="Format" value={config.audioFormat || 'deep-dive'}
+                        options={[['deep-dive', 'Deep Dive'], ['brief', 'Brief'], ['critique', 'Critique'], ['debate', 'Debate']]}
+                        onChange={v => updateConfig('audio', { audioFormat: v as ArtifactConfig['audioFormat'] })} />
+                      <SettingSelect label="Length" value={config.audioLength || 'default'}
+                        options={[['short', 'Short (~3 min)'], ['default', 'Default (~8 min)'], ['long', 'Long (~15 min)']]}
+                        onChange={v => updateConfig('audio', { audioLength: v as ArtifactConfig['audioLength'] })} />
+                    </>
+                  )}
+                  {config.type === 'infographic' && (
+                    <>
+                      <SettingSelect label="Style" value={config.style || 'professional'}
+                        options={[['professional', 'Professional'], ['bento-grid', 'Bento Grid'], ['editorial', 'Editorial'], ['sketch-note', 'Sketch Note'], ['instructional', 'Instructional'], ['scientific', 'Scientific']]}
+                        onChange={v => updateConfig('infographic', { style: v as ArtifactConfig['style'] })} />
+                      <SettingSelect label="Detail" value={config.detail || 'standard'}
+                        options={[['concise', 'Concise'], ['standard', 'Standard'], ['detailed', 'Detailed']]}
+                        onChange={v => updateConfig('infographic', { detail: v as ArtifactConfig['detail'] })} />
+                      <SettingSelect label="Orientation" value={config.orientation || 'landscape'}
+                        options={[['landscape', 'Landscape'], ['portrait', 'Portrait'], ['square', 'Square']]}
+                        onChange={v => updateConfig('infographic', { orientation: v as ArtifactConfig['orientation'] })} />
+                    </>
+                  )}
+                  {config.type === 'report' && (
+                    <>
+                      <SettingSelect label="Format" value={config.reportFormat || 'briefing-doc'}
+                        options={[['briefing-doc', 'Briefing Doc'], ['study-guide', 'Study Guide'], ['blog-post', 'Blog Post'], ['custom', 'Custom']]}
+                        onChange={v => updateConfig('report', { reportFormat: v as ArtifactConfig['reportFormat'] })} />
+                      <SettingText label="Extra Instructions" value={config.appendInstructions || ''}
+                        placeholder="e.g., focus on financial leverage, target audience: managers..."
+                        onChange={v => updateConfig('report', { appendInstructions: v })} />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SettingSelect({ label, value, options, onChange }: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-xs text-text-muted whitespace-nowrap">{label}</span>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="px-2 py-1 bg-surface-secondary border border-border rounded text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-intel-500/50"
+      >
+        {options.map(([val, lbl]) => (
+          <option key={val} value={val}>{lbl}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SettingText({ label, value, placeholder, onChange }: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <span className="text-xs text-text-muted block mb-1">{label}</span>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
+        className="w-full px-2 py-1 bg-surface-secondary border border-border rounded text-xs text-text-primary placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-intel-500/50"
+      />
     </div>
   );
 }

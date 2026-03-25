@@ -229,6 +229,12 @@ export interface GeneratedDeck {
   branding: BrandingConfig;
   /** Supabase Storage URL for the original PDF (set when server-side image conversion fails) */
   pdfUrl?: string;
+  /** URL to generated audio briefing (MP3) */
+  audioUrl?: string;
+  /** URL to generated infographic image (PNG) */
+  infographicUrl?: string;
+  /** Markdown content of generated written report */
+  reportMarkdown?: string;
   metadata: {
     totalSlides: number;
     aiSlidesCount: number;
@@ -259,6 +265,7 @@ export interface DeckGenerationRequest {
     includeAiContent: boolean;
     exportFormat: ExportFormat;
     customBranding?: Partial<BrandingConfig>;
+    requestedArtifacts?: ArtifactConfig[];
   };
 }
 
@@ -303,3 +310,37 @@ export interface DeckHistoryItem {
   slideCount: number;
   downloadUrl?: string;
 }
+
+// =============================================================================
+// MULTI-ARTIFACT TYPES
+// =============================================================================
+
+export type ArtifactType = 'slide-deck' | 'audio' | 'infographic' | 'report';
+
+export interface ArtifactConfig {
+  type: ArtifactType;
+  enabled: boolean;
+  // Slide deck options
+  format?: 'detailed' | 'presenter';
+  length?: 'default' | 'short';
+  downloadFormat?: 'pdf' | 'pptx';
+  // Audio options
+  audioFormat?: 'deep-dive' | 'brief' | 'critique' | 'debate';
+  audioLength?: 'short' | 'default' | 'long';
+  // Infographic options
+  style?: 'auto' | 'professional' | 'bento-grid' | 'editorial' | 'sketch-note' | 'instructional' | 'scientific' | 'bricks' | 'clay' | 'anime' | 'kawaii';
+  detail?: 'concise' | 'standard' | 'detailed';
+  orientation?: 'landscape' | 'portrait' | 'square';
+  // Report options
+  reportFormat?: 'briefing-doc' | 'study-guide' | 'blog-post' | 'custom';
+  appendInstructions?: string;
+  // Common
+  description?: string;
+}
+
+export const DEFAULT_ARTIFACT_CONFIGS: ArtifactConfig[] = [
+  { type: 'slide-deck', enabled: true, format: 'detailed', length: 'default', downloadFormat: 'pdf' },
+  { type: 'audio', enabled: false, audioFormat: 'deep-dive', audioLength: 'default' },
+  { type: 'infographic', enabled: false, style: 'professional', detail: 'standard', orientation: 'landscape' },
+  { type: 'report', enabled: false, reportFormat: 'briefing-doc' },
+];

@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   Sparkles,
+  Mic,
+  Image as ImageIcon,
+  BookOpen,
+  Download as DownloadIcon,
   Target,
   Home,
   Calendar,
@@ -62,9 +67,25 @@ export interface DeckPreviewRef {
   captureAllSlides: (onProgress?: (progress: ExportProgress) => void) => Promise<Blob[]>;
 }
 
+type ArtifactTab = 'slides' | 'audio' | 'infographic' | 'report';
+
 export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
   function DeckPreview({ deck }, ref) {
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<ArtifactTab>('slides');
+
+    // Determine which artifact tabs to show
+    const availableTabs = useMemo(() => {
+      const tabs: { id: ArtifactTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+        { id: 'slides', label: 'Slides', icon: Sparkles },
+      ];
+      if (deck.audioUrl) tabs.push({ id: 'audio', label: 'Audio', icon: Mic });
+      if (deck.infographicUrl) tabs.push({ id: 'infographic', label: 'Infographic', icon: ImageIcon });
+      if (deck.reportMarkdown) tabs.push({ id: 'report', label: 'Report', icon: BookOpen });
+      return tabs;
+    }, [deck.audioUrl, deck.infographicUrl, deck.reportMarkdown]);
+
+    const showTabs = availableTabs.length > 1;
     const exportContainerRef = useRef<HTMLDivElement>(null);
 
     // Capture a single slide from the export container
@@ -146,6 +167,87 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
       // Only use pdfjs if no slide images and no pdfUrl
       hasSlideImages || deck.pdfUrl ? undefined : pdfBase64
     );
+
+    // === MULTI-ARTIFACT TAB RENDERING ===
+    // If a non-slides tab is active, render that artifact instead
+
+    if (activeTab === 'audio' && deck.audioUrl) {
+      return (
+        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          <div className="flex flex-col items-center justify-center py-12 px-8">
+            <div className="w-20 h-20 rounded-full bg-intel-500/20 flex items-center justify-center mb-6">
+              <Mic className="w-10 h-10 text-intel-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary mb-4">Audio Briefing</h3>
+            <audio controls src={deck.audioUrl} className="w-full max-w-md mb-4" />
+            <a
+              href={deck.audioUrl}
+              download={`${deck.templateName || "briefing"}.mp3`}
+              className="flex items-center gap-2 px-4 py-2 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              Download MP3
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'infographic' && deck.infographicUrl) {
+      return (
+        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          <div className="rounded-xl overflow-hidden border-2 border-border/50 shadow-xl bg-white">
+            <img
+              src={deck.infographicUrl}
+              alt="Infographic"
+              className="w-full h-auto"
+            />
+          </div>
+          <div className="flex justify-center">
+            <a
+              href={deck.infographicUrl}
+              download={`${deck.templateName || "infographic"}.png`}
+              className="flex items-center gap-2 px-4 py-2 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              Download Infographic
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'report' && deck.reportMarkdown) {
+      return (
+        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          <div className="prose prose-invert prose-sm max-w-none p-6 bg-surface-secondary/50 rounded-xl border border-border/50">
+            <ReactMarkdown>{deck.reportMarkdown}</ReactMarkdown>
+          </div>
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                const blob = new Blob([deck.reportMarkdown!], { type: "text/markdown" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${deck.templateName || "report"}.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              Download Report
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // === SLIDES RENDERING (existing paths) ===
 
     // Path 1: Individual slide images available — skip PDF paths entirely
     // (falls through to the slide rendering at the bottom of the component)
@@ -279,6 +381,9 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
 
     return (
       <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto">
+        {/* Multi-artifact tab bar */}
+        {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+
         {/* Sticky header with slide count */}
         <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-3">
@@ -392,6 +497,43 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
     );
   }
 );
+
+// =============================================================================
+// ARTIFACT TAB BAR
+// =============================================================================
+
+function ArtifactTabBar({
+  tabs,
+  active,
+  onSelect,
+}: {
+  tabs: { id: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+  active: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="flex gap-1 p-1 bg-surface-secondary/50 rounded-lg border border-border/50">
+      {tabs.map(tab => {
+        const Icon = tab.icon;
+        const isActive = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onSelect(tab.id)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-intel-500/20 text-intel-300'
+                : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // Slide type-specific renderers
 function SlideRenderer({

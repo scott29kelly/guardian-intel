@@ -13,7 +13,8 @@ import {
   Clock,
   Check
 } from 'lucide-react';
-import type { DeckTemplate, DeckGenerationRequest, ExportFormat } from '../types/deck.types';
+import type { DeckTemplate, DeckGenerationRequest, ExportFormat, ArtifactConfig } from '../types/deck.types';
+import { DEFAULT_ARTIFACT_CONFIGS } from '../types/deck.types';
 import { useDeckGeneration } from '../hooks/useDeckGeneration';
 import { useDeckStatus } from '@/lib/hooks/use-deck-generation';
 import { useDeckTemplates } from '../hooks/useDeckTemplates';
@@ -65,6 +66,7 @@ export function DeckGeneratorModal({
   const [enabledSections, setEnabledSections] = useState<string[]>([]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
+  const [artifactConfigs, setArtifactConfigs] = useState(DEFAULT_ARTIFACT_CONFIGS);
 
   // Scheduling state (overnight batch processing)
   const [isScheduling, setIsScheduling] = useState(false);
@@ -112,10 +114,13 @@ export function DeckGeneratorModal({
     if (!status) return;
 
     if (status.isCompleted && status.deck) {
-      const resultPayload = (status.deck as { resultPayload?: string }).resultPayload;
-      const pdfUrl = (status.deck as { pdfUrl?: string }).pdfUrl;
-      if (resultPayload) {
-        setDeckFromResult(resultPayload, status.deck.id, pdfUrl || undefined);
+      const deckData = status.deck as { resultPayload?: string; pdfUrl?: string; audioUrl?: string; infographicUrl?: string; reportMarkdown?: string };
+      if (deckData.resultPayload) {
+        setDeckFromResult(deckData.resultPayload, status.deck.id, deckData.pdfUrl || undefined, {
+          audioUrl: deckData.audioUrl || undefined,
+          infographicUrl: deckData.infographicUrl || undefined,
+          reportMarkdown: deckData.reportMarkdown || undefined,
+        });
         setStep('preview');
       }
     } else if (status.isFailed && status.deck) {
@@ -148,6 +153,7 @@ export function DeckGeneratorModal({
         enabledSections,
         includeAiContent: true,
         exportFormat,
+        requestedArtifacts: artifactConfigs,
       },
     };
 
@@ -391,6 +397,8 @@ export function DeckGeneratorModal({
                 onSectionsChange={setEnabledSections}
                 exportFormat={exportFormat}
                 onExportFormatChange={setExportFormat}
+                artifactConfigs={artifactConfigs}
+                onArtifactConfigsChange={setArtifactConfigs}
               />
             )}
 

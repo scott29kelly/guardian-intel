@@ -749,6 +749,14 @@ model ScheduledDeck {
   pdfUrl          String?             // Public URL to download the generated PDF
   pdfStoragePath  String?             // Storage path for deletion/management
 
+  // Multi-artifact outputs
+  requestedArtifacts     String[]   @default(["slide-deck"])
+  audioUrl               String?
+  audioStoragePath       String?
+  infographicUrl         String?
+  infographicStoragePath String?
+  reportMarkdown         String?    @db.Text
+
   // Timing
   scheduledFor    DateTime  @default(now())  // When batch should process this
   completedAt     DateTime?
