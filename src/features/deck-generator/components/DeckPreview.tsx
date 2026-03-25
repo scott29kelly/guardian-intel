@@ -27,6 +27,7 @@ import {
   enhanceListItems,
   getRiskColors,
 } from '../utils/contentEnhancer';
+import { usePdfSlides } from '../hooks/usePdfSlides';
 
 // Icon mapping for dynamic rendering
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -130,6 +131,134 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
         return blobs;
       }
     }), [deck.slides.length, captureSlide]);
+
+    // === PDF RENDERING PATHS ===
+    // Priority: 1) Supabase pdfUrl (native embed), 2) pdfjs-dist (client render), 3) download link
+
+    const pdfSlide = deck.slides.find(s => s.content?.pdfData);
+    const pdfBase64 = pdfSlide?.content?.pdfData as string | undefined;
+    const { pages: pdfPages, loading: pdfLoading, error: pdfError } = usePdfSlides(
+      // Only use pdfjs if no pdfUrl — avoid decoding 6MB+ base64 unnecessarily
+      deck.pdfUrl ? undefined : pdfBase64
+    );
+
+    // Path 1: Supabase PDF URL available — use native browser PDF embed (instant, no JS rendering)
+    if (deck.pdfUrl) {
+      return (
+        <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+          <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-intel-500/20">
+                <Sparkles className="w-4 h-4 text-intel-400" />
+              </div>
+              <span className="text-sm font-semibold text-text-primary">
+                NotebookLM Deck
+              </span>
+            </div>
+            <a
+              href={deck.pdfUrl}
+              download={`${deck.templateName || "deck"}.pdf`}
+              className="flex items-center gap-2 px-3 py-1.5 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              Download PDF
+            </a>
+          </div>
+          <div className="rounded-xl overflow-hidden border-2 border-border/50 shadow-xl bg-white">
+            <iframe
+              src={deck.pdfUrl}
+              title="Deck Preview"
+              className="w-full border-0"
+              style={{ height: "70vh" }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Path 2: pdfjs-dist client-side rendering (base64 data, no URL)
+    if (pdfBase64) {
+      const pdfDataUri = `data:application/pdf;base64,${pdfBase64}`;
+
+      if (pdfLoading) {
+        return (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-intel-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-text-muted">Rendering slides...</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (pdfPages.length > 0) {
+        return (
+          <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-intel-500/20">
+                  <Sparkles className="w-4 h-4 text-intel-400" />
+                </div>
+                <span className="text-sm font-semibold text-text-primary">
+                  {pdfPages.length} slides generated
+                </span>
+              </div>
+              <a
+                href={pdfDataUri}
+                download={`${deck.templateName || "deck"}.pdf`}
+                className="flex items-center gap-2 px-3 py-1.5 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                Download PDF
+              </a>
+            </div>
+            {pdfPages.map((pageDataUrl, index) => (
+              <div
+                key={`pdf-page-${index}`}
+                className="relative w-full rounded-xl overflow-hidden border-2 border-border/50 shadow-xl transition-all hover:border-intel-500/30"
+                style={{ aspectRatio: "16 / 9", backgroundColor: "transparent" }}
+              >
+                <img
+                  src={pageDataUrl}
+                  alt={`Slide ${index + 1}`}
+                  className="absolute inset-0 w-full h-full object-contain bg-white"
+                />
+                <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/70 backdrop-blur-sm rounded-full text-sm text-white font-medium">
+                  {index + 1} / {pdfPages.length}
+                </div>
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-intel-500/20 backdrop-blur-sm rounded-full text-xs text-intel-300 font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  NotebookLM
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      // pdfjs failed — fall back to native embed or download
+      if (pdfError) {
+        return (
+          <div className="p-4 space-y-4">
+            <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+              <FileText className="w-12 h-12 mb-3 opacity-50" />
+              <p className="mb-1">Could not render slide preview.</p>
+              <p className="text-xs text-text-muted mb-4">({pdfError})</p>
+              <a
+                href={pdfDataUri}
+                download={`${deck.templateName || "deck"}.pdf`}
+                className="flex items-center gap-2 px-4 py-2 bg-intel-500/20 text-intel-300 rounded-lg text-sm font-medium hover:bg-intel-500/30 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                Download PDF
+              </a>
+            </div>
+          </div>
+        );
+      }
+    }
 
     // Safety check for slides
     if (!deck.slides || deck.slides.length === 0) {

@@ -33,9 +33,15 @@ export async function GET(
       );
     }
 
-    // Get the most recent deck for this customer
+    // If deckId is provided, look up that specific deck (for async job polling)
+    const { searchParams } = new URL(request.url);
+    const deckId = searchParams.get("deckId");
+
+    // Get the most recent deck for this customer (or a specific one)
     const latestDeck = await prisma.scheduledDeck.findFirst({
-      where: { customerId },
+      where: deckId
+        ? { id: deckId, customerId }
+        : { customerId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

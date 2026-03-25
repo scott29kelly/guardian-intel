@@ -80,11 +80,18 @@ const deckQueryKeys = {
 export function useDeckStatus(customerId: string | undefined, options?: {
   enabled?: boolean;
   refetchInterval?: number | false;
+  deckId?: string;
 }) {
+  const deckId = options?.deckId;
   return useQuery({
-    queryKey: deckQueryKeys.status(customerId!),
+    queryKey: deckId
+      ? [...deckQueryKeys.status(customerId!), deckId]
+      : deckQueryKeys.status(customerId!),
     queryFn: async (): Promise<DeckStatusResponse> => {
-      const response = await fetch(`/api/decks/status/${customerId}`);
+      const url = deckId
+        ? `/api/decks/status/${customerId}?deckId=${deckId}`
+        : `/api/decks/status/${customerId}`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch deck status");
       }

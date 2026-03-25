@@ -546,15 +546,13 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         zipCode={customer.zipCode}
       />
 
-      {/* Deck Generator Modal */}
-      {showDeckGenerator && (
-        <DeckGeneratorModal
-          isOpen={showDeckGenerator}
-          onClose={() => setShowDeckGenerator(false)}
-          initialContext={deckGeneratorContext}
-          initialTemplateId="customer-cheat-sheet"
-        />
-      )}
+      {/* Deck Generator Modal — always mounted to preserve state during async generation */}
+      <DeckGeneratorModal
+        isOpen={showDeckGenerator}
+        onClose={() => setShowDeckGenerator(false)}
+        initialContext={deckGeneratorContext}
+        initialTemplateId="customer-cheat-sheet"
+      />
 
       {/* Infographic Generator Modal */}
       {showInfographicGenerator && (

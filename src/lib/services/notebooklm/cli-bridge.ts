@@ -9,7 +9,7 @@ import { execFile } from "child_process";
 import type { CLIExecResult, NotebookLMError } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes for most commands
-const GENERATE_TIMEOUT_MS = 300_000; // 5 minutes for generation commands
+const GENERATE_TIMEOUT_MS = 600_000; // 10 minutes for generation commands (typically takes 4-6 min)
 
 function getCLIPath(): string {
   return process.env.NOTEBOOKLM_CLI || "notebooklm";
@@ -31,11 +31,11 @@ export function execCLI(
       {
         timeout: timeoutMs,
         maxBuffer: 10 * 1024 * 1024, // 10MB for large outputs
-        env: { ...process.env },
+        env: { ...process.env, PYTHONIOENCODING: "utf-8" },
       },
       (error, stdout, stderr) => {
         if (error && (error as NodeJS.ErrnoException & { killed?: boolean }).killed) {
-          reject(createError("TIMEOUT", `CLI command timed out after ${timeoutMs}ms`, true));
+          reject(new Error(`NotebookLM CLI timed out after ${Math.round(timeoutMs / 1000)}s — args: ${args.join(" ")}`));
           return;
         }
 
@@ -60,10 +60,12 @@ export function execCLIGenerate(args: string[]): Promise<CLIExecResult> {
 /**
  * Parse CLI error output and classify it.
  */
-export function parseError(stderr: string, exitCode: number): NotebookLMError {
-  const lower = stderr.toLowerCase();
+export function parseError(stderr: string, exitCode: number, stdout: string = ""): NotebookLMError {
+  // Check stderr first, fall back to stdout (some CLIs write errors to stdout)
+  const errorText = stderr.trim() || stdout.trim() || "";
+  const lower = errorText.toLowerCase();
 
-  if (lower.includes("authentication expired") || lower.includes("re-authenticate") || lower.includes("login")) {
+  if (lower.includes("authentication expired") || lower.includes("re-authenticate") || lower.includes("login") || lower.includes("not authenticated")) {
     return createError("AUTH_EXPIRED", "NotebookLM authentication expired. Run 'notebooklm login' to re-authenticate.", false);
   }
 
@@ -71,11 +73,15 @@ export function parseError(stderr: string, exitCode: number): NotebookLMError {
     return createError("RATE_LIMITED", "NotebookLM rate limit reached. Try again later.", true);
   }
 
-  if (lower.includes("not found") || lower.includes("404")) {
-    return createError("NOT_FOUND", `NotebookLM resource not found: ${stderr.trim()}`, false);
+  if (lower.includes("timed out")) {
+    return createError("CLI_ERROR", `NotebookLM generation timed out: ${errorText.substring(0, 200)}`, true);
   }
 
-  return createError("CLI_ERROR", stderr.trim() || `CLI exited with code ${exitCode}`, true);
+  if (lower.includes("not found") || lower.includes("404")) {
+    return createError("NOT_FOUND", `NotebookLM resource not found: ${errorText.substring(0, 200)}`, false);
+  }
+
+  return createError("CLI_ERROR", errorText || `CLI exited with code ${exitCode}`, true);
 }
 
 function createError(

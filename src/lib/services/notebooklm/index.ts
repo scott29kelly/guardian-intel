@@ -8,6 +8,7 @@
  */
 
 import { execCLI, execCLIGenerate, parseError } from "./cli-bridge";
+import { refreshNotebookLMCookies } from "./refresh-auth";
 import type {
   NotebookInfo,
   NotebookSource,
@@ -95,7 +96,7 @@ export async function listNotebooks(): Promise<NotebookInfo[]> {
  * Delete a notebook.
  */
 export async function deleteNotebook(notebookId: string): Promise<void> {
-  const result = await execCLI(["delete", notebookId, "--yes"]);
+  const result = await execCLI(["delete", "-n", notebookId, "--yes"]);
 
   if (result.exitCode !== 0) {
     const error = parseError(result.stderr, result.exitCode);
@@ -177,7 +178,10 @@ export async function askQuestion(
 
 /**
  * Generate a slide deck from the notebook's sources.
- * Returns the path to the downloaded file.
+ *
+ * Uses --no-wait to avoid the CLI's hardcoded 300s internal timeout,
+ * then polls for completion ourselves with a configurable timeout.
+ * Slide deck generation typically takes 4-6 minutes.
  */
 export async function generateSlideDeck(
   notebookId: string,
@@ -185,6 +189,7 @@ export async function generateSlideDeck(
 ): Promise<GenerateResult> {
   await useNotebook(notebookId);
 
+  // Step 1: Start generation (no --wait to avoid CLI's 300s internal timeout)
   const args = ["generate", "slide-deck"];
   if (options.instructions) {
     args.push(options.instructions);
@@ -192,22 +197,61 @@ export async function generateSlideDeck(
   if (options.format) {
     args.push("--format", options.format);
   }
-  args.push("--wait");
+  args.push("--retry", "2");
 
-  console.log(`[NotebookLM] Generating slide deck...`);
-  const result = await execCLIGenerate(args);
+  console.log(`[NotebookLM] Starting slide deck generation (no-wait)...`);
+  const startResult = await execCLI(args, 60_000);
 
-  if (result.exitCode !== 0) {
-    const error = parseError(result.stderr, result.exitCode);
+  if (startResult.exitCode !== 0) {
+    console.error(`[NotebookLM] generate start failed (code ${startResult.exitCode})`);
+    console.error(`[NotebookLM] stdout: ${startResult.stdout.substring(0, 500)}`);
+    console.error(`[NotebookLM] stderr: ${startResult.stderr.substring(0, 500)}`);
+    const error = parseError(startResult.stderr, startResult.exitCode, startResult.stdout);
     return { success: false, error: error.message };
   }
 
-  // Download the generated deck
+  console.log(`[NotebookLM] Generation started: ${startResult.stdout.trim().substring(0, 200)}`);
+
+  // Step 2: Poll for completion using download --dry-run
+  const maxWaitMs = 540_000; // 9 minutes polling
+  const pollIntervalMs = 15_000; // Check every 15 seconds
+  const startTime = Date.now();
+  let artifactReady = false;
+
+  console.log(`[NotebookLM] Polling for slide deck completion (up to ${maxWaitMs / 1000}s)...`);
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const dlCheck = await execCLI(
+      ["download", "slide-deck", "--dry-run", "--latest"],
+      15_000
+    );
+
+    if (dlCheck.exitCode === 0 && dlCheck.stdout.toLowerCase().includes("would download")) {
+      console.log(`[NotebookLM] Slide deck ready after ${elapsed}s`);
+      artifactReady = true;
+      break;
+    }
+
+    // Log progress periodically
+    if (elapsed % 60 < pollIntervalMs / 1000) {
+      console.log(`[NotebookLM] Still generating... (${elapsed}s elapsed)`);
+    }
+  }
+
+  if (!artifactReady) {
+    return { success: false, error: `Slide deck generation timed out after ${maxWaitMs / 1000}s` };
+  }
+
+  // Step 3: Download the generated deck
   const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-deck-${Date.now()}.pdf`);
-  const dlResult = await execCLI(["download", "slide-deck", outputPath]);
+  const dlResult = await execCLI(["download", "slide-deck", outputPath, "--latest"]);
 
   if (dlResult.exitCode !== 0) {
-    return { success: false, error: `Download failed: ${dlResult.stderr}` };
+    console.error(`[NotebookLM] download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
+    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
   }
 
   console.log(`[NotebookLM] Slide deck saved to: ${outputPath}`);
@@ -216,7 +260,8 @@ export async function generateSlideDeck(
 
 /**
  * Generate an infographic from the notebook's sources.
- * Returns the path to the downloaded PNG.
+ *
+ * Uses --no-wait + polling to avoid the CLI's 300s internal timeout.
  */
 export async function generateInfographic(
   notebookId: string,
@@ -224,6 +269,7 @@ export async function generateInfographic(
 ): Promise<GenerateResult> {
   await useNotebook(notebookId);
 
+  // Step 1: Start generation (no --wait)
   const args = ["generate", "infographic"];
   if (options.instructions) {
     args.push(options.instructions);
@@ -234,22 +280,54 @@ export async function generateInfographic(
   if (options.detail) {
     args.push("--detail", options.detail);
   }
-  args.push("--wait");
+  args.push("--retry", "2");
 
-  console.log(`[NotebookLM] Generating infographic...`);
-  const result = await execCLIGenerate(args);
+  console.log(`[NotebookLM] Starting infographic generation (no-wait)...`);
+  const startResult = await execCLI(args, 60_000);
 
-  if (result.exitCode !== 0) {
-    const error = parseError(result.stderr, result.exitCode);
+  if (startResult.exitCode !== 0) {
+    console.error(`[NotebookLM] infographic start failed (code ${startResult.exitCode})`);
+    console.error(`[NotebookLM] stdout: ${startResult.stdout.substring(0, 500)}`);
+    console.error(`[NotebookLM] stderr: ${startResult.stderr.substring(0, 500)}`);
+    const error = parseError(startResult.stderr, startResult.exitCode, startResult.stdout);
     return { success: false, error: error.message };
   }
 
-  // Download the generated infographic
+  console.log(`[NotebookLM] Infographic generation started: ${startResult.stdout.trim().substring(0, 200)}`);
+
+  // Step 2: Poll for completion
+  const maxWaitMs = 540_000;
+  const pollIntervalMs = 15_000;
+  const startTime = Date.now();
+  let artifactReady = false;
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+
+    const dlCheck = await execCLI(
+      ["download", "infographic", "--dry-run", "--latest"],
+      15_000
+    );
+
+    if (dlCheck.exitCode === 0 && dlCheck.stdout.toLowerCase().includes("would download")) {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      console.log(`[NotebookLM] Infographic ready after ${elapsed}s`);
+      artifactReady = true;
+      break;
+    }
+  }
+
+  if (!artifactReady) {
+    return { success: false, error: `Infographic generation timed out after ${maxWaitMs / 1000}s` };
+  }
+
+  // Step 3: Download
   const outputPath = options.outputPath || path.join(os.tmpdir(), `nlm-infographic-${Date.now()}.png`);
-  const dlResult = await execCLI(["download", "infographic", outputPath]);
+  const dlResult = await execCLI(["download", "infographic", outputPath, "--latest"]);
 
   if (dlResult.exitCode !== 0) {
-    return { success: false, error: `Download failed: ${dlResult.stderr}` };
+    console.error(`[NotebookLM] download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
+    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
   }
 
   console.log(`[NotebookLM] Infographic saved to: ${outputPath}`);
@@ -376,17 +454,44 @@ export async function generateCustomerInfographic(
 
 /**
  * Check if NotebookLM CLI is available and authenticated.
+ *
+ * If auth has expired (PSIDRTS cookies rotate every ~12h), attempts
+ * an automatic headless cookie refresh using Playwright before failing.
  */
 export async function healthCheck(): Promise<{ ok: boolean; error?: string }> {
   try {
     const result = await execCLI(["list"], 10_000);
 
-    if (result.exitCode !== 0) {
-      const error = parseError(result.stderr, result.exitCode);
-      return { ok: false, error: error.message };
+    if (result.exitCode === 0) {
+      return { ok: true };
     }
 
-    return { ok: true };
+    // Pass stdout to parseError — the CLI writes errors to stdout, not stderr
+    const error = parseError(result.stderr, result.exitCode, result.stdout);
+
+    // If auth error, try automatic cookie refresh before giving up
+    if (error.code === "AUTH_EXPIRED") {
+      console.log("[NotebookLM] Auth expired, attempting automatic cookie refresh...");
+      const refreshed = await refreshNotebookLMCookies();
+
+      if (refreshed) {
+        const retryResult = await execCLI(["list"], 10_000);
+        if (retryResult.exitCode === 0) {
+          console.log("[NotebookLM] Cookie refresh successful, auth restored.");
+          return { ok: true };
+        }
+        // Refresh ran but CLI still fails — parse the new error
+        const retryError = parseError(retryResult.stderr, retryResult.exitCode, retryResult.stdout);
+        return { ok: false, error: retryError.message };
+      }
+
+      return {
+        ok: false,
+        error: "Authentication expired. Automatic refresh failed — run 'notebooklm login' manually (delete ~/.notebooklm/browser_profile/ first for a clean login).",
+      };
+    }
+
+    return { ok: false, error: error.message };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unknown error" };
   }

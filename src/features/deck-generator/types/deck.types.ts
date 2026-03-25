@@ -227,6 +227,8 @@ export interface GeneratedDeck {
   context: DeckGenerationRequest['context'];
   slides: GeneratedSlide[];
   branding: BrandingConfig;
+  /** Supabase Storage URL for the original PDF (set when server-side image conversion fails) */
+  pdfUrl?: string;
   metadata: {
     totalSlides: number;
     aiSlidesCount: number;

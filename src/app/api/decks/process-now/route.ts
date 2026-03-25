@@ -17,7 +17,7 @@ import { processDeckWithNotebookLM } from "@/lib/services/deck-processing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // 5 minutes max for NotebookLM generation
+export const maxDuration = 600; // 10 minutes max for NotebookLM generation
 
 export async function POST(request: NextRequest) {
   try {

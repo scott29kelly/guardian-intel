@@ -128,6 +128,9 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Packages that must NOT be bundled by webpack (native/ESM incompatible)
+  serverExternalPackages: ["pdf-to-img"],
+
   // Experimental features
   experimental: {
     // Enable server actions
