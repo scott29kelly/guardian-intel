@@ -254,6 +254,11 @@ model: this.model as AIModel,
 
     const systemPrompt = systemMessages.map(m => m.content).join("\n\n");
 
+    // If no non-system messages, send system prompt as a user message
+    if (nonSystemMessages.length === 0 && systemPrompt) {
+      return [{ role: "user", parts: [{ text: systemPrompt }] }];
+    }
+
     return nonSystemMessages.map((msg, index) => {
       let content = msg.content;
       

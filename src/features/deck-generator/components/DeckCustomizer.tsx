@@ -56,6 +56,8 @@ export function DeckCustomizer({
   onSectionsChange,
   exportFormat,
   onExportFormatChange,
+  artifactConfigs,
+  onArtifactConfigsChange,
 }: DeckCustomizerProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
