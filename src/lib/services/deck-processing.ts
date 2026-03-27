@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   generateCustomerDeck,
+  generateCustomerInfographic,
   generateAudio,
   generateInfographic,
   generateReport,
@@ -54,6 +55,42 @@ When creating content:
 - Provide step-by-step action timelines with specific deadlines
 - Use professional, strategic language — think military intelligence briefing
 - Color scheme: dark navy (#1E3A5F) and gold (#D4A656) with teal (#4A90A4) accents`;
+
+// =============================================================================
+// SUPABASE UPLOAD HELPER
+// =============================================================================
+
+async function uploadToSupabase(
+  deckId: string,
+  filePath: string,
+  storageName: string,
+  contentType: string,
+): Promise<{ url?: string; storagePath?: string }> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) return {};
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
+    const path = `decks/${deckId}/${storageName}`;
+
+    const buffer = await fs.readFile(filePath);
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(path, buffer, { contentType, upsert: true });
+
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+      return { url: urlData.publicUrl, storagePath: path };
+    }
+    console.warn(`[DeckProcessing] Upload failed for ${storageName}:`, uploadError.message);
+  } catch (err) {
+    console.warn(`[DeckProcessing] Supabase upload error for ${storageName}:`, err);
+  }
+  return {};
+}
 
 // =============================================================================
 // MAIN PROCESSING FUNCTION
@@ -197,7 +234,56 @@ export async function processDeckWithNotebookLM(
       artifactConfigs,
     };
 
-    // Step 4: Generate via NotebookLM
+    // Step 4: Branch on requestedArtifacts
+    const requestedArtifacts: string[] = deck.requestedArtifacts || ["slide-deck"];
+    const needsSlideDeck = requestedArtifacts.includes("slide-deck");
+
+    // =========================================================================
+    // INFOGRAPHIC-ONLY PATH (no slide deck)
+    // =========================================================================
+    if (!needsSlideDeck) {
+      console.log(`[DeckProcessing] Infographic-only path for ${deck.customerName}`);
+      const infographicConfig = artifactConfigs.find((c: { type: string }) => c.type === "infographic");
+
+      const infoResult = await generateCustomerInfographic(deckRequest, {
+        orientation: infographicConfig?.orientation,
+        detail: infographicConfig?.detail,
+      });
+
+      if (!infoResult.success || !infoResult.outputPath) {
+        throw new Error(infoResult.error || "Infographic generation failed");
+      }
+
+      const uploaded = await uploadToSupabase(
+        deckId,
+        infoResult.outputPath,
+        `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
+        "image/png",
+      );
+
+      fs.unlink(infoResult.outputPath).catch(() => {});
+
+      const processingTimeMs = Date.now() - startTime;
+      await prisma.scheduledDeck.update({
+        where: { id: deckId },
+        data: {
+          status: "completed",
+          infographicUrl: uploaded.url,
+          ...(uploaded.storagePath ? { infographicStoragePath: uploaded.storagePath } : {}),
+          resultPayload: JSON.stringify({ infographicOnly: true, infographicUrl: uploaded.url }),
+          completedAt: new Date(),
+          processingTimeMs,
+        },
+      });
+
+      console.log(`[DeckProcessing] Infographic-only completed for ${deck.customerName} in ${processingTimeMs}ms`);
+      await sendDeckCompletionNotification(deck.requestedById, deck.customerName, deckId);
+      return { success: true, deckId, processingTimeMs };
+    }
+
+    // =========================================================================
+    // SLIDE DECK PATH (existing)
+    // =========================================================================
     console.log(`[DeckProcessing] Calling NotebookLM for ${deck.customerName}...`);
     const result = await generateCustomerDeck(deckRequest);
 
@@ -279,38 +365,6 @@ export async function processDeckWithNotebookLM(
       // Multi-artifact path: generate additional artifacts, then clean up notebook
       console.log(`[DeckProcessing] Processing ${artifactConfigs.length} additional artifact configs...`);
 
-      // Helper: upload a file to Supabase and return { url, storagePath }
-      const uploadToSupabase = async (
-        filePath: string,
-        storageName: string,
-        contentType: string
-      ): Promise<{ url?: string; storagePath?: string }> => {
-        try {
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-          if (!supabaseUrl || !supabaseKey) return {};
-
-          const { createClient } = await import("@supabase/supabase-js");
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
-          const path = `decks/${deckId}/${storageName}`;
-
-          const buffer = await fs.readFile(filePath);
-          const { error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(path, buffer, { contentType, upsert: true });
-
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
-            return { url: urlData.publicUrl, storagePath: path };
-          }
-          console.warn(`[DeckProcessing] Upload failed for ${storageName}:`, uploadError.message);
-        } catch (err) {
-          console.warn(`[DeckProcessing] Supabase upload error for ${storageName}:`, err);
-        }
-        return {};
-      };
-
       // Generate audio if requested
       const audioConfig = artifactConfigs.find((c: { type: string }) => c.type === "audio");
       if (audioConfig) {
@@ -323,9 +377,10 @@ export async function processDeckWithNotebookLM(
           });
           if (audioResult.success && audioResult.outputPath) {
             const uploaded = await uploadToSupabase(
+              deckId,
               audioResult.outputPath,
               `${deck.customerName.replace(/\s+/g, "-")}-audio.mp3`,
-              "audio/mpeg"
+              "audio/mpeg",
             );
             audioUrl = uploaded.url;
             audioStoragePath = uploaded.storagePath;
@@ -351,9 +406,10 @@ export async function processDeckWithNotebookLM(
           });
           if (infoResult.success && infoResult.outputPath) {
             const uploaded = await uploadToSupabase(
+              deckId,
               infoResult.outputPath,
               `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
-              "image/png"
+              "image/png",
             );
             infographicUrl = uploaded.url;
             infographicStoragePath = uploaded.storagePath;

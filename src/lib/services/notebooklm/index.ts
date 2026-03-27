@@ -695,7 +695,8 @@ export async function generateCustomerDeck(
  * Generate an infographic for a customer using NotebookLM.
  */
 export async function generateCustomerInfographic(
-  request: CustomerDeckRequest
+  request: CustomerDeckRequest,
+  options?: { orientation?: string; detail?: string },
 ): Promise<GenerateResult> {
   const notebookTitle = `Guardian Info: ${request.customerName} - ${new Date().toISOString().split("T")[0]}`;
 
@@ -720,10 +721,13 @@ export async function generateCustomerInfographic(
     console.error(`[NotebookLM] Warning: Source addition issue: ${error}`);
   }
 
+  const orientation = (options?.orientation || "landscape") as "landscape" | "portrait" | "square";
+  const detail = (options?.detail || (request.audience === "customer-facing" ? "detailed" : "standard")) as "brief" | "standard" | "detailed";
+
   const result = await generateInfographic(notebookId, {
     instructions: request.templateInstructions,
-    orientation: "landscape",
-    detail: request.audience === "customer-facing" ? "detailed" : "standard",
+    orientation,
+    detail,
   });
 
   if (!result.success) {

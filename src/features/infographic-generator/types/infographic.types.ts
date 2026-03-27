@@ -2,8 +2,6 @@
 // INFOGRAPHIC GENERATOR TYPE DEFINITIONS
 // =============================================================================
 
-import type { AIModel } from '@/lib/services/ai/types';
-
 // -----------------------------------------------------------------------------
 // Core Types
 // -----------------------------------------------------------------------------
@@ -50,55 +48,6 @@ export interface InfographicPreset {
 }
 
 // -----------------------------------------------------------------------------
-// Model Intelligence Types
-// -----------------------------------------------------------------------------
-
-export type ChainRole = 'source' | 'finisher' | 'standalone';
-
-export interface ModelCapabilities {
-  id: AIModel;
-  costPerImage1K: number;
-  maxResolution: string;
-  webSearchGrounding: boolean;
-  maxReferenceImages: number;
-  fidelityScore: number;
-  textRenderingScore: number;
-  complexCompositionScore: number;
-  chainable: ChainRole;
-}
-
-export interface ModelChainStep {
-  model: AIModel;
-  role: 'generate' | 'refine';
-  resolution: string;
-  searchEnabled: boolean;
-}
-
-export interface ModelChainStrategy {
-  id: string;
-  name: string;
-  /** Description of when this chain is triggered */
-  trigger: string;
-  steps: ModelChainStep[];
-}
-
-export interface ScoringDimensions {
-  /** Audience score: internal (moderate fidelity) vs customer-facing (max fidelity) */
-  audience: number;
-  /** Complexity score based on module count */
-  complexity: number;
-  /** Web search dependency: hard constraint if any module requires web search */
-  webSearch: number;
-}
-
-export interface ScoringResult {
-  selectedModel?: ModelCapabilities;
-  selectedChain?: ModelChainStrategy;
-  scores: ScoringDimensions;
-  reasoning: string;
-}
-
-// -----------------------------------------------------------------------------
 // Request / Response Types
 // -----------------------------------------------------------------------------
 
@@ -112,11 +61,9 @@ export interface InfographicRequest {
 }
 
 export interface InfographicResponse {
-  imageData: string; // base64
+  imageData?: string;
   imageUrl?: string;
-  /** Model used — internal telemetry only, never exposed to reps */
-  model: string;
-  chainUsed: boolean;
+  jobId?: string;
   generationTimeMs: number;
   cached: boolean;
 }
@@ -128,11 +75,10 @@ export interface InfographicResponse {
 export interface InfographicCacheEntry {
   customerId: string;
   presetId: string;
-  imageData: string;
+  imageUrl: string;
   generatedAt: Date;
   expiresAt: Date;
-  /** Internal telemetry — never exposed to reps */
-  modelStrategy: string;
+  pipeline: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -148,7 +94,7 @@ export interface BatchRequest {
 // Progress Types
 // -----------------------------------------------------------------------------
 
-export type GenerationPhase = 'data' | 'scoring' | 'generating' | 'refining' | 'complete';
+export type GenerationPhase = 'data' | 'queued' | 'processing' | 'generating' | 'complete';
 
 export interface GenerationProgress {
   phase: GenerationPhase;
