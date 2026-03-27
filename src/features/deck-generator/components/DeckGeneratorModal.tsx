@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   Loader2,
   Download,
-  Share2,
   AlertCircle,
   Clock,
   Check
@@ -237,14 +236,6 @@ export function DeckGeneratorModal({
     }
   }, [step, resetGeneration]);
 
-  // Handle share - copy link to clipboard
-  const handleShare = useCallback(() => {
-    if (!generatedDeck) return;
-    const shareUrl = `${window.location.origin}/decks/${generatedDeck.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert('Share link copied to clipboard!');
-  }, [generatedDeck]);
-
   // Handle download - export as ZIP with PNG slides or direct PDF download
   const handleDownload = useCallback(async () => {
     if (!generatedDeck) return;
@@ -361,13 +352,30 @@ export function DeckGeneratorModal({
                   <ChevronLeft className="w-5 h-5 text-text-muted" />
                 </button>
               )}
-              <h2 className="text-lg font-semibold text-text-primary">
-                {step === 'select-template' && 'Generate Slide Deck'}
-                {step === 'customize' && selectedTemplate?.name}
-                {step === 'generating' && 'Generating Deck...'}
-                {step === 'async-processing' && 'Generating via NotebookLM...'}
-                {step === 'preview' && 'Deck Preview'}
-              </h2>
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">
+                  {step === 'select-template' && 'Generate Slide Deck'}
+                  {step === 'customize' && selectedTemplate?.name}
+                  {step === 'generating' && 'Generating Deck...'}
+                  {step === 'async-processing' && 'Generating via NotebookLM...'}
+                  {step === 'preview' && (generatedDeck?.templateName || 'Deck Preview')}
+                </h2>
+                {step === 'preview' && generatedDeck && (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {generatedDeck.context?.customerName && (
+                      <span className="text-sm text-text-muted">
+                        {generatedDeck.context.customerName}
+                      </span>
+                    )}
+                    {generatedDeck.context?.customerName && (
+                      <span className="text-text-muted text-xs">&middot;</span>
+                    )}
+                    <span className="text-xs text-text-muted">
+                      {generatedDeck.slides.length} slides
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <button
               onClick={handleClose}
@@ -605,13 +613,6 @@ export function DeckGeneratorModal({
               )}
               {step === 'preview' && (
                 <>
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
                   <button
                     onClick={handleDownload}
                     disabled={isExporting}

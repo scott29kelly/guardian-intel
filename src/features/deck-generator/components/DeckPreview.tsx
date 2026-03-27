@@ -384,29 +384,6 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
         {/* Multi-artifact tab bar */}
         {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
 
-        {/* Sticky header with slide count */}
-        <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50 flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${deck.branding.colors.secondary}20` }}
-            >
-              <Sparkles className="w-4 h-4" style={{ color: deck.branding.colors.secondary }} />
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-text-primary">
-                {deck.slides.length} slides generated
-              </span>
-              <span className="text-xs text-text-muted ml-2">
-                ({deck.slides.filter(s => s.imageData).length} Nano Banana Pro)
-              </span>
-            </div>
-          </div>
-          <span className="text-xs text-text-muted">
-            Scroll to view all slides
-          </span>
-        </div>
-
         {/* All slides at full 16:9 size in scrollable list */}
         {deck.slides.map((slide, index) => (
           <div
@@ -433,39 +410,6 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
               </div>
             )}
 
-            {/* Slide number badge */}
-            <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/70 backdrop-blur-sm rounded-full text-sm text-white font-medium">
-              {index + 1} / {deck.slides.length}
-            </div>
-
-            {/* Nano Banana Pro badge (for AI-generated images) */}
-            {slide.imageData && (
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 backdrop-blur-sm rounded-full text-xs text-purple-300 font-medium">
-                <Sparkles className="w-3.5 h-3.5" />
-                Nano Banana Pro
-              </div>
-            )}
-
-            {/* Fallback badge (for React-rendered slides) */}
-            {!slide.imageData && slide.aiGenerated && (
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-intel-500/20 backdrop-blur-sm rounded-full text-xs text-intel-300 font-medium">
-                <Sparkles className="w-3.5 h-3.5" />
-                AI Generated
-              </div>
-            )}
-
-            {/* Error indicator */}
-            {slide.imageError && (
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 backdrop-blur-sm rounded-full text-xs text-amber-300 font-medium">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Fallback Mode
-              </div>
-            )}
-
-            {/* Section label */}
-            <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/50 backdrop-blur-sm rounded-full text-xs text-text-muted font-medium">
-              {slide.sectionId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-            </div>
           </div>
         ))}
 
