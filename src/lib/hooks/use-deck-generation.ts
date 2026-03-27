@@ -26,6 +26,7 @@ interface DeckJob {
   actualSlides: number | null;
   processingTimeMs: number | null;
   pdfUrl?: string;
+  infographicUrl?: string;
   ageMinutes?: number;
   isStale?: boolean;
   requestedBy?: {

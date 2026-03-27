@@ -4,13 +4,14 @@
  * useInfographicGeneration Hook
  *
  * Manages the full lifecycle of a single infographic generation request:
- * isGenerating state, contextual progress messages, result/error handling,
- * and background generation support via service worker notifications.
+ * schedules a NotebookLM job via the API, then polls for completion
+ * using the shared useDeckStatus hook.
  *
  * Progress messages are purely contextual -- no model names are ever exposed.
  */
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useDeckStatus } from "@/lib/hooks/use-deck-generation";
 import type {
   InfographicRequest,
   InfographicResponse,
@@ -22,152 +23,98 @@ interface UseInfographicGenerationReturn {
   progress: GenerationProgress | null;
   result: InfographicResponse | null;
   error: string | null;
-  generate: (request: InfographicRequest) => Promise<InfographicResponse | null>;
+  generate: (request: InfographicRequest) => Promise<void>;
   reset: () => void;
 }
 
-export function useInfographicGeneration(): UseInfographicGenerationReturn {
+export function useInfographicGeneration(customerId: string): UseInfographicGenerationReturn {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [result, setResult] = useState<InfographicResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const mountedRef = useRef(true);
-  const progressTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  // Track mount state for background generation support
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const clearProgressTimers = useCallback(() => {
-    progressTimersRef.current.forEach((timer) => clearTimeout(timer));
-    progressTimersRef.current = [];
-  }, []);
-
-  const generate = useCallback(
-    async (request: InfographicRequest): Promise<InfographicResponse | null> => {
-      // Abort any in-flight request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      // Reset state
-      setIsGenerating(true);
-      setError(null);
-      setResult(null);
-      clearProgressTimers();
-
-      // Simulate progress phases locally (HTTP POST does not stream progress)
-      setProgress({
-        phase: "data",
-        percent: 10,
-        statusMessage: "Assembling customer data...",
-      });
-
-      const t1 = setTimeout(() => {
-        if (mountedRef.current) {
-          setProgress({
-            phase: "scoring",
-            percent: 25,
-            statusMessage: "Preparing generation...",
-          });
-        }
-      }, 1500);
-
-      const t2 = setTimeout(() => {
-        if (mountedRef.current) {
-          setProgress({
-            phase: "generating",
-            percent: 50,
-            statusMessage: "Generating your briefing...",
-          });
-        }
-      }, 3000);
-
-      const t3 = setTimeout(() => {
-        if (mountedRef.current) {
-          setProgress({
-            phase: "generating",
-            percent: 70,
-            statusMessage: "Almost there...",
-          });
-        }
-      }, 6000);
-
-      progressTimersRef.current = [t1, t2, t3];
-
-      try {
-        const res = await fetch("/api/ai/generate-infographic", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request),
-          signal: controller.signal,
-        });
-
-        if (!res.ok) {
-          const errorBody = await res.json().catch(() => ({ error: "Generation failed" }));
-          throw new Error(errorBody.error || "Generation failed");
-        }
-
-        const data: InfographicResponse = await res.json();
-
-        if (mountedRef.current) {
-          setResult(data);
-          setProgress({
-            phase: "complete",
-            percent: 100,
-            statusMessage: "Your briefing is ready!",
-          });
-        } else {
-          // Component unmounted -- fire background notification via service worker
-          notifyBackgroundComplete();
-        }
-
-        return data;
-      } catch (err) {
-        if ((err as Error).name === "AbortError") {
-          return null;
-        }
-
-        const errorMessage = err instanceof Error ? err.message : "Generation failed";
-
-        if (mountedRef.current) {
-          setError(errorMessage);
-          setProgress(null);
-        }
-
-        return null;
-      } finally {
-        clearProgressTimers();
-        if (mountedRef.current) {
-          setIsGenerating(false);
-        }
-      }
-    },
-    [clearProgressTimers],
+  // Poll for job status when we have a jobId
+  const deckStatus = useDeckStatus(
+    jobId ? customerId : undefined,
+    { enabled: !!jobId, deckId: jobId || undefined },
   );
 
-  const reset = useCallback(() => {
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+  // React to poll results
+  useEffect(() => {
+    if (!jobId || !deckStatus.data) return;
+    const { isPending, isProcessing, isCompleted, isFailed, deck } = deckStatus.data;
 
-    clearProgressTimers();
+    if (isPending) {
+      setProgress({ phase: "queued", percent: 15, statusMessage: "Queued for generation..." });
+    }
+    if (isProcessing) {
+      setProgress({ phase: "processing", percent: 45, statusMessage: "NotebookLM is generating your briefing..." });
+    }
+    if (isCompleted && deck?.infographicUrl) {
+      setResult({
+        imageUrl: deck.infographicUrl,
+        cached: false,
+        generationTimeMs: deck.processingTimeMs || 0,
+      });
+      setProgress({ phase: "complete", percent: 100, statusMessage: "Your briefing is ready!" });
+      setIsGenerating(false);
+      setJobId(null);
+    }
+    if (isFailed) {
+      setError(deck?.errorMessage || "Generation failed");
+      setIsGenerating(false);
+      setJobId(null);
+    }
+  }, [jobId, deckStatus.data]);
+
+  const generate = useCallback(async (request: InfographicRequest) => {
+    setIsGenerating(true);
+    setError(null);
+    setResult(null);
+    setProgress({ phase: "data", percent: 5, statusMessage: "Preparing your briefing..." });
+
+    try {
+      const res = await fetch("/api/ai/generate-infographic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to schedule generation");
+      }
+
+      if (data.cached) {
+        // Cache hit — instant result
+        setResult(data);
+        setProgress({ phase: "complete", percent: 100, statusMessage: "Your briefing is ready!" });
+        setIsGenerating(false);
+        return;
+      }
+
+      if (data.jobId) {
+        setJobId(data.jobId); // Triggers polling via useDeckStatus
+        setProgress({ phase: "queued", percent: 10, statusMessage: "Queued for generation..." });
+      } else {
+        throw new Error("No jobId returned from server");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Generation failed";
+      setError(errorMessage);
+      setIsGenerating(false);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setJobId(null);
     setIsGenerating(false);
     setProgress(null);
     setResult(null);
     setError(null);
-  }, [clearProgressTimers]);
+  }, []);
 
   return {
     isGenerating,
@@ -177,22 +124,4 @@ export function useInfographicGeneration(): UseInfographicGenerationReturn {
     generate,
     reset,
   };
-}
-
-/**
- * Fires a push notification when generation completes after the component
- * has already unmounted (background generation support).
- */
-async function notifyBackgroundComplete(): Promise<void> {
-  try {
-    if ("serviceWorker" in navigator && Notification.permission === "granted") {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification("Briefing Ready", {
-        body: "Your infographic briefing has been generated.",
-        icon: "/icons/icon-192x192.png",
-      });
-    }
-  } catch {
-    // Notification is best-effort; swallow errors silently
-  }
 }

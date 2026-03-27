@@ -57,7 +57,7 @@ export function InfographicGeneratorModal({
   customerName,
 }: InfographicGeneratorModalProps) {
   const { isGenerating, progress, result, error, generate, reset } =
-    useInfographicGeneration();
+    useInfographicGeneration(customerId);
 
   // UI state
   const [activeTab, setActiveTab] = useState<GenerationMode>("preset");
@@ -230,7 +230,7 @@ export function InfographicGeneratorModal({
             </AnimatePresence>
 
             {/* ---- Progress state ---- */}
-            {isGenerating && progress && (
+            {isGenerating && progress && progress.phase !== "complete" && (
               <div className="flex flex-col items-center justify-center py-10 px-6">
                 <Loader2 className="w-12 h-12 text-accent-primary animate-spin mb-4" />
                 <p className="text-sm font-medium text-text-primary mb-1">
@@ -244,6 +244,9 @@ export function InfographicGeneratorModal({
                     transition={{ duration: 0.3 }}
                   />
                 </div>
+                <p className="text-xs text-text-muted mt-3">
+                  This usually takes 2-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
+                </p>
               </div>
             )}
 
@@ -260,12 +263,21 @@ export function InfographicGeneratorModal({
               </div>
             )}
 
-            {/* ---- Result state (placeholder for GenerationProgress component -- Plan 03) ---- */}
+            {/* ---- Result state ---- */}
             {result && (
-              <div className="flex flex-col items-center py-8 px-6">
-                <p className="text-sm font-medium text-text-primary">
-                  Your briefing is ready!
-                </p>
+              <div className="p-4">
+                {result.imageUrl && (
+                  <img
+                    src={result.imageUrl}
+                    alt="Infographic briefing"
+                    className="w-full rounded-lg shadow-lg"
+                  />
+                )}
+                {!result.imageUrl && (
+                  <p className="text-sm font-medium text-text-primary text-center py-8">
+                    Your briefing is ready!
+                  </p>
+                )}
               </div>
             )}
           </div>

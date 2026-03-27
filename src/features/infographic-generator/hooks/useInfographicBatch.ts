@@ -3,18 +3,18 @@
 /**
  * useInfographicBatch Hook
  *
- * Manages batch infographic generation for multiple customers. Initiates a
- * batch job via POST, then polls the status endpoint every 2 seconds to
- * progressively deliver per-customer results as they complete.
+ * Manages batch infographic generation for multiple customers. Schedules
+ * NotebookLM jobs via POST, then polls each customer's ScheduledDeck status
+ * via the deck status endpoint.
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { InfographicResponse } from "../types/infographic.types";
 
 export interface BatchCustomerStatus {
   customerId: string;
+  deckId?: string;
   status: "pending" | "generating" | "complete" | "error";
-  result?: InfographicResponse;
+  imageUrl?: string;
   error?: string;
 }
 
@@ -26,17 +26,16 @@ interface UseInfographicBatchReturn {
 }
 
 /** Polling interval in milliseconds */
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 10000;
 
 export function useInfographicBatch(): UseInfographicBatchReturn {
   const [isBatching, setIsBatching] = useState(false);
   const [batchProgress, setBatchProgress] = useState<BatchCustomerStatus[]>([]);
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const jobIdRef = useRef<string | null>(null);
+  const deckIdsRef = useRef<Array<{ customerId: string; deckId: string }>>([]);
   const mountedRef = useRef(true);
 
-  // Track mount state for cleanup
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -55,61 +54,55 @@ export function useInfographicBatch(): UseInfographicBatchReturn {
   }, []);
 
   const pollBatchStatus = useCallback(async () => {
-    const jobId = jobIdRef.current;
-    if (!jobId) return;
+    const entries = deckIdsRef.current;
+    if (entries.length === 0) return;
 
-    try {
-      const res = await fetch(`/api/ai/generate-infographic/batch/${jobId}`);
+    const updatedProgress: BatchCustomerStatus[] = [];
 
-      if (!res.ok) {
-        console.error("[useInfographicBatch] Polling error:", res.status);
-        return;
+    for (const { customerId, deckId } of entries) {
+      try {
+        const res = await fetch(`/api/decks/status/${customerId}?deckId=${deckId}`);
+        if (!res.ok) {
+          updatedProgress.push({ customerId, deckId, status: "error", error: "Status check failed" });
+          continue;
+        }
+        const data = await res.json();
+        const deck = data.deck;
+
+        if (data.isCompleted && deck?.infographicUrl) {
+          updatedProgress.push({ customerId, deckId, status: "complete", imageUrl: deck.infographicUrl });
+        } else if (data.isFailed) {
+          updatedProgress.push({ customerId, deckId, status: "error", error: deck?.errorMessage || "Failed" });
+        } else if (data.isProcessing) {
+          updatedProgress.push({ customerId, deckId, status: "generating" });
+        } else {
+          updatedProgress.push({ customerId, deckId, status: "pending" });
+        }
+      } catch {
+        updatedProgress.push({ customerId, deckId, status: "error", error: "Network error" });
       }
+    }
 
-      const data = await res.json();
+    if (!mountedRef.current) return;
+    setBatchProgress(updatedProgress);
 
-      if (!mountedRef.current) return;
-
-      // Map API response to BatchCustomerStatus array
-      const updatedProgress: BatchCustomerStatus[] = (
-        data.customers as Array<{
-          customerId: string;
-          status: "pending" | "generating" | "complete" | "error";
-          result?: InfographicResponse;
-          error?: string;
-        }>
-      ).map((c) => ({
-        customerId: c.customerId,
-        status: c.status,
-        result: c.result,
-        error: c.error,
-      }));
-
-      setBatchProgress(updatedProgress);
-
-      // Stop polling when batch is complete
-      if (data.status === "complete") {
-        stopPolling();
-        setIsBatching(false);
-      }
-    } catch (err) {
-      console.error("[useInfographicBatch] Polling fetch error:", err);
+    // Stop polling when all are done
+    const allDone = updatedProgress.every(
+      (c) => c.status === "complete" || c.status === "error",
+    );
+    if (allDone) {
+      stopPolling();
+      setIsBatching(false);
     }
   }, [stopPolling]);
 
   const startBatch = useCallback(
     async (customerIds: string[]): Promise<void> => {
-      // Stop any existing polling
       stopPolling();
 
-      // Initialize all customers as pending
       const initialProgress: BatchCustomerStatus[] = customerIds.map(
-        (customerId) => ({
-          customerId,
-          status: "pending" as const,
-        }),
+        (customerId) => ({ customerId, status: "pending" as const }),
       );
-
       setBatchProgress(initialProgress);
       setIsBatching(true);
 
@@ -117,26 +110,25 @@ export function useInfographicBatch(): UseInfographicBatchReturn {
         const res = await fetch("/api/ai/generate-infographic/batch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customerIds,
-            autoSelectPresets: true,
-          }),
+          body: JSON.stringify({ customerIds, autoSelectPresets: true }),
         });
 
         if (!res.ok) {
-          const errorBody = await res
-            .json()
-            .catch(() => ({ error: "Batch initiation failed" }));
+          const errorBody = await res.json().catch(() => ({ error: "Batch initiation failed" }));
           throw new Error(errorBody.error || "Batch initiation failed");
         }
 
         const data = await res.json();
-        jobIdRef.current = data.jobId;
+        const deckIds: string[] = data.deckIds || [];
 
-        // Start polling every 2 seconds
+        // Map deckIds back to customerIds (same order)
+        deckIdsRef.current = customerIds
+          .map((customerId, i) => ({ customerId, deckId: deckIds[i] }))
+          .filter((entry) => entry.deckId);
+
+        // Start polling
         pollingIntervalRef.current = setInterval(pollBatchStatus, POLL_INTERVAL_MS);
       } catch (err) {
-        console.error("[useInfographicBatch] Start batch error:", err);
         if (mountedRef.current) {
           setIsBatching(false);
           setBatchProgress(
@@ -154,7 +146,7 @@ export function useInfographicBatch(): UseInfographicBatchReturn {
 
   const cancelBatch = useCallback(() => {
     stopPolling();
-    jobIdRef.current = null;
+    deckIdsRef.current = [];
     setIsBatching(false);
   }, [stopPolling]);
 
