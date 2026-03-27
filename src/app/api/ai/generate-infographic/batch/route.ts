@@ -1,12 +1,8 @@
 /**
  * Batch Infographic Generation API
  *
- * POST /api/ai/generate-infographic/batch - Initiate batch generation for
- * multiple customers. Returns a jobId immediately (202) and runs generation
- * in the background.
- *
- * In-memory job store is sufficient for v1 since batch jobs are short-lived
- * and the API runs on a single server instance. Production should use Redis.
+ * POST /api/ai/generate-infographic/batch - Schedule infographic generation
+ * for multiple customers via NotebookLM. Returns deckIds for per-customer polling.
  *
  * Security: Requires NextAuth session (401 if unauthenticated)
  */
@@ -14,39 +10,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { generateInfographic } from "@/features/infographic-generator/services/infographicGenerator";
-import { cacheResult } from "@/features/infographic-generator/services/infographicCache";
+import { prisma } from "@/lib/prisma";
 import { getPresetsForBatch } from "@/features/infographic-generator/templates/index";
-import type { InfographicResponse } from "@/features/infographic-generator/types/infographic.types";
-
-// -----------------------------------------------------------------------------
-// Batch Job Types
-// -----------------------------------------------------------------------------
-
-export interface BatchJobCustomer {
-  customerId: string;
-  status: "pending" | "generating" | "complete" | "error";
-  result?: InfographicResponse;
-  error?: string;
-}
-
-export interface BatchJob {
-  jobId: string;
-  customers: BatchJobCustomer[];
-  startedAt: Date;
-  completedAt?: Date;
-}
-
-// -----------------------------------------------------------------------------
-// In-Memory Job Store
-// -----------------------------------------------------------------------------
-
-/** Module-level batch job store. Exported for status polling route. */
-export const batchJobs = new Map<string, BatchJob>();
-
-// -----------------------------------------------------------------------------
-// Route Handler
-// -----------------------------------------------------------------------------
+import { resolveModules } from "@/features/infographic-generator/services/infographicGenerator";
+import { composeNotebookLMInstructions } from "@/features/infographic-generator/services/promptComposer";
+import { assembleDataForModules } from "@/features/infographic-generator/utils/infographicDataAssembler";
+import { processDeckWithNotebookLM } from "@/lib/services/deck-processing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,68 +39,108 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof body.autoSelectPresets !== "boolean") {
-      return NextResponse.json(
-        { error: "autoSelectPresets is required and must be a boolean" },
-        { status: 400 },
-      );
+    const customerIds: string[] = body.customerIds;
+    const userId = (session.user as any).id;
+    const batchPresets = getPresetsForBatch();
+    const batchPresetId = batchPresets[0]?.id || "pre-knock-briefing";
+    const templateId = `infographic-batch-${batchPresetId}`;
+
+    // Resolve modules once (same preset for all customers)
+    const { modules, audience } = await resolveModules({
+      customerId: customerIds[0],
+      mode: "preset",
+      presetId: batchPresetId,
+    });
+
+    // Schedule one ScheduledDeck per customer
+    const deckIds: string[] = [];
+
+    for (const customerId of customerIds) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        include: {
+          claims: { orderBy: { createdAt: "desc" }, take: 3 },
+          weatherEvents: { orderBy: { eventDate: "desc" }, take: 5 },
+          intelItems: { where: { isDismissed: false }, orderBy: { createdAt: "desc" }, take: 10 },
+        },
+      }) as any;
+
+      if (!customer) continue;
+
+      const customerName = `${customer.firstName} ${customer.lastName}`;
+      const data = await assembleDataForModules(customerId, modules);
+      const instructions = composeNotebookLMInstructions(modules, data, audience);
+
+      const requestPayload: Record<string, unknown> = {
+        customer: {
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          address: { street: customer.address, city: customer.city, state: customer.state, zipCode: customer.zipCode },
+          property: { type: customer.propertyType, yearBuilt: customer.yearBuilt, squareFootage: customer.squareFootage, value: customer.propertyValue },
+          roof: { type: customer.roofType, age: customer.roofAge, squares: customer.roofSquares, pitch: customer.roofPitch, condition: customer.roofCondition },
+          insurance: { carrier: customer.insuranceCarrier, policyType: customer.policyType, deductible: customer.deductible, claimHistory: customer.claimHistory },
+          scores: { lead: customer.leadScore, urgency: customer.urgencyScore, profitPotential: customer.profitPotential, churnRisk: customer.churnRisk, engagement: customer.engagementScore },
+          pipeline: { status: customer.status, stage: customer.stage, leadSource: customer.leadSource, estimatedJobValue: customer.estimatedJobValue },
+        },
+        recentClaims: customer.claims?.map((c: any) => ({
+          id: c.id, claimNumber: c.claimNumber, type: c.type, status: c.status,
+          amount: c.amount, filedDate: c.filedDate,
+        })) || [],
+        weatherEvents: customer.weatherEvents?.map((e: any) => ({
+          type: e.eventType, date: e.eventDate, severity: e.severity,
+        })) || [],
+        intelItems: customer.intelItems?.map((i: any) => ({
+          id: i.id, title: i.title, priority: i.priority,
+        })) || [],
+        generatedAt: new Date().toISOString(),
+        templateId,
+        artifactConfigs: [{
+          type: "infographic",
+          description: instructions,
+          orientation: audience === "customer-facing" ? "portrait" : "landscape",
+          detail: audience === "customer-facing" ? "detailed" : "standard",
+        }],
+      };
+
+      const scheduledDeck = await prisma.scheduledDeck.create({
+        data: {
+          customerId: customer.id,
+          customerName,
+          templateId,
+          templateName: `Batch Infographic: ${batchPresetId}`,
+          requestedById: userId,
+          assignedToId: customer.assignedRepId || userId,
+          status: "pending",
+          requestPayload: JSON.stringify(requestPayload),
+          scheduledFor: new Date(),
+          estimatedSlides: 0,
+          requestedArtifacts: ["infographic"],
+        },
+      });
+
+      deckIds.push(scheduledDeck.id);
     }
 
-    const customerIds: string[] = body.customerIds;
-    const jobId = crypto.randomUUID();
+    // Fire processing sequentially (NotebookLM has rate limits)
+    for (const deckId of deckIds) {
+      await prisma.scheduledDeck.update({
+        where: { id: deckId },
+        data: { status: "processing" },
+      });
 
-    // Initialize job with all customers as pending
-    const job: BatchJob = {
-      jobId,
-      customers: customerIds.map((customerId) => ({
-        customerId,
-        status: "pending" as const,
-      })),
-      startedAt: new Date(),
-    };
-
-    batchJobs.set(jobId, job);
-
-    // Fire and forget: run generation in background
-    (async () => {
-      const batchPresets = getPresetsForBatch();
-      const batchPresetId = batchPresets[0]?.id || "pre-knock-briefing";
-
-      for (const entry of job.customers) {
-        entry.status = "generating";
-        try {
-          const response = await generateInfographic({
-            customerId: entry.customerId,
-            mode: "preset",
-            presetId: batchPresetId,
-            audience: "internal",
-          });
-          entry.status = "complete";
-          entry.result = response;
-
-          // Cache each result
-          await cacheResult(
-            {
-              customerId: entry.customerId,
-              presetId: batchPresetId,
-              imageData: response.imageData,
-              generatedAt: new Date(),
-              expiresAt: new Date(Date.now() + 86400000),
-              modelStrategy: response.model,
-            },
-            "internal",
-          );
-        } catch (err) {
-          entry.status = "error";
-          entry.error = err instanceof Error ? err.message : "Unknown error";
+      // Fire-and-forget per job
+      processDeckWithNotebookLM(deckId).then((result) => {
+        if (!result.success) {
+          console.error(`[BatchInfographic] Failed for deck ${deckId}: ${result.error}`);
         }
-      }
-
-      job.completedAt = new Date();
-    })();
+      }).catch((err) => {
+        console.error(`[BatchInfographic] Unhandled error for deck ${deckId}:`, err);
+      });
+    }
 
     return NextResponse.json(
-      { jobId, customerCount: customerIds.length },
+      { batchId: crypto.randomUUID(), deckIds, customerCount: deckIds.length },
       { status: 202 },
     );
   } catch (error) {
