@@ -29,6 +29,7 @@ import {
   pdfToImages,
 } from "@/lib/services/notebooklm/formatters";
 import { getTemplateById } from "@/features/deck-generator/templates";
+import { cacheResult as cacheInfographic } from "@/features/infographic-generator/services/infographicCache";
 import * as fs from "fs/promises";
 
 // =============================================================================
@@ -275,6 +276,22 @@ export async function processDeckWithNotebookLM(
           processingTimeMs,
         },
       });
+
+      // Cache the result for fast retrieval on repeat requests
+      if (uploaded.url && deck.templateId) {
+        const presetId = deck.templateId.replace(/^infographic-/, "");
+        cacheInfographic(
+          {
+            customerId: deck.customerId,
+            presetId,
+            imageUrl: uploaded.url,
+            generatedAt: new Date(),
+            expiresAt: new Date(Date.now() + 86400000),
+            pipeline: "notebooklm",
+          },
+          audience,
+        ).catch(() => {}); // best-effort
+      }
 
       console.log(`[DeckProcessing] Infographic-only completed for ${deck.customerName} in ${processingTimeMs}ms`);
       await sendDeckCompletionNotification(deck.requestedById, deck.customerName, deckId);
