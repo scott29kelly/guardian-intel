@@ -239,6 +239,12 @@ export async function generateSlideDeck(
       artifactReady = true;
       break;
     }
+
+    const output = (dlCheck.stdout + dlCheck.stderr).toLowerCase();
+    if (output.includes("authentication expired") || output.includes("accounts.google.com")) {
+      console.error(`[NotebookLM] Auth expired — aborting deck poll after ${elapsed}s`);
+      return { success: false, error: "NotebookLM authentication expired. Please re-authenticate." };
+    }
   }
 
   // Step 3: Download the generated deck
@@ -332,6 +338,13 @@ export async function generateInfographic(
       console.log(`[NotebookLM] Infographic ready after ${elapsed}s`);
       artifactReady = true;
       break;
+    }
+
+    // Abort immediately on auth failure — no point polling for 12 minutes
+    const output = (dlCheck.stdout + dlCheck.stderr).toLowerCase();
+    if (output.includes("authentication expired") || output.includes("redirected to") || output.includes("accounts.google.com")) {
+      console.error(`[NotebookLM] Auth expired — aborting infographic poll after ${elapsed}s`);
+      return { success: false, error: "NotebookLM authentication expired. Please re-authenticate." };
     }
   }
 
@@ -452,6 +465,12 @@ export async function generateAudio(
       artifactReady = true;
       break;
     }
+
+    const output = (dlCheck.stdout + dlCheck.stderr).toLowerCase();
+    if (output.includes("authentication expired") || output.includes("accounts.google.com")) {
+      console.error(`[NotebookLM] Auth expired — aborting audio poll after ${elapsed}s`);
+      return { success: false, error: "NotebookLM authentication expired. Please re-authenticate." };
+    }
   }
 
   // Step 3: Download
@@ -544,6 +563,12 @@ export async function generateReport(
       console.log(`[NotebookLM] Report ready after ${elapsed}s`);
       artifactReady = true;
       break;
+    }
+
+    const output = (dlCheck.stdout + dlCheck.stderr).toLowerCase();
+    if (output.includes("authentication expired") || output.includes("accounts.google.com")) {
+      console.error(`[NotebookLM] Auth expired — aborting report poll after ${elapsed}s`);
+      return { success: false, error: "NotebookLM authentication expired. Please re-authenticate." };
     }
   }
 

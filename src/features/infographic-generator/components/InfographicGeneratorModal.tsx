@@ -122,7 +122,7 @@ export function InfographicGeneratorModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm"
-        onClick={handleClose}
+        onClick={isGenerating ? undefined : handleClose}
       >
         {/* Content panel -- bottom sheet on mobile, centered on desktop */}
         <motion.div
