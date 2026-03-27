@@ -50,12 +50,14 @@ async function scheduleNotebookLMDeck(
   templateId: string,
   templateName: string,
   onProgress: (update: Partial<DeckGenerationProgress>) => void
-): Promise<{ asyncJobId: string } | null> {
+): Promise<{ asyncJobId: string; error?: string } | null> {
   onProgress({
     status: "generating-slides",
     message: "Scheduling NotebookLM generation...",
     progress: 10,
   });
+
+  let lastError = "";
 
   try {
     // Step 1: Schedule the deck
@@ -68,16 +70,18 @@ async function scheduleNotebookLMDeck(
 
     // Check for redirect (auth middleware sends to /login)
     if (scheduleResponse.status >= 300 && scheduleResponse.status < 400) {
+      lastError = "Session expired — please refresh the page and log in again.";
       console.error("[NotebookLM] Schedule redirected (auth issue) — status:", scheduleResponse.status);
-      return null;
+      return { asyncJobId: "", error: lastError };
     }
 
     if (!scheduleResponse.ok) {
       const responseText = await scheduleResponse.text();
       let err: Record<string, unknown> = {};
       try { err = JSON.parse(responseText); } catch {
+        lastError = `Server returned non-JSON response (${scheduleResponse.status})`;
         console.error("[NotebookLM] Schedule returned non-JSON:", responseText.substring(0, 200));
-        return null;
+        return { asyncJobId: "", error: lastError };
       }
 
       // 409 = existing pending/processing job — join that poll instead of falling back
@@ -86,8 +90,9 @@ async function scheduleNotebookLMDeck(
         return { asyncJobId: err.existingJobId as string };
       }
 
+      lastError = (err.error as string) || `Schedule failed (${scheduleResponse.status})`;
       console.error(`[NotebookLM] Schedule failed (${scheduleResponse.status}):`, err);
-      return null;
+      return { asyncJobId: "", error: lastError };
     }
 
     // Parse response — guard against HTML login pages that slipped through
@@ -96,13 +101,15 @@ async function scheduleNotebookLMDeck(
     try {
       scheduleData = JSON.parse(responseText);
     } catch {
+      lastError = "Server returned an HTML page instead of JSON — you may need to log in again.";
       console.error("[NotebookLM] Schedule returned non-JSON response:", responseText.substring(0, 200));
-      return null;
+      return { asyncJobId: "", error: lastError };
     }
 
     if (!scheduleData.success || !scheduleData.job?.id) {
+      lastError = scheduleData.error || "Schedule returned no job ID";
       console.error("[NotebookLM] Schedule returned no job:", scheduleData);
-      return null;
+      return { asyncJobId: "", error: lastError };
     }
 
     const jobId = scheduleData.job.id;
@@ -128,8 +135,9 @@ async function scheduleNotebookLMDeck(
     console.log(`[NotebookLM] Async job started: ${jobId}`);
     return { asyncJobId: jobId };
   } catch (error) {
+    lastError = error instanceof Error ? error.message : "Network error";
     console.error("[NotebookLM] Schedule error:", error);
-    return null;
+    return { asyncJobId: "", error: lastError };
   }
 }
 
@@ -201,10 +209,10 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
           return null; // No synchronous deck — poll via useDeckStatus
         }
 
-        // Scheduling failed — don't silently fall back to Gemini (takes 30+ min).
-        // Show error so user can retry or check browser console for details.
-        console.error("[DeckGeneration] NotebookLM async scheduling failed — check console for [NotebookLM] errors above");
-        throw new Error("NotebookLM scheduling failed. Check browser console for details, then retry.");
+        // Scheduling failed — surface the actual server error
+        const serverError = nlmResult?.error || "Unknown scheduling error";
+        console.error("[DeckGeneration] NotebookLM async scheduling failed:", serverError);
+        throw new Error(`Scheduling failed: ${serverError}`);
       }
 
       // No customerId — cannot generate without a customer

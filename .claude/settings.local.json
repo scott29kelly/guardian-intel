@@ -16,7 +16,8 @@
       "Bash(git restore:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: DECK-018 AI slide generation with Gemini Flash\n\n- Add /api/ai/generate-slide endpoint calling Gemini Flash\n- Create aiSlideGenerator service with prompts for 5 slide types:\n  - customer-overview: Strategic insight stats\n  - talking-points: Personalized conversation scripts\n  - objection-handlers: Customer-specific responses\n  - storm-history: Risk-analyzed timeline\n  - next-steps: Stage-based action plans\n- Integrate AI generation into useDeckGeneration hook\n- Add fetchCustomerContext helper for weather/customer data\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit:*)",
-      "Bash(npx dotenv:*)"
+      "Bash(npx dotenv:*)",
+      "Bash(ls:*)"
     ]
   }
 }

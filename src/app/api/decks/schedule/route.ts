@@ -93,6 +93,21 @@ export async function POST(request: NextRequest) {
     if (isRepScoped) {
       const targetRepId = repId || session.user.id;
 
+      // Auto-expire stale rep-scoped jobs
+      const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+      await prisma.scheduledDeck.updateMany({
+        where: {
+          templateId,
+          requestedById: targetRepId,
+          OR: [
+            { status: "processing", updatedAt: { lt: fifteenMinAgo } },
+            { status: "pending", updatedAt: { lt: thirtyMinAgo } },
+          ],
+        },
+        data: { status: "failed", errorMessage: "Auto-expired: exceeded maximum processing time" },
+      });
+
       // Check for existing pending/processing digest for this rep
       const existingJob = await prisma.scheduledDeck.findFirst({
         where: {
@@ -266,6 +281,20 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Auto-expire stale jobs (processing >15min or pending >30min)
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    await prisma.scheduledDeck.updateMany({
+      where: {
+        customerId: customerId!,
+        OR: [
+          { status: "processing", updatedAt: { lt: fifteenMinAgo } },
+          { status: "pending", updatedAt: { lt: thirtyMinAgo } },
+        ],
+      },
+      data: { status: "failed", errorMessage: "Auto-expired: exceeded maximum processing time" },
+    });
 
     // Check for existing pending/processing deck for this customer
     const existingJob = await prisma.scheduledDeck.findFirst({
@@ -544,9 +573,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("[API] Error scheduling deck:", error);
     return NextResponse.json(
-      { error: "Failed to schedule deck generation" },
+      { error: `Failed to schedule deck generation: ${message}` },
       { status: 500 }
     );
   }
