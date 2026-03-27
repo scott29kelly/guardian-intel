@@ -40,8 +40,14 @@ export async function POST(request: NextRequest) {
     }
 
     const customerIds: string[] = body.customerIds;
-    const userId = (session.user as any).id;
     const batchPresets = getPresetsForBatch();
+
+    // Resolve user ID — session.user.id may not match a DB record
+    let userId = (session.user as any).id;
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      userId = (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+    }
     const batchPresetId = batchPresets[0]?.id || "pre-knock-briefing";
     const templateId = `infographic-batch-${batchPresetId}`;
 

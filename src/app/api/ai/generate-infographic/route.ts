@@ -98,8 +98,14 @@ export async function POST(request: NextRequest) {
     }
 
     const customerName = `${customer.firstName} ${customer.lastName}`;
-    const userId = (session.user as any).id;
     const templateId = `infographic-${infographicRequest.presetId || infographicRequest.mode}`;
+
+    // Resolve user ID — session.user.id may not match a DB record (e.g. demo/dev bypass)
+    let userId = (session.user as any).id;
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      userId = customer.assignedRepId || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+    }
 
     // Check for conflicting infographic job for this customer
     const existingJob = await prisma.scheduledDeck.findFirst({
