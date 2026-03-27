@@ -269,15 +269,28 @@ export async function generateSlideDeck(
     return { success: false, error: `Slide deck generation timed out after ${maxWaitMs / 1000}s` };
   }
 
-  const dlResult = await execCLI(["download", "slide-deck", outputPath, "--latest"]);
+  // Retry download up to 3 times on transient network errors
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const dlResult = await execCLI(["download", "slide-deck", outputPath, "--latest"], 60_000);
 
-  if (dlResult.exitCode !== 0) {
-    console.error(`[NotebookLM] download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
-    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+    if (dlResult.exitCode === 0) {
+      console.log(`[NotebookLM] Slide deck saved to: ${outputPath} (attempt ${attempt})`);
+      return { success: true, outputPath };
+    }
+
+    const errText = (dlResult.stderr || dlResult.stdout).toLowerCase();
+    const isTransient = errText.includes("peer closed") || errText.includes("incomplete") || errText.includes("timeout") || errText.includes("econnreset");
+
+    if (!isTransient || attempt === 3) {
+      console.error(`[NotebookLM] download failed (attempt ${attempt}): stdout=${dlResult.stdout.substring(0, 300)} stderr=${dlResult.stderr.substring(0, 300)}`);
+      return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+    }
+
+    console.warn(`[NotebookLM] Download attempt ${attempt} failed (transient), retrying in 5s...`);
+    await new Promise(r => setTimeout(r, 5000));
   }
 
-  console.log(`[NotebookLM] Slide deck saved to: ${outputPath}`);
-  return { success: true, outputPath };
+  return { success: false, error: "Download failed after 3 attempts" };
 }
 
 /**
@@ -367,15 +380,28 @@ export async function generateInfographic(
     return { success: false, error: `Infographic generation timed out after ${maxWaitMs / 1000}s` };
   }
 
-  const dlResult = await execCLI(["download", "infographic", outputPath, "--latest"]);
+  // Retry download up to 3 times on transient network errors
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const dlResult = await execCLI(["download", "infographic", outputPath, "--latest"], 60_000);
 
-  if (dlResult.exitCode !== 0) {
-    console.error(`[NotebookLM] download failed: stdout=${dlResult.stdout.substring(0, 200)} stderr=${dlResult.stderr.substring(0, 200)}`);
-    return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+    if (dlResult.exitCode === 0) {
+      console.log(`[NotebookLM] Infographic saved to: ${outputPath} (attempt ${attempt})`);
+      return { success: true, outputPath };
+    }
+
+    const errText = (dlResult.stderr || dlResult.stdout).toLowerCase();
+    const isTransient = errText.includes("peer closed") || errText.includes("incomplete") || errText.includes("timeout") || errText.includes("econnreset");
+
+    if (!isTransient || attempt === 3) {
+      console.error(`[NotebookLM] download failed (attempt ${attempt}): stdout=${dlResult.stdout.substring(0, 300)} stderr=${dlResult.stderr.substring(0, 300)}`);
+      return { success: false, error: `Download failed: ${dlResult.stderr || dlResult.stdout}` };
+    }
+
+    console.warn(`[NotebookLM] Download attempt ${attempt} failed (transient), retrying in 5s...`);
+    await new Promise(r => setTimeout(r, 5000));
   }
 
-  console.log(`[NotebookLM] Infographic saved to: ${outputPath}`);
-  return { success: true, outputPath };
+  return { success: false, error: "Download failed after 3 attempts" };
 }
 
 /**
