@@ -245,7 +245,7 @@ export function InfographicGeneratorModal({
                   />
                 </div>
                 <p className="text-xs text-text-muted mt-3">
-                  This usually takes 2-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
+                  This usually takes 2-5 minutes. You can close this dialog and check the Decks page for progress.
                 </p>
               </div>
             )}

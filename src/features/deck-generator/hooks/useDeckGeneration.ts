@@ -201,7 +201,7 @@ export function useDeckGeneration(): UseDeckGenerationReturn {
             status: 'generating-slides',
             currentStep: 2,
             totalSteps,
-            message: 'NotebookLM is generating your deck in the background. You can navigate away — we\'ll notify you when it\'s ready.',
+            message: 'NotebookLM is generating your deck in the background. You can navigate away — check the Decks page for progress.',
             progress: 20,
           });
 

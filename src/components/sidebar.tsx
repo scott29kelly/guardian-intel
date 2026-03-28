@@ -18,6 +18,7 @@ import {
   FileCheck,
   MessageSquare,
   Building2,
+  Layers,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState, useCallback } from "react";
@@ -73,10 +74,15 @@ const navigation = [
     href: "/analytics", 
     icon: BarChart3,
   },
-  { 
-    name: "Playbooks", 
-    href: "/playbooks", 
+  {
+    name: "Playbooks",
+    href: "/playbooks",
     icon: BookOpen,
+  },
+  {
+    name: "Decks",
+    href: "/decks",
+    icon: Layers,
   },
 ];
 

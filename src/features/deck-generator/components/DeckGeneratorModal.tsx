@@ -516,13 +516,13 @@ export function DeckGeneratorModal({
                       />
                     </div>
                     <p className="text-sm text-text-muted mb-6">
-                      This typically takes 3-5 minutes. You can close this dialog — we&apos;ll notify you when it&apos;s ready.
+                      This typically takes 3-5 minutes. You can close this dialog and check the Decks page for progress.
                     </p>
                     <button
                       onClick={handleClose}
                       className="px-4 py-2 bg-surface-secondary hover:bg-surface-hover text-text-primary rounded-lg transition-colors border border-border"
                     >
-                      Close &amp; Notify Me
+                      Close
                     </button>
                   </>
                 )}

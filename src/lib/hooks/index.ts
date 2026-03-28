@@ -27,5 +27,8 @@ export * from "./use-predictions";
 // PR #10 - Competitors
 export * from "./use-competitors";
 
+// Deck listing
+export * from "./use-decks";
+
 // Performance Hooks
 export * from "./use-debounce";

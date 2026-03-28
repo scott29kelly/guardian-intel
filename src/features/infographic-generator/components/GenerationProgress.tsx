@@ -140,7 +140,7 @@ export function GenerationProgress({
           onClick={onBackgroundDismiss}
           className="text-sm text-accent-primary hover:underline"
         >
-          Continue working — we&apos;ll notify you when it&apos;s ready
+          Continue working — check the Decks page for progress
         </motion.button>
       )}
     </div>

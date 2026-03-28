@@ -17,6 +17,7 @@ import {
   Bot,
   Zap,
   Target,
+  Layers,
 } from "lucide-react";
 import { useGamification } from "@/lib/gamification";
 import { ThemeToggle } from "./theme-toggle";
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Trade Terrain", href: "/terrain", icon: Target },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Playbooks", href: "/playbooks", icon: BookOpen },
+  { name: "Decks", href: "/decks", icon: Layers },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

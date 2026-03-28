@@ -627,7 +627,13 @@ export async function GET(request: NextRequest) {
         completedAt: true,
         createdAt: true,
         errorMessage: true,
-        // pdfUrl: true, // Uncomment after migration
+        processingTimeMs: true,
+        actualSlides: true,
+        requestedArtifacts: true,
+        pdfUrl: true,
+        audioUrl: true,
+        infographicUrl: true,
+        reportMarkdown: true,
       },
     });
 
