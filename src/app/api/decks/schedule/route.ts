@@ -598,10 +598,18 @@ export async function GET(request: NextRequest) {
     const customerId = searchParams.get("customerId"); // Filter by customer
     const limit = parseInt(searchParams.get("limit") || "20");
 
+    // Resolve user ID — demo users (e.g. "demo-rep") don't exist in DB,
+    // so match the same fallback logic used when creating ScheduledDecks
+    let userId = session.user.id;
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      userId = (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+    }
+
     const where: Record<string, unknown> = {
       OR: [
-        { requestedById: session.user.id },
-        { assignedToId: session.user.id },
+        { requestedById: userId },
+        { assignedToId: userId },
       ],
     };
 
