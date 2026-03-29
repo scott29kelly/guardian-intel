@@ -121,7 +121,7 @@ export function InfographicGeneratorModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-6"
         onClick={isGenerating ? undefined : handleClose}
       >
         {/* Content panel -- bottom sheet on mobile, centered on desktop */}
@@ -167,67 +167,70 @@ export function InfographicGeneratorModal({
 
           {/* ---- Tab content ---- */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <AnimatePresence mode="wait">
-              {activeTab === "preset" && (
-                <motion.div
-                  key="tab-preset"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <PresetSelector
-                    selectedPresetId={selectedPresetId}
-                    onSelect={setSelectedPresetId}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === "custom" && (
-                <motion.div
-                  key="tab-custom"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <TopicPicker
-                    selectedModules={selectedModules}
-                    onModulesChange={setSelectedModules}
-                    audience={audience}
-                    onAudienceChange={setAudience}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === "conversational" && (
-                <motion.div
-                  key="tab-conversational"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                  className="p-5"
-                >
-                  {/* ConversationalInput placeholder -- Plan 03 Task 2 */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-text-secondary">
-                      Describe the briefing you need
-                    </label>
-                    <textarea
-                      value={conversationalPrompt}
-                      onChange={(e) => setConversationalPrompt(e.target.value)}
-                      placeholder="e.g. Create a briefing showing roof age data and recent storm damage for this customer..."
-                      rows={4}
-                      className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary resize-none"
+            {/* Hide tab selection content while generating/showing result */}
+            {!isGenerating && !error && !result && (
+              <AnimatePresence mode="wait">
+                {activeTab === "preset" && (
+                  <motion.div
+                    key="tab-preset"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <PresetSelector
+                      selectedPresetId={selectedPresetId}
+                      onSelect={setSelectedPresetId}
                     />
-                    <p className="text-xs text-text-muted">
-                      The system will automatically select the best data modules and layout for your request.
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </motion.div>
+                )}
+
+                {activeTab === "custom" && (
+                  <motion.div
+                    key="tab-custom"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <TopicPicker
+                      selectedModules={selectedModules}
+                      onModulesChange={setSelectedModules}
+                      audience={audience}
+                      onAudienceChange={setAudience}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === "conversational" && (
+                  <motion.div
+                    key="tab-conversational"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="p-5"
+                  >
+                    {/* ConversationalInput placeholder -- Plan 03 Task 2 */}
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-text-secondary">
+                        Describe the briefing you need
+                      </label>
+                      <textarea
+                        value={conversationalPrompt}
+                        onChange={(e) => setConversationalPrompt(e.target.value)}
+                        placeholder="e.g. Create a briefing showing roof age data and recent storm damage for this customer..."
+                        rows={4}
+                        className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary resize-none"
+                      />
+                      <p className="text-xs text-text-muted">
+                        The system will automatically select the best data modules and layout for your request.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
 
             {/* ---- Progress state ---- */}
             {isGenerating && progress && progress.phase !== "complete" && (
@@ -282,25 +285,25 @@ export function InfographicGeneratorModal({
             )}
           </div>
 
-          {/* ---- Footer with Generate button ---- */}
+          {/* ---- Footer ---- */}
           <div className="flex-shrink-0 flex items-center justify-end px-5 py-4 border-t border-border bg-surface-primary">
-            <button
-              onClick={handleGenerate}
-              disabled={!canGenerate()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white font-medium rounded-lg transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  Generate Briefing
-                </>
-              )}
-            </button>
+            {isGenerating ? (
+              <button
+                onClick={handleClose}
+                className="px-5 py-2.5 bg-surface-secondary hover:bg-surface-hover text-text-primary font-medium rounded-lg transition-colors border border-border"
+              >
+                Close
+              </button>
+            ) : (
+              <button
+                onClick={handleGenerate}
+                disabled={!canGenerate()}
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white font-medium rounded-lg transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Zap className="w-4 h-4" />
+                Generate Briefing
+              </button>
+            )}
           </div>
         </motion.div>
       </motion.div>
