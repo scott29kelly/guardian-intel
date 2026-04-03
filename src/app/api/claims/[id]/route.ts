@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { claimUpdateSchema } from "@/lib/validations";
@@ -22,11 +21,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     const claim = await prisma.insuranceClaim.findUnique({
@@ -61,6 +62,10 @@ export async function GET(
 
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && claim.customer.assignedRep?.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get status history from intel items
@@ -102,27 +107,33 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
     const body = await request.json();
     const validated = claimUpdateSchema.parse(body);
 
-    // Get current claim for comparison
+    // Get current claim for comparison and ownership check
     const currentClaim = await prisma.insuranceClaim.findUnique({
       where: { id },
       include: {
         customer: {
-          select: { id: true, firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, assignedRepId: true },
         },
       },
     });
 
     if (!currentClaim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && currentClaim.customer.assignedRepId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Track status change for timeline
@@ -165,7 +176,7 @@ export async function PUT(
     // Log the activity
     await prisma.activity.create({
       data: {
-        userId: session.user.id,
+        userId,
         type: "edit",
         entityType: "claim",
         entityId: claim.id,
@@ -210,24 +221,30 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     const claim = await prisma.insuranceClaim.findUnique({
       where: { id },
       include: {
         customer: {
-          select: { firstName: true, lastName: true },
+          select: { firstName: true, lastName: true, assignedRepId: true },
         },
       },
     });
 
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && claim.customer.assignedRepId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.insuranceClaim.delete({
@@ -237,7 +254,7 @@ export async function DELETE(
     // Log the activity
     await prisma.activity.create({
       data: {
-        userId: session.user.id,
+        userId,
         type: "delete",
         entityType: "claim",
         entityId: id,

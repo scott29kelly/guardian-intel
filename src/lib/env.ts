@@ -69,6 +69,17 @@ const envSchema = z.object({
   // Cron Jobs (Vercel Cron or self-hosted)
   CRON_SECRET: z.string().optional(), // Shared secret for authenticating cron requests
 
+  // Push Notifications (VAPID)
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+
+  // Internal API Key (for service-to-service calls)
+  INTERNAL_API_KEY: z.string().optional(),
+
+  // SalesRabbit Webhook
+  SALESRABBIT_WEBHOOK_SECRET: z.string().optional(),
+
   // Environment
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });

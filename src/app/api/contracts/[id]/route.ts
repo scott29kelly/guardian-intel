@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +20,13 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     const contract = await prisma.contract.findUnique({
@@ -58,6 +59,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       );
     }
 
+    if (!isAdmin && contract.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return NextResponse.json({ contract });
   } catch (error) {
     console.error("[Contract API] GET error:", error);
@@ -74,18 +79,20 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
     const body = await request.json();
 
-    // Fetch existing contract to check status
+    // Fetch existing contract to check status and ownership
     const existing = await prisma.contract.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, createdById: true },
     });
 
     if (!existing) {
@@ -93,6 +100,10 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         { error: "Contract not found" },
         { status: 404 }
       );
+    }
+
+    if (!isAdmin && existing.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (existing.status !== "draft") {
@@ -159,17 +170,19 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
-    // Fetch existing contract to check status
+    // Fetch existing contract to check status and ownership
     const existing = await prisma.contract.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, createdById: true },
     });
 
     if (!existing) {
@@ -177,6 +190,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
         { error: "Contract not found" },
         { status: 404 }
       );
+    }
+
+    if (!isAdmin && existing.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (existing.status !== "draft") {

@@ -44,28 +44,15 @@ export default function LoginPage() {
     }
   };
 
-  // Demo login bypass — skips DB, returns hardcoded user for dev
-  const handleDemoLogin = async (role: "rep" | "manager") => {
-    setIsLoading(true);
+  // Demo login - populates email + password fields for quick access
+  const handleDemoLogin = (role: "rep" | "manager") => {
+    const demoEmails = {
+      rep: "demo.rep@guardian.com",
+      manager: "demo.manager@guardian.com",
+    };
+    setEmail(demoEmails[role]);
+    setPassword("admin");
     setError("");
-
-    try {
-      const result = await signIn("credentials", {
-        demoBypass: role,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Demo login failed.");
-      } else {
-        router.push(callbackUrl);
-        router.refresh();
-      }
-    } catch {
-      setError("Demo login unavailable. Please use regular login.");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -127,6 +114,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -138,6 +126,7 @@ export default function LoginPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  role="alert"
                   className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm"
                 >
                   {error}
@@ -158,9 +147,9 @@ export default function LoginPage() {
 
               {/* Forgot password */}
               <div className="text-center">
-                <a href="#" className="text-sm text-accent-primary hover:opacity-80">
+                <button type="button" className="text-sm text-accent-primary hover:opacity-80">
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </form>
 
@@ -191,9 +180,9 @@ export default function LoginPage() {
 
         <p className="text-center text-text-muted text-sm mt-6">
           Need an account?{" "}
-          <a href="#" className="text-accent-primary hover:opacity-80">
+          <button type="button" className="text-accent-primary hover:opacity-80">
             Contact your admin
-          </a>
+          </button>
         </p>
       </motion.div>
     </div>

@@ -6,8 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateProposal, saveProposal } from "@/lib/services/proposals/generator";
 import type { Prisma } from "@prisma/client";
@@ -25,11 +24,13 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { searchParams } = new URL(request.url);
 
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
@@ -37,8 +38,11 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const customerId = searchParams.get("customerId");
 
-    // Build where clause
+    // Build where clause - reps see only their own
     const where: Prisma.ProposalWhereInput = {};
+    if (!isAdmin) {
+      where.createdById = userId;
+    }
 
     if (status) {
       // Validate status against known enum values
@@ -105,26 +109,18 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const body = await request.json();
-    const { customerId, createdById, materialGrade, customDiscount } = body;
+    const { customerId, materialGrade, customDiscount } = body;
 
     if (!customerId || typeof customerId !== "string") {
       return NextResponse.json(
         { error: "customerId is required and must be a string" },
-        { status: 400 }
-      );
-    }
-
-    const userId = createdById || (session.user as unknown as { id: string }).id;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Could not determine user ID. Provide createdById or ensure session has user.id" },
         { status: 400 }
       );
     }

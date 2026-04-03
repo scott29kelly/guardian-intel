@@ -14,6 +14,11 @@ export async function POST(request: Request) {
     const signature = request.headers.get("x-salesrabbit-signature") || "";
     const webhookSecret = process.env.SALESRABBIT_WEBHOOK_SECRET || "";
 
+    // Require webhook secret in non-development environments
+    if (!webhookSecret && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+    }
+
     if (webhookSecret && !verifySignature(rawBody, signature, webhookSecret)) {
       await prisma.canvassingSyncLog.create({ data: { source: "salesrabbit", syncType: "webhook", direction: "inbound", status: "failed", errorMessage: "Invalid signature" } });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });

@@ -6,8 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -23,19 +22,24 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
     const triggerType = searchParams.get("triggerType");
     const isActiveParam = searchParams.get("isActive");
 
-    // Build where clause
+    // Build where clause - reps see only their own
     const where: Record<string, unknown> = {};
+    if (!isAdmin) {
+      where.createdById = userId;
+    }
 
     if (triggerType) {
       where.triggerType = triggerType;
@@ -99,12 +103,12 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = (session.user as { id: string }).id;
+    const userId = session.user.id;
     const body = await request.json();
 
     // Validate required fields

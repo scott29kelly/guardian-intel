@@ -12,12 +12,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { bulkUpdateCustomersSchema, bulkDeleteCustomersSchema, formatZodErrors } from "@/lib/validations";
 import { bulkUpdateCustomers, bulkDeleteCustomers } from "@/lib/data/customers";
 import { createRequestAuditor } from "@/lib/services/audit";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +32,16 @@ export async function PATCH(request: Request) {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
-    // Get session for audit trail
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
 
     // Parse and validate body
     const body = await request.json();
@@ -56,23 +58,33 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { ids, updates } = validation.data;
+    let { ids } = validation.data;
+    const { updates } = validation.data;
+
+    // Reps can only bulk-update their own customers
+    if (!isAdmin) {
+      const ownedCustomers = await prisma.customer.findMany({
+        where: { id: { in: ids }, assignedRepId: userId },
+        select: { id: true },
+      });
+      ids = ownedCustomers.map((c) => c.id);
+    }
 
     // Perform bulk update
     const result = await bulkUpdateCustomers(ids, updates);
 
     // Audit log the bulk action
     const auditor = createRequestAuditor(
-      session.user.id,
+      userId,
       new Headers(request.headers)
     );
-    
+
     // Determine action type for logging
     let actionDesc = "update";
     if (updates.stage) actionDesc = `stage change to ${updates.stage}`;
     else if (updates.status) actionDesc = `status change to ${updates.status}`;
     else if (updates.assignedRepId) actionDesc = "reassignment";
-    
+
     await auditor.logBulkAction(actionDesc, "customer", ids, {
       updates,
       successCount: result.count,
@@ -103,14 +115,16 @@ export async function DELETE(request: Request) {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
-    // Get session for audit trail
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
 
     // Parse and validate body
     const body = await request.json();
@@ -127,14 +141,23 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { ids } = validation.data;
+    let { ids } = validation.data;
+
+    // Reps can only bulk-delete their own customers
+    if (!isAdmin) {
+      const ownedCustomers = await prisma.customer.findMany({
+        where: { id: { in: ids }, assignedRepId: userId },
+        select: { id: true },
+      });
+      ids = ownedCustomers.map((c) => c.id);
+    }
 
     // Perform bulk delete
     const result = await bulkDeleteCustomers(ids);
 
     // Audit log the bulk delete
     const auditor = createRequestAuditor(
-      session.user.id,
+      userId,
       new Headers(request.headers)
     );
     await auditor.logBulkAction("delete", "customer", ids, {

@@ -247,7 +247,7 @@ async function main() {
 
   // Create users
   console.log("👤 Creating users...");
-  const hashedPassword = await bcrypt.hash("GuardianDemo2026!", 12);
+  const hashedPassword = await bcrypt.hash("admin", 12);
   
   const manager = await prisma.user.create({
     data: {
@@ -1171,8 +1171,8 @@ Point out specific issues with photos:
 📅 Date Range: ${START_DATE.toLocaleDateString()} - ${END_DATE.toLocaleDateString()}
 
 🔑 Demo Credentials:
-   Manager: demo.manager@guardian.com / GuardianDemo2026!
-   Rep:     demo.rep@guardian.com / GuardianDemo2026!
+   Manager: demo.manager@guardian.com / admin
+   Rep:     demo.rep@guardian.com / admin
 `);
 }
 

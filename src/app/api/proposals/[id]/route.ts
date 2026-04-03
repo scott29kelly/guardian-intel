@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +32,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     const proposal = await prisma.proposal.findUnique({
@@ -60,6 +61,10 @@ export async function GET(
 
     if (!proposal) {
       return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && proposal.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Parse JSON fields for the response
@@ -95,17 +100,23 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
-    // Verify the proposal exists
+    // Verify the proposal exists and ownership
     const existing = await prisma.proposal.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existing.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -179,16 +190,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     const existing = await prisma.proposal.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existing.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (existing.status !== "draft") {

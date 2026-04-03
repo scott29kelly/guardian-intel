@@ -304,9 +304,11 @@ export default function DashboardPage() {
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue */}
-        <div
-          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors"
+        <button
+          type="button"
+          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors text-left"
           onClick={() => router.push("/analytics")}
+          aria-label="View revenue analytics"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-text-muted">Revenue MTD</span>
@@ -332,12 +334,14 @@ export default function DashboardPage() {
               />
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Pipeline */}
-        <div
-          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors"
+        <button
+          type="button"
+          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors text-left"
           onClick={() => router.push("/customers")}
+          aria-label="View pipeline"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-text-muted">Pipeline</span>
@@ -351,12 +355,14 @@ export default function DashboardPage() {
           <div className="text-xs text-text-muted">
             32 in negotiation
           </div>
-        </div>
+        </button>
 
         {/* Storm Opportunity */}
-        <div
-          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors"
+        <button
+          type="button"
+          className="panel p-4 cursor-pointer hover:border-border-hover transition-colors text-left"
           onClick={() => router.push("/storms")}
+          aria-label="View storm opportunities"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-text-muted">Storm Opportunity</span>
@@ -370,7 +376,7 @@ export default function DashboardPage() {
           <div className="text-xs text-text-muted">
             {liveMetrics.stormOpportunity.affected} properties affected
           </div>
-        </div>
+        </button>
 
         {/* Hot Leads */}
         <div className="panel p-4">

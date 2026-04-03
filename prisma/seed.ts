@@ -15,8 +15,8 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Secure demo password - same for all demo accounts
-const DEMO_PASSWORD = "GuardianDemo2026!";
+// Simple demo password for development
+const DEMO_PASSWORD = "admin";
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);

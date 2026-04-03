@@ -13,12 +13,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { cuidSchema, updateCustomerSchema, formatZodErrors } from "@/lib/validations";
 import { getCustomerById, getCustomerWithDetails, updateCustomer, deleteCustomer } from "@/lib/data/customers";
-import { createRequestAuditor, auditService } from "@/lib/services/audit";
+import { auditService } from "@/lib/services/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +36,16 @@ export async function GET(request: Request, { params }: RouteParams) {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
+    const session = await requireSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     // Validate ID
@@ -63,6 +72,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
+    if (!isAdmin && customer.assignedRepId !== userId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       customer,
@@ -86,6 +102,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
+    const session = await requireSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     // Validate ID
@@ -112,7 +138,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Check customer exists
+    // Check customer exists and ownership
     const existing = await getCustomerById(id);
     if (!existing) {
       return NextResponse.json(
@@ -121,49 +147,53 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
+    if (!isAdmin && existing.assignedRepId !== userId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     // Update customer
     const customer = await updateCustomer(id, validation.data);
 
     // Audit log significant changes
-    const session = await getServerSession(authOptions);
-    if (session?.user?.id) {
-      const customerName = `${existing.firstName} ${existing.lastName}`;
-      
-      // Log stage changes specifically
-      if (validation.data.stage && validation.data.stage !== existing.stage) {
-        await auditService.logStageChange(
-          session.user.id,
-          id,
-          existing.stage,
-          validation.data.stage,
-          customerName
-        );
-      }
-      
-      // Log assignment changes
-      if (validation.data.assignedRepId && validation.data.assignedRepId !== existing.assignedRepId) {
-        await auditService.logAssignment(
-          session.user.id,
-          id,
-          existing.assignedRepId,
-          validation.data.assignedRepId,
-          customerName
-        );
-      }
-      
-      // Log general updates (for other field changes)
-      const changedFields = Object.keys(validation.data).filter(
-        (key) => key !== "stage" && key !== "assignedRepId"
+    const customerName = `${existing.firstName} ${existing.lastName}`;
+
+    // Log stage changes specifically
+    if (validation.data.stage && validation.data.stage !== existing.stage) {
+      await auditService.logStageChange(
+        userId,
+        id,
+        existing.stage,
+        validation.data.stage,
+        customerName
       );
-      if (changedFields.length > 0) {
-        await auditService.logCrud(
-          session.user.id,
-          "update",
-          "customer",
-          id,
-          customerName
-        );
-      }
+    }
+
+    // Log assignment changes
+    if (validation.data.assignedRepId && validation.data.assignedRepId !== existing.assignedRepId) {
+      await auditService.logAssignment(
+        userId,
+        id,
+        existing.assignedRepId,
+        validation.data.assignedRepId,
+        customerName
+      );
+    }
+
+    // Log general updates (for other field changes)
+    const changedFields = Object.keys(validation.data).filter(
+      (key) => key !== "stage" && key !== "assignedRepId"
+    );
+    if (changedFields.length > 0) {
+      await auditService.logCrud(
+        userId,
+        "update",
+        "customer",
+        id,
+        customerName
+      );
     }
 
     return NextResponse.json({
@@ -189,6 +219,16 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
 
+    const session = await requireSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
 
     // Validate ID
@@ -200,7 +240,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Check customer exists
+    // Check customer exists and ownership
     const existing = await getCustomerById(id);
     if (!existing) {
       return NextResponse.json(
@@ -209,20 +249,24 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       );
     }
 
+    if (!isAdmin && existing.assignedRepId !== userId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     // Soft delete
     await deleteCustomer(id);
 
     // Audit log the deletion
-    const session = await getServerSession(authOptions);
-    if (session?.user?.id) {
-      await auditService.logCrud(
-        session.user.id,
-        "delete",
-        "customer",
-        id,
-        `${existing.firstName} ${existing.lastName}`
-      );
-    }
+    await auditService.logCrud(
+      userId,
+      "delete",
+      "customer",
+      id,
+      `${existing.firstName} ${existing.lastName}`
+    );
 
     return NextResponse.json({
       success: true,

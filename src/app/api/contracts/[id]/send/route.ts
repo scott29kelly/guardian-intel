@@ -5,9 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { contractService } from "@/lib/services/contracts";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +18,27 @@ type SendMethod = (typeof VALID_SEND_METHODS)[number];
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await requireSession();
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
     const { id } = await params;
+
+    // Verify ownership
+    const contract = await prisma.contract.findUnique({
+      where: { id },
+      select: { createdById: true },
+    });
+    if (!contract) {
+      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    }
+    if (!isAdmin && contract.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
 
     // Validate send method

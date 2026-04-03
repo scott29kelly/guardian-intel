@@ -19,6 +19,7 @@ import { getAI, getCustomerContext, buildCustomerSystemPrompt, AI_TOOLS, execute
 import type { Message, AITask, ToolCall } from "@/lib/services/ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { chatRequestSchema, formatZodErrors } from "@/lib/validations";
+import { requireSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +48,13 @@ export async function POST(request: Request) {
     }
 
     const { messages, customerId, task = "chat", enableTools = false, stream = false } = validation.data;
+
+    // Get session for tool execution scoping
+    const session = await requireSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const toolContext = { userId: session.user.id, role: session.user.role };
 
     // Initialize AI service and load context in parallel
     const ai = getAI();
@@ -107,7 +115,7 @@ RESPONSE STYLE:
 
       // Execute any tool calls
       if (response.message.toolCalls && response.message.toolCalls.length > 0) {
-        const toolResults = await executeToolCalls(response.message.toolCalls);
+        const toolResults = await executeToolCalls(response.message.toolCalls, toolContext);
         
         return NextResponse.json({
           success: true,
@@ -181,10 +189,10 @@ RESPONSE STYLE:
 // HELPER FUNCTIONS
 // =============================================================================
 
-async function executeToolCalls(toolCalls: ToolCall[]) {
+async function executeToolCalls(toolCalls: ToolCall[], context?: { userId?: string; role?: string }) {
   const results = await Promise.all(
     toolCalls.map(async (tc) => {
-      const result = await executeTool(tc.name, tc.arguments);
+      const result = await executeTool(tc.name, tc.arguments, context);
       return {
         ...result,
         toolCallId: tc.id,

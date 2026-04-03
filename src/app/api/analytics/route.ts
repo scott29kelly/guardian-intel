@@ -105,13 +105,12 @@ export async function GET(request: Request) {
       take: 10,
     });
 
-    // Get weekly activity using grouped queries instead of N+1 loop (was 21 sequential queries)
+    // Get weekly activity using grouped queries instead of N+1 loop
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - 6);
     weekStart.setHours(0, 0, 0, 0);
 
     const [interactionsByDay, closuresByDay] = await Promise.all([
-      // Single grouped query for all interaction types across 7 days
       prisma.interaction.groupBy({
         by: ["type"],
         where: {
@@ -120,7 +119,6 @@ export async function GET(request: Request) {
         },
         _count: { id: true },
       }),
-      // Single query for closures across 7 days — use raw to group by date
       prisma.$queryRaw<Array<{ d: string; count: bigint }>>`
         SELECT DATE("updatedAt") as d, COUNT(*)::bigint as count
         FROM "Customer"
@@ -129,7 +127,7 @@ export async function GET(request: Request) {
       `,
     ]);
 
-    // For per-day breakdown, fetch interactions with dates via raw query
+    // Per-day breakdown via raw query
     const interactionDayBreakdown = await prisma.$queryRaw<
       Array<{ d: string; type: string; count: bigint }>
     >`
@@ -140,7 +138,6 @@ export async function GET(request: Request) {
       GROUP BY DATE("createdAt"), "type"
     `;
 
-    // Build weekly activity from grouped results
     const weeklyActivity: Array<{
       day: string;
       calls: number;

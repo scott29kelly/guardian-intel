@@ -329,9 +329,13 @@ const toolHandlers: Record<string, ToolHandler> = {
 
   get_customer: async (args) => {
     const customerId = args.customerId as string;
-    
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
+    const scopeUserId = args._scopeUserId as string | undefined;
+
+    const customer = await prisma.customer.findFirst({
+      where: {
+        id: customerId,
+        ...(scopeUserId ? { assignedRepId: scopeUserId } : {}),
+      },
       include: {
         assignedRep: {
           select: {
@@ -390,6 +394,7 @@ const toolHandlers: Record<string, ToolHandler> = {
     const status = args.status as string | undefined;
     const stage = args.stage as string | undefined;
     const limit = (args.limit as number) || 10;
+    const scopeUserId = args._scopeUserId as string | undefined;
 
     const customers = await prisma.customer.findMany({
       where: {
@@ -409,6 +414,8 @@ const toolHandlers: Record<string, ToolHandler> = {
           // Optional filters
           ...(status ? [{ status }] : []),
           ...(stage ? [{ stage }] : []),
+          // Scope to rep's own customers
+          ...(scopeUserId ? [{ assignedRepId: scopeUserId }] : []),
         ],
       },
       include: {
@@ -959,11 +966,13 @@ const toolHandlers: Record<string, ToolHandler> = {
 };
 
 /**
- * Execute a tool by name
+ * Execute a tool by name.
+ * Pass userId to scope data access (reps only see their assigned customers).
  */
 export async function executeTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context?: { userId?: string; role?: string }
 ): Promise<ToolResult> {
   const handler = toolHandlers[toolName];
 
@@ -974,6 +983,11 @@ export async function executeTool(
       result: null,
       error: `Unknown tool: ${toolName}`,
     };
+  }
+
+  // Inject ownership context for tools that access customer data
+  if (context?.userId && context.role !== "admin" && context.role !== "manager") {
+    args._scopeUserId = context.userId;
   }
 
   try {

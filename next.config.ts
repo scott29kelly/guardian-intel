@@ -30,17 +30,8 @@ const withPWA = withPWAInit({
         },
       },
     },
-    {
-      urlPattern: /\/api\/.*/i,
-      handler: "NetworkFirst",
-      options: {
-        cacheName: "api-cache",
-        expiration: {
-          maxEntries: 100,
-          maxAgeSeconds: 60 * 5, // 5 minutes
-        },
-      },
-    },
+    // Authenticated /api/* routes are NOT cached by the service worker.
+    // Only external APIs (weather, supabase) and static assets are cached.
     {
       urlPattern: /\/_next\/static\/.*/i,
       handler: "CacheFirst",
@@ -98,11 +89,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Ignore TypeScript errors during build (pre-existing issues to be fixed later)
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   // Security headers
   async headers() {
     return [

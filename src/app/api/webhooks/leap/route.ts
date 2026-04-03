@@ -68,7 +68,15 @@ export async function POST(request: Request) {
     const signature = request.headers.get("x-leap-signature") || "";
     const webhookSecret = process.env.LEAP_WEBHOOK_SECRET || "";
     
-    // Verify signature (skip in demo mode if no secret configured)
+    // Require webhook secret in non-development environments
+    if (!webhookSecret && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "Webhook secret not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Verify signature
     if (webhookSecret && !verifySignature(rawBody, signature, webhookSecret)) {
       console.error("[Leap Webhook] Invalid signature");
       

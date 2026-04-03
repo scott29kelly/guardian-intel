@@ -16,17 +16,26 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { cacheGet, cacheSet, buildCacheKey, CACHE_TTL } from "@/lib/cache";
+import { requireSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
-
-// Cache key for dashboard data
-const DASHBOARD_CACHE_KEY = buildCacheKey("dashboard", "main");
 
 export async function GET(request: Request) {
   try {
     // Rate limiting
     const rateLimitResponse = await rateLimit(request, "api");
     if (rateLimitResponse) return rateLimitResponse;
+
+    const session = await requireSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: userId, role } = session.user;
+    const isAdmin = role === "admin" || role === "manager";
+
+    // User-scoped cache key
+    const DASHBOARD_CACHE_KEY = buildCacheKey("dashboard", userId);
 
     // Check cache first
     const cached = await cacheGet<Record<string, unknown>>(DASHBOARD_CACHE_KEY);
@@ -58,9 +67,12 @@ export async function GET(request: Request) {
       thisMonthRevenue,
       lastMonthRevenue,
     ] = await Promise.all([
-      // Priority customers (top 3 by lead score)
+      // Priority customers (top 3 by lead score), scoped for reps
       prisma.customer.findMany({
-        where: { status: { in: ["lead", "prospect", "customer"] } },
+        where: {
+          status: { in: ["lead", "prospect", "customer"] },
+          ...(!isAdmin ? { assignedRepId: userId } : {}),
+        },
         orderBy: { leadScore: "desc" },
         take: 3,
         include: { assignedRep: { select: { id: true, name: true } } },
