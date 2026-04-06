@@ -21,6 +21,7 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -158,6 +159,7 @@ function DeckCard({ deck }: { deck: DeckListItem }) {
 
 export default function DecksPage() {
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data, isLoading, error } = useDecks({
@@ -167,15 +169,29 @@ export default function DecksPage() {
 
   const decks = data?.decks || [];
 
+  const deckTypes = useMemo(() => {
+    const types = [...new Set(decks.map((d) => d.templateName))].sort();
+    return [
+      { value: "all", label: "All Types" },
+      ...types.map((t) => ({ value: t, label: t })),
+    ];
+  }, [decks]);
+
   const filteredDecks = useMemo(() => {
-    if (!searchQuery) return decks;
-    const q = searchQuery.toLowerCase();
-    return decks.filter(
-      (d) =>
-        d.customerName.toLowerCase().includes(q) ||
-        d.templateName.toLowerCase().includes(q)
-    );
-  }, [decks, searchQuery]);
+    let result = decks;
+    if (typeFilter !== "all") {
+      result = result.filter((d) => d.templateName === typeFilter);
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (d) =>
+          d.customerName.toLowerCase().includes(q) ||
+          d.templateName.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [decks, typeFilter, searchQuery]);
 
   const activeCount = decks.filter(
     (d) => d.status === "pending" || d.status === "processing"
@@ -231,6 +247,22 @@ export default function DecksPage() {
               {f.label}
             </button>
           ))}
+        </div>
+
+        {/* Deck type filter */}
+        <div className="relative">
+          <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="appearance-none pl-9 pr-8 py-2 text-sm bg-surface-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 cursor-pointer"
+          >
+            {deckTypes.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Search */}
