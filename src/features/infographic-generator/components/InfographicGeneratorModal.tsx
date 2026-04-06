@@ -15,6 +15,7 @@
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Loader2, MessageSquare, LayoutGrid, Palette } from "lucide-react";
+import { SlideLightbox, ZoomOverlay, type LightboxImage } from "@/features/deck-generator/components/SlideLightbox";
 import type {
   GenerationMode,
   InfographicAudience,
@@ -65,6 +66,7 @@ export function InfographicGeneratorModal({
   const [selectedModules, setSelectedModules] = useState<TopicModule[]>([]);
   const [conversationalPrompt, setConversationalPrompt] = useState("");
   const [audience, setAudience] = useState<InfographicAudience>("internal");
+  const [showLightbox, setShowLightbox] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -104,6 +106,7 @@ export function InfographicGeneratorModal({
     setSelectedModules([]);
     setConversationalPrompt("");
     setAudience("internal");
+    setShowLightbox(false);
     onClose();
   }, [reset, onClose]);
 
@@ -121,17 +124,17 @@ export function InfographicGeneratorModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-6"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6"
         onClick={isGenerating ? undefined : handleClose}
       >
         {/* Content panel -- bottom sheet on mobile, centered on desktop */}
         <motion.div
           key="infographic-content"
-          initial={{ opacity: 0, y: "100%" }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: "100%" }}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg max-h-[90vh] bg-surface-primary rounded-t-2xl md:rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
+          className="relative w-full max-w-lg max-h-[90vh] bg-surface-primary rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ---- Header ---- */}
@@ -270,11 +273,14 @@ export function InfographicGeneratorModal({
             {result && (
               <div className="p-4">
                 {result.imageUrl && (
-                  <img
-                    src={result.imageUrl}
-                    alt="Infographic briefing"
-                    className="w-full rounded-lg shadow-lg"
-                  />
+                  <div className="relative rounded-lg overflow-hidden shadow-lg">
+                    <img
+                      src={result.imageUrl}
+                      alt="Infographic briefing"
+                      className="w-full"
+                    />
+                    <ZoomOverlay onClick={() => setShowLightbox(true)} />
+                  </div>
                 )}
                 {!result.imageUrl && (
                   <p className="text-sm font-medium text-text-primary text-center py-8">
@@ -282,6 +288,16 @@ export function InfographicGeneratorModal({
                   </p>
                 )}
               </div>
+            )}
+
+            {/* Infographic lightbox viewer */}
+            {result?.imageUrl && (
+              <SlideLightbox
+                images={[{ src: result.imageUrl, alt: "Infographic briefing" }]}
+                currentIndex={showLightbox ? 0 : null}
+                onClose={() => setShowLightbox(false)}
+                onNavigate={() => {}}
+              />
             )}
           </div>
 

@@ -33,6 +33,7 @@ import {
   getRiskColors,
 } from '../utils/contentEnhancer';
 import { usePdfSlides } from '../hooks/usePdfSlides';
+import { SlideLightbox, ZoomOverlay, type LightboxImage } from './SlideLightbox';
 
 // Icon mapping for dynamic rendering
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -73,6 +74,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
   function DeckPreview({ deck }, ref) {
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<ArtifactTab>('slides');
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     // Determine which artifact tabs to show
     const availableTabs = useMemo(() => {
@@ -397,12 +399,14 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
           >
             {/* Slide content - AI image or React fallback */}
             {slide.imageData ? (
-              // Nano Banana Pro generated image
-              <img
-                src={`data:image/png;base64,${slide.imageData}`}
-                alt={`Slide ${index + 1}: ${slide.sectionId}`}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={`data:image/png;base64,${slide.imageData}`}
+                  alt={`Slide ${index + 1}: ${slide.sectionId}`}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <ZoomOverlay onClick={() => setLightboxIndex(index)} />
+              </>
             ) : (
               // Fallback to React component rendering
               <div className="absolute inset-0 p-8 md:p-12 flex flex-col">
@@ -412,6 +416,19 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
 
           </div>
         ))}
+
+        {/* Slide lightbox viewer */}
+        <SlideLightbox
+          images={deck.slides
+            .filter((s) => s.imageData)
+            .map((s, i) => ({
+              src: `data:image/png;base64,${s.imageData}`,
+              alt: `Slide ${i + 1}: ${s.sectionId}`,
+            }))}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={setLightboxIndex}
+        />
 
         {/* Hidden Export Container - Full size slide for capture */}
         {exportSlideIndex !== null && (

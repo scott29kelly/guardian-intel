@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "NotebookLM is not available. Ensure Python 3 and notebooklm-py are installed.",
-          fallback: true,
         },
         { status: 503 }
       );

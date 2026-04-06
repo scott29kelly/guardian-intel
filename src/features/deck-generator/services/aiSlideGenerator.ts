@@ -330,13 +330,9 @@ export async function generateAllSlidesWithNotebookLM(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      // If NotebookLM is unavailable (503), silently fall back
-      if (response.status === 503 && errorData.fallback) {
-        console.warn("[AISlideGenerator] NotebookLM unavailable, falling back to Gemini Flash");
-        return false;
-      }
-      console.error("[AISlideGenerator] NotebookLM error:", errorData);
-      return false;
+      throw new Error(
+        errorData.error || `NotebookLM request failed with status ${response.status}`
+      );
     }
 
     const data = await response.json();
