@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
         })),
         generatedAt: new Date().toISOString(),
         templateId,
+        ...(artifactConfigs ? { artifactConfigs } : {}),
       };
 
       // Resolve user ID
@@ -199,11 +200,6 @@ export async function POST(request: NextRequest) {
       const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
       if (!userExists) {
         userId = rep?.id || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
-      }
-
-      // Include artifact configs in the request payload for the worker
-      if (artifactConfigs) {
-        requestPayload.artifactConfigs = artifactConfigs;
       }
 
       const scheduledDeck = await prisma.scheduledDeck.create({

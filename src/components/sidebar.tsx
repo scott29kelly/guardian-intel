@@ -19,7 +19,15 @@ import {
   MessageSquare,
   Building2,
   Layers,
+  type LucideIcon,
 } from "lucide-react";
+
+type NavItem = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string;
+};
 import { signOut, useSession } from "next-auth/react";
 import { useState, useCallback } from "react";
 import { AIChatPanel } from "./ai/chat-panel";
@@ -33,7 +41,7 @@ import { useKeyboardShortcuts, useModifierKey } from "@/lib/hooks/use-keyboard-s
 export const SIDEBAR_WIDTH = 256; // 16rem = 256px
 export const SIDEBAR_COLLAPSED_WIDTH = 72; // 4.5rem = 72px
 
-const navigation = [
+const navigation: NavItem[] = [
   { 
     name: "Dashboard", 
     href: "/", 

@@ -87,6 +87,10 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
       return tabs;
     }, [deck.audioUrl, deck.infographicUrl, deck.reportMarkdown]);
 
+    const selectArtifactTab = useCallback((id: string) => {
+      setActiveTab(id as ArtifactTab);
+    }, []);
+
     const showTabs = availableTabs.length > 1;
     const exportContainerRef = useRef<HTMLDivElement>(null);
 
@@ -176,7 +180,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
     if (activeTab === 'audio' && deck.audioUrl) {
       return (
         <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
-          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={selectArtifactTab} />}
           <div className="flex flex-col items-center justify-center py-12 px-8">
             <div className="w-20 h-20 rounded-full bg-intel-500/20 flex items-center justify-center mb-6">
               <Mic className="w-10 h-10 text-intel-400" />
@@ -199,7 +203,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
     if (activeTab === 'infographic' && deck.infographicUrl) {
       return (
         <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
-          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={selectArtifactTab} />}
           <div className="rounded-xl overflow-hidden border-2 border-border/50 shadow-xl bg-white">
             <img
               src={deck.infographicUrl}
@@ -224,7 +228,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
     if (activeTab === 'report' && deck.reportMarkdown) {
       return (
         <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
-          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+          {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={selectArtifactTab} />}
           <div className="prose prose-invert prose-sm max-w-none p-6 bg-surface-secondary/50 rounded-xl border border-border/50">
             <ReactMarkdown>{deck.reportMarkdown}</ReactMarkdown>
           </div>
@@ -384,7 +388,7 @@ export const DeckPreview = forwardRef<DeckPreviewRef, DeckPreviewProps>(
     return (
       <div className="p-4 space-y-6 max-h-[80vh] overflow-y-auto">
         {/* Multi-artifact tab bar */}
-        {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={setActiveTab} />}
+        {showTabs && <ArtifactTabBar tabs={availableTabs} active={activeTab} onSelect={selectArtifactTab} />}
 
         {/* All slides at full 16:9 size in scrollable list */}
         {deck.slides.map((slide, index) => (

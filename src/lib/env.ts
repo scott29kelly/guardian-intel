@@ -131,7 +131,9 @@ function getDefaultEnv(): z.infer<typeof envSchema> {
     COMPANY_NAME: "Guardian Roofing",
     COMPANY_PHONE: "(555) 123-4567",
     COMPANY_WEBSITE: "guardianroofing.com",
-    NOTEBOOKLM_CLI: "notebooklm",
+    NOTEBOOKLM_PYTHON_CMD: "python3",
+    NOTEBOOKLM_BRIDGE_SCRIPT: "scripts/notebooklm-bridge.py",
+    NOTEBOOKLM_TIMEOUT_MS: "300000",
   } as z.infer<typeof envSchema>;
 }
 

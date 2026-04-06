@@ -144,7 +144,7 @@ async function main() {
     },
   });
 
-  latestDeck = await prisma.scheduledDeck.findFirst({
+  const completedSnapshot = await prisma.scheduledDeck.findFirst({
     where: { customerId: customer.id },
     orderBy: { createdAt: "desc" },
     select: {
@@ -157,17 +157,17 @@ async function main() {
       pdfUrl: true,
     },
   });
-  console.log(`✓ Status: ${latestDeck?.status}`);
-  console.log(`  isCompleted: ${latestDeck?.status === "completed"}`);
-  console.log(`  isReady: ${latestDeck?.status === "completed"}`);
-  console.log(`  actualSlides: ${latestDeck?.actualSlides}`);
-  console.log(`  processingTimeMs: ${latestDeck?.processingTimeMs}`);
-  console.log(`  hasResultPayload: ${!!latestDeck?.resultPayload}`);
+  console.log(`✓ Status: ${completedSnapshot?.status}`);
+  console.log(`  isCompleted: ${completedSnapshot?.status === "completed"}`);
+  console.log(`  isReady: ${completedSnapshot?.status === "completed"}`);
+  console.log(`  actualSlides: ${completedSnapshot?.actualSlides}`);
+  console.log(`  processingTimeMs: ${completedSnapshot?.processingTimeMs}`);
+  console.log(`  hasResultPayload: ${!!completedSnapshot?.resultPayload}`);
 
   // Step 6: Parse resultPayload (simulates setDeckFromResult in hook)
   console.log("\n📦 STEP 5: Parse resultPayload (simulates hook setDeckFromResult)");
-  if (latestDeck?.resultPayload) {
-    const result = JSON.parse(latestDeck.resultPayload as string);
+  if (completedSnapshot?.resultPayload) {
+    const result = JSON.parse(completedSnapshot.resultPayload as string);
     console.log(`✓ Parsed result:`);
     console.log(`  pipeline: ${result.pipeline}`);
     console.log(`  slides: ${result.slides.length}`);

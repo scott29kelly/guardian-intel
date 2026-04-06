@@ -30,9 +30,9 @@ interface GenerationProgressProps {
 
 const PHASE_ICONS: Record<GenerationPhase, React.ReactNode> = {
   data: <Database className="h-8 w-8 text-[#4A90A4]" />,
-  scoring: <Sparkles className="h-8 w-8 text-[#D4A656]" />,
-  generating: <Loader2 className="h-8 w-8 text-[#4A90A4] animate-spin" />,
-  refining: <Wand2 className="h-8 w-8 text-[#D4A656]" />,
+  queued: <Sparkles className="h-8 w-8 text-[#D4A656]" />,
+  processing: <Loader2 className="h-8 w-8 text-[#4A90A4] animate-spin" />,
+  generating: <Wand2 className="h-8 w-8 text-[#D4A656]" />,
   complete: <CheckCircle2 className="h-8 w-8 text-emerald-500" />,
 };
 

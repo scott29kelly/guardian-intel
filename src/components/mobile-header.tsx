@@ -18,11 +18,19 @@ import {
   Zap,
   Target,
   Layers,
+  type LucideIcon,
 } from "lucide-react";
+
+type NavItem = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string;
+};
 import { useGamification } from "@/lib/gamification";
 import { ThemeToggle } from "./theme-toggle";
 
-const navigation = [
+const navigation: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Storms", href: "/storms", icon: CloudLightning },
