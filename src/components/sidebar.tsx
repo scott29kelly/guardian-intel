@@ -299,10 +299,11 @@ export function Sidebar() {
               </div>
               <button
                 onClick={handleLogout}
-                className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
                 title="Sign out"
               >
                 <LogOut className="w-4 h-4" />
+                <span>Sign out</span>
               </button>
             </>
           )}

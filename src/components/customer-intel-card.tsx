@@ -216,7 +216,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                 `}>
                   <span className="font-mono text-lg font-bold">{scores.urgencyScore}</span>
                 </div>
-                <span className="font-mono text-[9px] text-text-muted uppercase">Urgency</span>
+                <span className="font-mono text-[9px] text-text-muted uppercase">Urgency <span className="text-[7px] normal-case opacity-60">/100</span></span>
               </div>
               <div className="text-center cursor-help" title={retentionTooltip}>
                 <div className={`
@@ -225,7 +225,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                 `}>
                   <span className="font-mono text-lg font-bold">{scores.retentionScore}</span>
                 </div>
-                <span className="font-mono text-[9px] text-text-muted uppercase">Retention</span>
+                <span className="font-mono text-[9px] text-text-muted uppercase">Retention <span className="text-[7px] normal-case opacity-60">/100</span></span>
               </div>
               
               {/* Expand Button */}
