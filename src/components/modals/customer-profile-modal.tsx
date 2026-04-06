@@ -62,20 +62,19 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
     <>
       <AnimatePresence>
         {isOpen && (
-          <>
-            <motion.div
+          <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed top-0 left-0 w-screen h-screen bg-black/60 backdrop-blur-sm z-[9999]"
+              className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6"
               onClick={onClose}
-            />
-
+            >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 m-auto w-[95vw] max-w-[800px] h-[90vh] max-h-[85vh] bg-surface-primary border border-border rounded-lg shadow-2xl z-[9999] overflow-hidden flex flex-col"
+              className="relative w-full max-w-[800px] max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] bg-surface-primary border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col"
+              onClick={e => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border bg-surface-secondary/50">
@@ -194,7 +193,7 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
                 </div>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 

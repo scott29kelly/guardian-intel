@@ -14,8 +14,6 @@ export type AIProvider = "google" | "kimi" | "claude" | "perplexity" | "openai";
 export type AIModel =
   | "gemini-2.0-flash-exp"  // Primary - handles all tasks
   | "gemini-1.5-pro"        // Alternative Gemini model
-  | "gemini-3.1-flash-image-preview"  // NB2 - image generation with web grounding
-  | "gemini-3-pro-image"    // NB Pro - high-fidelity image generation
   | "kimi-k2"               // Optional: specialized chat
   | "claude-opus-4.5"       // Optional: complex reasoning
   | "claude-sonnet-4.5"     // Optional: balanced performance
@@ -30,8 +28,7 @@ export type AITask =
   | "research"          // Web search
   | "classify"          // Classification
   | "parse"             // Extract structured data
-  | "summarize"         // Quick summaries
-  | "image_generation"; // Image generation (infographics)
+  | "summarize";        // Quick summaries
 
 export interface AIConfig {
   provider: AIProvider;
@@ -278,25 +275,6 @@ export interface RepActivity {
   createdAt: Date;
   aiSummary?: string;
   aiInsights?: string[];
-}
-
-// =============================================================================
-// IMAGE GENERATION TYPES
-// =============================================================================
-
-export interface ImageGenerationRequest {
-  prompt: string;
-  referenceImages?: Array<{
-    data: string; // base64
-    mimeType?: string;
-  }>;
-  searchTypes?: ("web" | "image")[];
-  resolution?: "1K" | "2K" | "4K";
-}
-
-export interface ImageGenerationResponse {
-  imageData: string; // base64
-  model: string;
 }
 
 // =============================================================================

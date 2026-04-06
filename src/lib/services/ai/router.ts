@@ -25,8 +25,6 @@ import {
   ParseResult,
   CustomerContext,
   Message,
-  ImageGenerationRequest,
-  ImageGenerationResponse,
 } from "./types";
 
 // =============================================================================
@@ -44,7 +42,6 @@ const TASK_MODEL_MAP: Record<AITask, AIModel> = {
   classify: "claude-haiku-4.5",      // Claude Haiku for classification
   parse: "claude-haiku-4.5",         // Claude Haiku for parsing
   summarize: "gemini-2.0-flash-exp",          // Gemini for summarization
-  image_generation: "gemini-3.1-flash-image-preview", // NB2 default (Model Intelligence overrides)
 };
 
 // Gemini is the fallback when Claude is not configured
@@ -263,40 +260,6 @@ export class AIRouter {
     }
 
     return adapter.parse(request);
-  }
-
-  // ===========================================================================
-  // IMAGE GENERATION METHODS
-  // ===========================================================================
-
-  /**
-   * Generate an image using the specified model or the default image_generation model.
-   * Model Intelligence Layer determines which model to use; this method executes the call.
-   */
-  async generateImage(
-    request: ImageGenerationRequest,
-    model?: AIModel
-  ): Promise<ImageGenerationResponse> {
-    const targetModel = model || TASK_MODEL_MAP.image_generation;
-    const adapter = this.getAdapterByModel(targetModel);
-
-    // If the adapter has a dedicated generateImage method, use it
-    if ('generateImage' in adapter && typeof (adapter as Record<string, unknown>).generateImage === 'function') {
-      return (adapter as AIAdapter & { generateImage(req: ImageGenerationRequest): Promise<ImageGenerationResponse> }).generateImage(request);
-    }
-
-    // Fallback: use chat with image prompt (for models without dedicated image gen)
-    const response = await adapter.chat({
-      messages: [
-        { role: 'system', content: 'Generate an image based on the following prompt.' },
-        { role: 'user', content: request.prompt },
-      ],
-    });
-
-    return {
-      imageData: response.message.content,
-      model: String(targetModel),
-    };
   }
 
   // ===========================================================================

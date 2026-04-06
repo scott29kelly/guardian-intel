@@ -30,23 +30,21 @@ export function BulkActionModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed top-0 left-0 w-screen h-screen bg-black/60 backdrop-blur-sm z-50"
-          />
-
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6"
+          >
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-surface-primary border border-border rounded-xl shadow-2xl z-50 overflow-hidden"
+            className="relative w-full max-w-md max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] bg-surface-primary border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -99,7 +97,7 @@ export function BulkActionModal({
               </Button>
             </div>
           </motion.div>
-        </>
+          </motion.div>
       )}
     </AnimatePresence>
   );

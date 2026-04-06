@@ -187,7 +187,7 @@ export function PlaybookModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className={`max-h-[90vh] bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden flex transition-all duration-300 ${
+          className={`max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] bg-surface-primary border border-border rounded-lg shadow-2xl overflow-hidden flex transition-all duration-300 ${
             showAIPanel ? "w-full max-w-6xl" : "w-full max-w-3xl"
           }`}
           onClick={(e) => e.stopPropagation()}
