@@ -51,7 +51,7 @@ export async function createNotebook(title: string): Promise<string> {
 /**
  * Set the active notebook for subsequent commands.
  */
-export async function useNotebook(notebookId: string): Promise<void> {
+export async function selectNotebook(notebookId: string): Promise<void> {
   const result = await execCLI(["use", notebookId]);
 
   if (result.exitCode !== 0) {
@@ -115,7 +115,7 @@ export async function addSources(
   notebookId: string,
   sources: NotebookSource[]
 ): Promise<void> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   for (const source of sources) {
     let args: string[];
@@ -160,7 +160,7 @@ export async function askQuestion(
   notebookId: string,
   question: string
 ): Promise<string> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   const result = await execCLI(["ask", question]);
 
@@ -187,7 +187,7 @@ export async function generateSlideDeck(
   notebookId: string,
   options: SlideDeckOptions = {}
 ): Promise<GenerateResult> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   // Step 1: Start generation (no --wait to avoid CLI's 300s internal timeout)
   const args = ["generate", "slide-deck"];
@@ -302,7 +302,7 @@ export async function generateInfographic(
   notebookId: string,
   options: InfographicOptions = {}
 ): Promise<GenerateResult> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   // Step 1: Start generation (no --wait)
   const args = ["generate", "infographic"];
@@ -414,7 +414,7 @@ export async function configureNotebook(
   notebookId: string,
   options: { mode?: string; persona?: string; responseLength?: string }
 ): Promise<void> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   const args = ["configure"];
   if (options.mode) args.push("--mode", options.mode);
@@ -439,7 +439,7 @@ export async function generateAudio(
   notebookId: string,
   options: { instructions?: string; format?: string; length?: string; outputPath?: string } = {}
 ): Promise<GenerateResult> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   // Step 1: Start generation
   const args = ["generate", "audio"];
@@ -538,7 +538,7 @@ export async function generateReport(
   notebookId: string,
   options: { format?: string; appendInstructions?: string; description?: string; outputPath?: string } = {}
 ): Promise<GenerateResult> {
-  await useNotebook(notebookId);
+  await selectNotebook(notebookId);
 
   // Step 1: Start generation
   const args = ["generate", "report"];
