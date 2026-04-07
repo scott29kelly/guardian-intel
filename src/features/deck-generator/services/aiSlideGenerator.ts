@@ -77,8 +77,9 @@ export interface SlideGenerationContext {
 /**
  * NotebookLM-enhanced slide content cache.
  * When generateAllSlidesWithNotebookLM() pre-populates this,
- * individual generateAISlideContent() calls use cached results
- * instead of hitting Gemini Flash per-section.
+ * individual generateAISlideContent() calls resolve instantly
+ * from cached NotebookLM research. NotebookLM is the sole
+ * generation path -- there is no per-section fallback.
  */
 let notebookLMCache: Record<string, Record<string, unknown>> = {};
 let notebookLMCacheCustomerId: string | null = null;
@@ -89,7 +90,9 @@ let notebookLMNotebookId: string | null = null;
  * Call this once before generating individual slides — it populates the cache
  * so each section resolves instantly from NotebookLM research.
  *
- * Falls back to per-section Gemini Flash if NotebookLM is unavailable.
+ * Returns false if NotebookLM is unavailable. There is no fallback --
+ * generateAISlideContent() will return an empty object for any section
+ * that was not pre-populated by this call.
  */
 export async function generateAllSlidesWithNotebookLM(
   context: SlideGenerationContext,
