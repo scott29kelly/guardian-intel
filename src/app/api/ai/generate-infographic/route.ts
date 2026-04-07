@@ -4,7 +4,11 @@
  * POST /api/ai/generate-infographic - Schedule infographic generation via NotebookLM.
  * Returns a jobId for async polling. Cache check returns instant result if available.
  *
- * Security: Requires NextAuth session (401 if unauthenticated)
+ * Security: Requires NextAuth session AND a matching User row (401 if either is missing)
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 1):
+ * - D-01: claim mapping reads claimType/approvedValue/dateOfLoss (was type/amount/filedDate — silent data loss)
+ * - D-03: strict 401 when session.user.id has no matching User row (removed silent first-user fallback)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -100,11 +104,13 @@ export async function POST(request: NextRequest) {
     const customerName = `${customer.firstName} ${customer.lastName}`;
     const templateId = `infographic-${infographicRequest.presetId || infographicRequest.mode}`;
 
-    // Resolve user ID — session.user.id may not match a DB record (e.g. demo/dev bypass)
-    let userId = (session.user as any).id;
+    // D-03: Resolve user ID — session.user.id MUST match a real DB user.
+    // PrismaAdapter guarantees this for all real auth flows; reject otherwise.
+    // (Removed 2026-04-07: silent fallback to customer.assignedRepId or first user in the table.)
+    const userId = (session.user as any).id;
     const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!userExists) {
-      userId = customer.assignedRepId || (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check for conflicting infographic job for this customer
@@ -136,9 +142,19 @@ export async function POST(request: NextRequest) {
         scores: { lead: customer.leadScore, urgency: customer.urgencyScore, profitPotential: customer.profitPotential, churnRisk: customer.churnRisk, engagement: customer.engagementScore },
         pipeline: { status: customer.status, stage: customer.stage, leadSource: customer.leadSource, estimatedJobValue: customer.estimatedJobValue },
       },
+      // D-01: Read real Prisma fields (claimType/approvedValue/dateOfLoss) and emit with
+      // the same keys the downstream consumer formatClaimsForNotebook expects.
+      // Previous version read legacy field names that do not exist on the Prisma
+      // InsuranceClaim model, so every claim field arrived at NotebookLM as undefined.
+      // The model also has no description column, so that key is dropped entirely.
       recentClaims: customer.claims?.map((c: any) => ({
-        id: c.id, claimNumber: c.claimNumber, type: c.type, status: c.status,
-        amount: c.amount, filedDate: c.filedDate, description: c.description,
+        id: c.id,
+        claimNumber: c.claimNumber,
+        carrier: c.carrier,
+        claimType: c.claimType,
+        status: c.status,
+        approvedValue: c.approvedValue,
+        dateOfLoss: c.dateOfLoss,
       })) || [],
       weatherEvents: customer.weatherEvents?.map((e: any) => ({
         type: e.eventType, date: e.eventDate, severity: e.severity,
