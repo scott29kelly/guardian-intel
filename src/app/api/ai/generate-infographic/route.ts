@@ -4,16 +4,23 @@
  * POST /api/ai/generate-infographic - Schedule infographic generation via NotebookLM.
  * Returns a jobId for async polling. Cache check returns instant result if available.
  *
- * Security: Requires NextAuth session AND a matching User row (401 if either is missing)
+ * Security:
+ * - Requires NextAuth session AND a matching User row (401 if either is missing)
+ * - Rep-ownership enforced via assertCustomerAccess (D-04): reps may only generate
+ *   briefings for their own assigned customers; admins and managers may generate
+ *   for any customer. Returns 403 on unauthorized access.
  *
  * Fixed 2026-04-07 (Phase 7 Tier 1):
  * - D-01: claim mapping reads claimType/approvedValue/dateOfLoss (was type/amount/filedDate — silent data loss)
  * - D-03: strict 401 when session.user.id has no matching User row (removed silent first-user fallback)
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 2):
+ * - D-04: rep-ownership authorization via assertCustomerAccess helper
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, assertCustomerAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveModules } from "@/features/infographic-generator/services/infographicGenerator";
 import { composeNotebookLMInstructions } from "@/features/infographic-generator/services/promptComposer";
@@ -99,6 +106,12 @@ export async function POST(request: NextRequest) {
 
     if (!customer) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
+    // D-04: Rep-ownership authorization. Reps may only generate briefings for
+    // their own assigned customers; admins and managers may generate for anyone.
+    if (!assertCustomerAccess(session as { user: { id: string; role: string } }, customer)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const customerName = `${customer.firstName} ${customer.lastName}`;

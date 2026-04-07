@@ -4,17 +4,26 @@
  * POST /api/ai/generate-infographic/batch - Schedule infographic generation
  * for multiple customers via NotebookLM. Returns deckIds for per-customer polling.
  *
- * Security: Requires NextAuth session AND a matching User row (401 if either is missing)
+ * Security:
+ * - Requires NextAuth session AND a matching User row (401 if either is missing)
+ * - Rep-ownership enforced via assertCustomerAccess (D-04) per customer in the loop.
+ *   Unauthorized customers are SILENTLY SKIPPED rather than 403'ing the entire batch.
+ *   Rationale: a manager calling for a mixed list should still process the customers
+ *   they CAN access. Plain reps who pass another rep's customer get it filtered out.
+ *   When the resulting deckIds array is empty, the route returns 403 instead of 202.
  *
  * Fixed 2026-04-07 (Phase 7 Tier 1):
  * - D-01: claim mapping reads claimType/approvedValue/dateOfLoss (was legacy names — silent data loss)
  * - D-02: processing loop is now truly sequential with per-iteration try/catch (was fire-and-forget inside a for-loop)
  * - D-03: strict 401 when session.user.id has no matching User row (removed silent first-user fallback)
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 2):
+ * - D-04: rep-ownership authorization via assertCustomerAccess helper (silent-skip semantics)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, assertCustomerAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresetsForBatch } from "@/features/infographic-generator/templates/index";
 import { resolveModules } from "@/features/infographic-generator/services/infographicGenerator";
@@ -80,6 +89,18 @@ export async function POST(request: NextRequest) {
 
       if (!customer) continue;
 
+      // D-04: Rep-ownership authorization, per customer. If the rep is not allowed
+      // to access this customer, skip it silently (continue) — do NOT 403 the whole
+      // batch, since a manager calling for a mixed list should still process the
+      // customers they CAN access. Plain reps who pass another rep's customer get
+      // it filtered out.
+      if (!assertCustomerAccess(session as { user: { id: string; role: string } }, customer)) {
+        console.warn(
+          `[BatchInfographic] Skipping customer ${customer.id} — caller ${(session.user as any).id} not authorized`,
+        );
+        continue;
+      }
+
       const customerName = `${customer.firstName} ${customer.lastName}`;
       const data = await assembleDataForModules(customerId, modules);
       const instructions = composeNotebookLMInstructions(modules, data, audience);
@@ -142,6 +163,16 @@ export async function POST(request: NextRequest) {
       });
 
       deckIds.push(scheduledDeck.id);
+    }
+
+    // D-04: If every customer in the batch was filtered out by the ownership check
+    // (or missing), respond 403 rather than an empty 202. This gives the caller a
+    // clear signal that they had no accessible customers in the request.
+    if (deckIds.length === 0) {
+      return NextResponse.json(
+        { error: "Forbidden — no accessible customers in request" },
+        { status: 403 },
+      );
     }
 
     // D-02: Truly sequential processing — NotebookLM CLI has shared headless-browser

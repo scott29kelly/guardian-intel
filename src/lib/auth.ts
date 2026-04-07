@@ -24,6 +24,44 @@ export async function requireSession() {
   };
 }
 
+/**
+ * Minimal session shape required by `assertCustomerAccess`. Pulled from `requireSession`.
+ */
+export interface AuthorizedSession {
+  user: { id: string; role: string };
+}
+
+/**
+ * Minimal customer shape required by `assertCustomerAccess`. Use a structural type
+ * so callers can pass either a full Prisma Customer or a `select`-narrowed projection.
+ */
+export interface CustomerOwnershipFields {
+  assignedRepId: string | null;
+}
+
+/**
+ * Rep-ownership authorization for customer-scoped resources.
+ *
+ * Rule (from Phase 7 D-04 / D-05):
+ *   - admin or manager → always allowed
+ *   - rep → allowed only if customer.assignedRepId === session.user.id
+ *
+ * Returns `true` if access is allowed, `false` otherwise.
+ *
+ * Callers should respond with `NextResponse.json({ error: "Forbidden" }, { status: 403 })`
+ * when this returns false. We return a boolean (not throw) so route handlers can keep
+ * their try/catch blocks focused on real errors rather than authorization control flow.
+ */
+export function assertCustomerAccess(
+  session: AuthorizedSession,
+  customer: CustomerOwnershipFields,
+): boolean {
+  const role = session.user.role;
+  if (role === "admin" || role === "manager") return true;
+  if (customer.assignedRepId && customer.assignedRepId === session.user.id) return true;
+  return false;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   secret: authSecret,

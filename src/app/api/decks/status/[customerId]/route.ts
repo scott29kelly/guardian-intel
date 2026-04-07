@@ -1,13 +1,22 @@
 /**
- * GET /api/decks/status/[customerId]
- * 
- * Check the deck generation status for a specific customer.
- * Returns the most recent deck job for this customer.
+ * GET/DELETE /api/decks/status/[customerId]
+ *
+ * Check or cancel the deck generation status for a specific customer.
+ *
+ * Security:
+ * - Requires NextAuth session (401 if missing).
+ * - Rep-ownership enforced via assertCustomerAccess (D-05): the customer record is
+ *   fetched BEFORE the deck record so the ownership check runs against a known
+ *   assignedRepId. Reps see only their own customers; admins and managers may
+ *   access any customer. Returns 403 on unauthorized access.
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 2):
+ * - D-05: rep-ownership authorization on GET and DELETE via assertCustomerAccess
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, assertCustomerAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -31,6 +40,21 @@ export async function GET(
         { error: "Customer ID is required" },
         { status: 400 }
       );
+    }
+
+    // D-05: Verify the caller is allowed to access this customer's decks BEFORE
+    // returning any deck data. Fetch only the assignedRepId column — cheap.
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { id: true, assignedRepId: true },
+    });
+
+    if (!customer) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
+    if (!assertCustomerAccess(session as { user: { id: string; role: string } }, customer)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // If deckId is provided, look up that specific deck (for async job polling)
@@ -136,6 +160,21 @@ export async function DELETE(
     const { customerId } = await params;
     const { searchParams } = new URL(request.url);
     const deckId = searchParams.get("deckId");
+
+    // D-05: Same rep-ownership check as GET. Fetch the customer first and verify
+    // the caller is allowed to cancel/delete decks for this customer.
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { id: true, assignedRepId: true },
+    });
+
+    if (!customer) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
+    if (!assertCustomerAccess(session as { user: { id: string; role: string } }, customer)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // Find the deck to delete
     const deck = await prisma.scheduledDeck.findFirst({
