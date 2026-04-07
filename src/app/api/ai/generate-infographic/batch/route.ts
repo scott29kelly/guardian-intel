@@ -4,7 +4,12 @@
  * POST /api/ai/generate-infographic/batch - Schedule infographic generation
  * for multiple customers via NotebookLM. Returns deckIds for per-customer polling.
  *
- * Security: Requires NextAuth session (401 if unauthenticated)
+ * Security: Requires NextAuth session AND a matching User row (401 if either is missing)
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 1):
+ * - D-01: claim mapping reads claimType/approvedValue/dateOfLoss (was legacy names — silent data loss)
+ * - D-02: processing loop is now truly sequential with per-iteration try/catch (was fire-and-forget inside a for-loop)
+ * - D-03: strict 401 when session.user.id has no matching User row (removed silent first-user fallback)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -42,11 +47,13 @@ export async function POST(request: NextRequest) {
     const customerIds: string[] = body.customerIds;
     const batchPresets = getPresetsForBatch();
 
-    // Resolve user ID — session.user.id may not match a DB record
-    let userId = (session.user as any).id;
+    // D-03: Resolve user ID — session.user.id MUST match a real DB user.
+    // PrismaAdapter guarantees this for all real auth flows; reject otherwise.
+    // (Removed 2026-04-07: silent fallback to first user in the User table.)
+    const userId = (session.user as any).id;
     const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!userExists) {
-      userId = (await prisma.user.findFirst({ select: { id: true } }))?.id || userId;
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const batchPresetId = batchPresets[0]?.id || "pre-knock-briefing";
     const templateId = `infographic-batch-${batchPresetId}`;
@@ -89,9 +96,18 @@ export async function POST(request: NextRequest) {
           scores: { lead: customer.leadScore, urgency: customer.urgencyScore, profitPotential: customer.profitPotential, churnRisk: customer.churnRisk, engagement: customer.engagementScore },
           pipeline: { status: customer.status, stage: customer.stage, leadSource: customer.leadSource, estimatedJobValue: customer.estimatedJobValue },
         },
+        // D-01: Read real Prisma fields (claimType/approvedValue/dateOfLoss) and emit with
+        // the same keys the downstream consumer formatClaimsForNotebook expects.
+        // Previous version read legacy field names that do not exist on the Prisma
+        // InsuranceClaim model, so every claim field arrived at NotebookLM as undefined.
         recentClaims: customer.claims?.map((c: any) => ({
-          id: c.id, claimNumber: c.claimNumber, type: c.type, status: c.status,
-          amount: c.amount, filedDate: c.filedDate,
+          id: c.id,
+          claimNumber: c.claimNumber,
+          carrier: c.carrier,
+          claimType: c.claimType,
+          status: c.status,
+          approvedValue: c.approvedValue,
+          dateOfLoss: c.dateOfLoss,
         })) || [],
         weatherEvents: customer.weatherEvents?.map((e: any) => ({
           type: e.eventType, date: e.eventDate, severity: e.severity,
@@ -128,21 +144,51 @@ export async function POST(request: NextRequest) {
       deckIds.push(scheduledDeck.id);
     }
 
-    // Fire processing sequentially (NotebookLM has rate limits)
+    // D-02: Truly sequential processing — NotebookLM CLI has shared headless-browser
+    // state and global rate limits, so we MUST await each call before starting the
+    // next. Each iteration is wrapped in try/catch so one failure does not abort the
+    // batch. (Previous version was a for-loop around a fire-and-forget .then() chain,
+    // which launched N parallel jobs against a single shared browser session.)
     for (const deckId of deckIds) {
-      await prisma.scheduledDeck.update({
-        where: { id: deckId },
-        data: { status: "processing" },
-      });
+      try {
+        await prisma.scheduledDeck.update({
+          where: { id: deckId },
+          data: { status: "processing" },
+        });
 
-      // Fire-and-forget per job
-      processDeckWithNotebookLM(deckId).then((result) => {
-        if (!result.success) {
-          console.error(`[BatchInfographic] Failed for deck ${deckId}: ${result.error}`);
+        const result = await processDeckWithNotebookLM(deckId);
+        if (result.success) {
+          console.log(
+            `[BatchInfographic] Completed deck ${deckId} in ${result.processingTimeMs}ms`,
+          );
+        } else {
+          console.error(
+            `[BatchInfographic] Failed deck ${deckId}: ${result.error}`,
+          );
         }
-      }).catch((err) => {
-        console.error(`[BatchInfographic] Unhandled error for deck ${deckId}:`, err);
-      });
+      } catch (err) {
+        console.error(
+          `[BatchInfographic] Unhandled error for deck ${deckId}:`,
+          err,
+        );
+        // Best-effort: mark as failed so the UI unblocks. processDeckWithNotebookLM
+        // already does this on its own catch path, but we do it again here in case
+        // the error came from the prisma.update above or an unexpected throw.
+        try {
+          await prisma.scheduledDeck.update({
+            where: { id: deckId },
+            data: {
+              status: "failed",
+              errorMessage:
+                err instanceof Error
+                  ? err.message
+                  : "Unknown batch loop error",
+            },
+          });
+        } catch {
+          // swallow — best effort
+        }
+      }
     }
 
     return NextResponse.json(
