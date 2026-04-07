@@ -116,6 +116,18 @@ Plans:
 | 5. Hooks + UI | 4/4 | Complete | 2026-03-22 |
 | 6. Integration + Polish | 3/3 | Complete | 2026-03-22 |
 
+### Phase 7: Cleanup: data integrity bugs, security hardening, and NotebookLM operational hardening
+
+**Goal:** Fix three tiers of debt in the deck-generator and infographic-generator pipelines: Tier 1 data integrity bugs (claim field drift, fake-sequential batch loop, silent first-user fallback), Tier 2 security hardening (rep-ownership authorization on infographic + deck-status routes, Supabase bucket ACL verification), and Tier 4 NotebookLM operational hardening (stuck-job recovery sweep, cancelable processing jobs, removal of orphaned cron route). Sourced from Codex adversarial review `task-mnp6gcn3-ihhwdf` (2026-04-07).
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 (nine locked decisions from 07-CONTEXT.md — remediation phase, no INFOG-xxx requirement IDs)
+**Depends on:** Phase 6
+**Plans:** 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md -- Tier 1: D-01 claim field drift, D-02 sequential batch loop, D-03 strict 401 (data integrity)
+- [ ] 07-02-PLAN.md -- Tier 2: D-04/D-05 rep-ownership authorization via assertCustomerAccess, D-06 Supabase bucket ACL verification (security hardening)
+- [ ] 07-03-PLAN.md -- Tier 4: D-07 stuck-job recovery sweep, D-08 cancel processing jobs, D-09 delete orphaned cron route (operational hardening)
+
 ---
 *Roadmap created: 2026-03-21*
-*Last updated: 2026-03-22*
+*Last updated: 2026-04-07*
