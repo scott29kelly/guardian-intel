@@ -2,8 +2,12 @@
  * Deck Processing Service
  *
  * Shared pipeline for processing ScheduledDeck jobs via NotebookLM.
- * Used by both the /api/decks/process-now route (immediate) and
- * the /api/cron/process-scheduled-decks route (batch).
+ * Used by /api/decks/process-now (immediate) and the infographic generation
+ * routes (background, fired from inside the route handler).
+ *
+ * Also exports `recoverStuckDecks` (D-07): a sweep helper called from the
+ * deck-status poll endpoint to transition stalled "processing" jobs to
+ * "failed" without requiring a separate cron.
  */
 
 import { prisma } from "@/lib/prisma";
@@ -42,6 +46,55 @@ interface ProcessingResult {
   error?: string;
   slideCount?: number;
   processingTimeMs?: number;
+}
+
+// =============================================================================
+// STUCK-JOB RECOVERY (D-07)
+// =============================================================================
+
+/**
+ * Default stale threshold for stuck-job recovery, in minutes.
+ *
+ * Rationale: the longest legitimate NotebookLM run is ~12 minutes
+ * (see notebooklm/index.ts), so 15 minutes leaves a 3-minute buffer
+ * before a job is considered stalled.
+ */
+const DEFAULT_STALE_MINUTES = 15;
+
+/**
+ * Sweep stuck "processing" jobs and mark them as failed.
+ *
+ * Called from the deck status poll endpoint on every request — cheap
+ * single-query updateMany, idempotent, and self-healing without a cron.
+ *
+ * @param staleMinutes - Jobs with updatedAt older than this many minutes
+ *                       are considered stalled. Defaults to 15.
+ * @returns The number of jobs that were recovered.
+ */
+export async function recoverStuckDecks(
+  staleMinutes: number = DEFAULT_STALE_MINUTES,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
+
+  const result = await prisma.scheduledDeck.updateMany({
+    where: {
+      status: "processing",
+      updatedAt: { lt: cutoff },
+    },
+    data: {
+      status: "failed",
+      errorMessage: "Job stalled — recovered by stuck-job sweep",
+      completedAt: new Date(),
+    },
+  });
+
+  if (result.count > 0) {
+    console.warn(
+      `[DeckProcessing] Recovered ${result.count} stuck deck(s) older than ${staleMinutes} minutes`,
+    );
+  }
+
+  return result.count;
 }
 
 /** Guardian Roofing notebook persona — shapes all artifacts from the notebook */

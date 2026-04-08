@@ -134,9 +134,9 @@
 - Responsibilities: Instantiates adapters for all configured API keys (Gemini required, Claude/Kimi/Perplexity/OpenAI optional); registers them with the singleton `AIRouter`
 
 **Cron Job:**
-- Location: `src/app/api/analytics/aggregate/route.ts` and `src/app/api/cron/process-scheduled-decks/route.ts`
+- Location: `src/app/api/analytics/aggregate/route.ts`
 - Triggers: Vercel cron scheduler (analytics at 02:00 UTC daily per `vercel.json`)
-- Responsibilities: Analytics aggregation; batch deck generation processing
+- Responsibilities: Analytics aggregation
 
 ## Error Handling
 

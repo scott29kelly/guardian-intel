@@ -12,12 +12,21 @@
  *
  * Fixed 2026-04-07 (Phase 7 Tier 2):
  * - D-05: rep-ownership authorization on GET and DELETE via assertCustomerAccess
+ *
+ * Fixed 2026-04-07 (Phase 7 Tier 4):
+ * - D-07: every GET poll triggers recoverStuckDecks() before reading the deck row,
+ *   so any "processing" job whose updatedAt is older than 15 minutes is transitioned
+ *   to "failed" automatically. Self-healing without a separate cron.
+ * - D-08: DELETE on a "processing" deck now soft-deletes (marks as failed with
+ *   errorMessage="Cancelled by user") instead of returning 409. Pending/failed/
+ *   completed paths still hard-delete.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, assertCustomerAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { recoverStuckDecks } from "@/lib/services/deck-processing";
 
 export async function GET(
   request: NextRequest,
@@ -40,6 +49,17 @@ export async function GET(
         { error: "Customer ID is required" },
         { status: 400 }
       );
+    }
+
+    // D-07: Sweep stuck "processing" jobs on every status poll. Single updateMany,
+    // cheap, idempotent, self-healing without a separate cron. Errors are logged
+    // but never block the status response — recovery is best-effort. Must run
+    // BEFORE the deck fetch so a recovered row returns its new "failed" status
+    // on this same request instead of forcing the user to poll again.
+    try {
+      await recoverStuckDecks();
+    } catch (sweepErr) {
+      console.warn("[API] recoverStuckDecks failed during status poll:", sweepErr);
     }
 
     // D-05: Verify the caller is allowed to access this customer's decks BEFORE
@@ -141,8 +161,14 @@ export async function GET(
 
 /**
  * DELETE /api/decks/status/[customerId]
- * 
- * Cancel a pending deck job or delete a completed deck.
+ *
+ * Cancel or delete a deck job.
+ * - status="pending" or "failed": hard-delete the row.
+ * - status="completed": delete the row and the Supabase artifacts.
+ * - status="processing": SOFT-delete — mark as failed with errorMessage="Cancelled by user"
+ *   to preserve the audit trail (D-08, Phase 7). Background NotebookLM work may
+ *   still complete after this point — the row is flagged failed and the resulting
+ *   artifacts will be ignored by the UI.
  */
 export async function DELETE(
   request: NextRequest,
@@ -176,11 +202,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Find the deck to delete
+    // Find the deck to delete. D-08: include "processing" so the no-deckId path
+    // can find an in-flight deck and soft-delete it below.
     const deck = await prisma.scheduledDeck.findFirst({
-      where: deckId 
+      where: deckId
         ? { id: deckId, customerId }
-        : { customerId, status: { in: ["pending", "failed"] } },
+        : { customerId, status: { in: ["pending", "failed", "processing"] } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -191,12 +218,26 @@ export async function DELETE(
       );
     }
 
-    // Don't allow canceling jobs that are actively processing
+    // D-08: Allow cancelling processing jobs via SOFT-delete. Mark as failed
+    // with a known errorMessage so the audit trail is preserved (background
+    // NotebookLM work may still complete after this point — that is acceptable;
+    // the user wanted out, the row is now flagged failed, and the resulting
+    // artifacts will be ignored by the UI).
     if (deck.status === "processing") {
-      return NextResponse.json(
-        { error: "Cannot cancel a deck that is currently processing" },
-        { status: 409 }
-      );
+      await prisma.scheduledDeck.update({
+        where: { id: deck.id },
+        data: {
+          status: "failed",
+          errorMessage: "Cancelled by user",
+          completedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Processing deck cancelled (marked as failed for audit)",
+        cancelledId: deck.id,
+      });
     }
 
     // If completed, delete the PDF from Supabase Storage
