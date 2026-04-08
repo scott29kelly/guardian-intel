@@ -2,13 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-22T15:40:49.000Z"
+status: Phase 07 complete
+last_updated: "2026-04-07T23:59:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 19
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State: Infographic Generator
@@ -16,15 +17,17 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 06 -- integration-polish
+**Current Focus:** v1.0 milestone complete — Phase 07 closed out
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
 
-Phase: 6
-Plan: 3 (complete)
+Phase: 07 (cleanup-data-integrity-bugs-security-hardening-and-notebookl) — COMPLETE (3 of 3 plans)
+- Plan 07-01 (Tier 1 data integrity): D-01, D-02, D-03 — committed `c8ce061`, `18ace6c`, `e27a81e`
+- Plan 07-02 (Tier 2 security hardening): D-04, D-05 — committed `d2fd39e`; D-06 deferred — documented in `5f2cf5a` (see Discovered TODOs)
+- Plan 07-03 (Tier 4 NotebookLM operational hardening): D-07, D-08, D-09 — committed `5f90de7`
 
 ### Phase 1 Context
 
@@ -97,9 +100,13 @@ Plan: 3 (complete)
 - Mocked AI router classify method for intent parser tests; mocked brandingAssets to avoid transitive type imports
 - E2E tests use defensive count-check patterns since UI components may not all be wired yet
 
+### Roadmap Evolution
+
+- Phase 7 added: Cleanup: data integrity bugs, security hardening, and NotebookLM operational hardening (sourced from Codex adversarial review task-mnp6gcn3-ihhwdf, 2026-04-07)
+
 ### Discovered TODOs
 
-_(none yet)_
+- **Production hardening — Supabase `deck-pdfs` bucket lockdown.** Bucket is currently public with no RLS policies (verified 2026-04-07). 16 mock files in storage, 16 mock URLs in `ScheduledDeck` rows. Required before any real customer data lands: flip bucket private, add `storage.objects` RLS, switch both `getPublicUrl` call sites in `src/lib/services/deck-processing.ts` to `createSignedUrl` (7-day TTL), add regenerate-on-poll, backfill existing rows. Reference: Phase 7 D-06 deferral in `.planning/phases/07-cleanup-data-integrity-bugs-security-hardening-and-notebookl/07-02-SUMMARY.md`; Codex review job `task-mnp6gcn3-ihhwdf`.
 
 ### Blockers
 
