@@ -149,12 +149,31 @@
 | INFOG-027 | Phase 6 | Pending |
 | INFOG-028 | Phase 6 | Complete |
 | INFOG-029 | Phase 6 | Complete |
+| NLMA-01 | Phase 8 | Pending |
+| NLMA-02 | Phase 8 | Pending |
+| NLMA-03 | Phase 8 | Pending |
+| NLMA-04 | Phase 8 | Pending |
+| NLMA-05 | Phase 8 | Pending |
+| NLMA-06 | Phase 8 | Pending |
+| NLMA-07 | Phase 9 | Pending |
+| NLMA-08 | Phase 9 | Pending |
+| NLMA-09 | Phase 9 | Pending |
+| NLMA-10 | Phase 9 | Pending |
+| NLMA-11 | Phase 9 | Pending |
+| NLMA-12 | Phase 10 | Pending |
+| NLMA-13 | Phase 10 | Pending |
+| NLMA-14 | Phase 10 | Pending |
+| NLMA-15 | Phase 10 | Pending |
+| NLMA-16 | Phase 11 | Pending |
+| NLMA-17 | Phase 11 | Pending |
+| NLMA-18 | Phase 12 (Stretch) | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 29
+- v1 requirements: 29 total, 29 mapped (complete)
+- v1.1 requirements: 18 total, 18 mapped (0 complete)
+- Total mapped: 47/47
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after roadmap phase compression (8 -> 6 phases)*
+*Last updated: 2026-04-09 — v1.1 NotebookLM Multi-Artifact requirements (NLMA-01..18) added and mapped to Phases 8-12*
