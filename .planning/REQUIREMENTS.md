@@ -1,7 +1,42 @@
-# Requirements: Infographic Generator
+# Requirements: Guardian Intel — Infographic Generator + NotebookLM Multi-Artifact
 
-**Defined:** 2026-03-21
-**Core Value:** Reps get actionable visual briefings in one tap — zero configuration, quality-first, invisible intelligence
+**Defined:** 2026-03-21 (v1.0), 2026-04-09 (v1.1)
+**Core Value:** Reps get actionable, multi-format briefings in one tap — zero configuration, background processing, push notifications
+
+## v1.1 Requirements — NotebookLM Multi-Artifact + UI Loops
+
+### Multi-Artifact Backend
+
+- [ ] **NLMA-01**: Prisma model for multi-artifact job tracking — either new `ScheduledArtifactSet` or extend `ScheduledDeck` with per-artifact status fields (`deckStatus`, `infographicStatus`, `audioStatus`, `reportStatus`) and per-artifact URLs; migrations committed
+- [ ] **NLMA-02**: `generateCustomerArtifacts({ customer, artifacts, notebookId? })` orchestrator in `src/lib/services/notebooklm/index.ts` — creates or reuses notebook, runs requested generators against single notebook, returns structured result with per-artifact outcomes
+- [ ] **NLMA-03**: POST `/api/ai/generate-customer-artifacts` route — accepts `{ customerId, artifacts: ['deck','infographic','audio','report'] }`, enforces `assertCustomerAccess` rep-ownership, creates job record, fires background processor, returns job ID immediately
+- [ ] **NLMA-04**: Per-artifact status polling — generalize `/api/decks/status/[customerId]` to return `{ deck, infographic, audio, report }` each with `{ status, url, progress, error }`
+- [ ] **NLMA-05**: Storage orchestration in `src/lib/services/deck-processing.ts` — distinct Supabase paths per artifact type (`decks/`, `infographics/`, `audio/`, `reports/`) with type-appropriate content-type headers
+- [ ] **NLMA-06**: Stuck-job recovery extended to per-artifact state — `recoverStuckDecks` updated to sweep any artifact stuck in "processing" > 15 minutes, preserving already-completed artifacts in the same job
+
+### Multi-Artifact UI
+
+- [ ] **NLMA-07**: `useCustomerArtifacts(customerId)` hook in `src/lib/hooks/` — polls per-artifact status endpoint, returns unified state with TanStack Query key factory, stops polling when all artifacts terminal
+- [ ] **NLMA-08**: `CustomerArtifactsPanel` component — 2x2 responsive grid with four artifact cards, each showing status (pending/processing/ready/failed), preview thumbnail, tap-to-open action, follows existing mobile-first bottom-sheet patterns
+- [ ] **NLMA-09**: `AudioBriefingPlayer` component — branded wrapper around `<audio controls>` with Navy/Gold/Teal palette, playback controls sized for mobile use, share action reuses `ShareSheet`
+- [ ] **NLMA-10**: `ReportViewer` component — `react-markdown` render with brand typography (Geist + palette), mobile scroll behavior, share/download actions
+- [ ] **NLMA-11**: Mount `CustomerArtifactsPanel` in customer profile modal and in `InfographicGeneratorModal` success state, wire "Generate all artifacts" action on customer card alongside existing deck/infographic buttons
+
+### Push Notification Flow
+
+- [ ] **NLMA-12**: Mount `push-notification-prompt.tsx` component in `src/app/(dashboard)/layout.tsx` with `localStorage`-gated render (prompt at most once per session, never on cold load)
+- [ ] **NLMA-13**: Trigger heuristic — prompt appears only after a rep has fired their first background generation in the session, dismissible state persists across reloads
+- [ ] **NLMA-14**: Verify `public/sw.js` push event handler surfaces toast on multi-artifact artifact-ready events, add per-artifact-type payload handling if missing
+- [ ] **NLMA-15**: Extend `deck-processing.ts` to fire push notifications per-artifact-completion (not just full-set completion), so reps get "your audio briefing is ready" even if reports are still generating
+
+### Testing
+
+- [ ] **NLMA-16**: Unit tests (Vitest) — `generateCustomerArtifacts` orchestrator logic, per-artifact stuck-job recovery edge cases, `useCustomerArtifacts` hook state transitions, audio/report component rendering
+- [ ] **NLMA-17**: E2E test (Playwright) — full flow: rep fires multi-artifact generation → background processing starts → push notification prompt appears → rep accepts → toast fires on artifact completion → `CustomerArtifactsPanel` shows all four artifacts viewable
+
+### Stretch (only if primary scope lands under budget)
+
+- [ ] **NLMA-18**: Proposals UI stretch — rep-facing "Generate proposal" button + preview + send flow on customer profile, reusing existing `src/lib/services/proposals/generator.ts` AI generation
 
 ## v1 Requirements
 
