@@ -1231,3 +1231,245 @@ model OutreachMessage {
   @@index([status])
 }
 
+// ============================================
+// LEAD INTEL (Phase 8)
+// ============================================
+// NOTE: NO RLS policies in this phase. Deferred per LG-02 — tracked alongside
+// Phase 7 D-06 Supabase lockdown in .planning/STATE.md ### Discovered TODOs.
+
+/// Canonical property entity. Every signal, outcome, and score snapshot is
+/// anchored to a TrackedProperty. See LG-01 for PostGIS enablement details —
+/// the `location` column is declared as Unsupported and managed via
+/// hand-written migration SQL (prisma/migrations/08_lead_intel_postgis).
+model TrackedProperty {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Canonical address (denormalized for query speed; truth lives in PropertySourceRecord)
+  address            String
+  city               String
+  state              String
+  zipCode            String
+  county             String?
+
+  // Coordinates (both representations so apps that don't speak PostGIS can still read)
+  latitude           Float?
+  longitude          Float?
+
+  // PostGIS geography(Point,4326) — see 08_lead_intel_postgis migration.sql
+  // Prisma cannot express geography natively; `Unsupported` is the documented
+  // escape hatch. Raw SQL (ST_DWithin, ST_MakePoint) is used in queries/spatial.
+  location           Unsupported("geography(Point,4326)")?
+
+  // Identity keys for resolution
+  parcelNumber       String?
+  normalizedAddress  String  // lowercased + whitespace-collapsed + abbreviations expanded
+  normalizedKey      String  // `${normalizedAddress}|${zipCode}` — hard dedup key
+
+  // Resolution status — see LG-03 (ambiguous matches land as pending_review)
+  resolutionStatus   String  @default("resolved") // "resolved" | "pending_review" | "merged"
+
+  // Aggregated denormalized stats (kept fresh on signal/score writes; cheap reads)
+  lastSignalAt       DateTime?
+  lastScoreAt        DateTime?
+  latestScore        Float?
+  signalCount        Int      @default(0)
+
+  // Relations
+  sourceRecords      PropertySourceRecord[]
+  signalEvents       PropertySignalEvent[]
+  scoreSnapshots     PropertyScoreSnapshot[]
+  outcomeEvents      PropertyOutcomeEvent[]
+  resolutionsIn      PropertyResolution[]      @relation("ResolvedInto")
+  resolutionsFrom    PropertyResolution[]      @relation("ResolvedFrom")
+  customers          Customer[]
+  weatherEvents      WeatherEvent[]
+  canvassingPins     CanvassingPin[]
+  propertyDataRows   PropertyData[]
+
+  @@index([normalizedKey])
+  @@index([parcelNumber])
+  @@index([zipCode])
+  @@index([state, zipCode])
+  @@index([latestScore])
+  @@index([resolutionStatus])
+  @@index([lastSignalAt])
+  // idx_tracked_property_location (GIST on `location`) is created in the
+  // hand-written migration SQL — Prisma cannot express GIST indexes.
+}
+
+/// One row per ingestion run — the "who/when/what" of a batch write. Every
+/// PropertySourceRecord and PropertySignalEvent points back to one run so the
+/// full provenance chain can be reconstructed.
+model SourceIngestionRun {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+
+  source          String   // "internal-backfill:customer" | "internal-backfill:weather-event" | "n8n:permits" | etc.
+  sourceVersion   String?  // optional — e.g., backfill script version
+  trigger         String   // "manual" | "backfill" | "ingest" | "test"
+  triggeredByUserId String?
+
+  startedAt       DateTime
+  finishedAt      DateTime?
+  status          String   @default("running") // "running" | "completed" | "failed"
+
+  // Stats (populated on completion)
+  recordsRead     Int      @default(0)
+  recordsWritten  Int      @default(0)
+  recordsSkipped  Int      @default(0)
+  signalsWritten  Int      @default(0)
+  propertiesCreated Int    @default(0)
+  propertiesMatched Int    @default(0)
+  errorMessage    String?
+
+  sourceRecords   PropertySourceRecord[]
+  signalEvents    PropertySignalEvent[]
+
+  @@index([source])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Immutable record of a single input row from a source. The payload column
+/// stores the original-shape JSON so we can always re-derive signals if
+/// extractor logic changes. See LG-04 (reliabilityWeight lives here).
+model PropertySourceRecord {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+
+  trackedPropertyId  String
+  trackedProperty    TrackedProperty @relation(fields: [trackedPropertyId], references: [id], onDelete: Cascade)
+
+  ingestionRunId     String
+  ingestionRun       SourceIngestionRun @relation(fields: [ingestionRunId], references: [id], onDelete: Cascade)
+
+  sourceType         String   // "customer" | "weather-event" | "canvassing-pin" | "interaction" | "property-data" | "permit" | etc.
+  sourceId           String   // original row PK from the upstream system
+  sourceRecordedAt   DateTime // when the source observed the event (NOT when we ingested it)
+  reliabilityWeight  Float    // 0.0-1.0 — see LG-04
+
+  // Original payload — JSON stored as String for Prisma/Postgres cross-compat
+  payload            String   // JSON
+
+  // Dedup key — (sourceType, sourceId) is the idempotency handle for backfill re-runs
+  @@unique([sourceType, sourceId])
+  @@index([trackedPropertyId])
+  @@index([ingestionRunId])
+  @@index([sourceRecordedAt])
+}
+
+/// Audit trail for entity resolution decisions. Every time resolution either
+/// merges two properties or marks a new record as pending_review, one of
+/// these rows is written. LG-03 mandates full reviewability.
+model PropertyResolution {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+
+  // Bidirectional pointer — `into` is the winner, `from` is the candidate
+  intoPropertyId     String
+  intoProperty       TrackedProperty @relation("ResolvedInto", fields: [intoPropertyId], references: [id], onDelete: Cascade)
+  fromPropertyId     String
+  fromProperty       TrackedProperty @relation("ResolvedFrom", fields: [fromPropertyId], references: [id], onDelete: Cascade)
+
+  strategy           String   // "exact-normalized" | "parcel" | "geo-near-street-zip" | "manual"
+  confidence         Float    // 0.0-1.0
+  status             String   // "merged" | "pending_review" | "rejected"
+  reviewedByUserId   String?
+  reviewedAt         DateTime?
+  notes              String?
+
+  @@index([intoPropertyId])
+  @@index([fromPropertyId])
+  @@index([status])
+}
+
+/// Temporal event store — every signal is a timestamped row with its own
+/// decay metadata (baseWeight, reliabilityWeight, halfLifeDays). The scoring
+/// layer reads these on demand; this table is append-only. See LG-04.
+model PropertySignalEvent {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+
+  trackedPropertyId  String
+  trackedProperty    TrackedProperty @relation(fields: [trackedPropertyId], references: [id], onDelete: Cascade)
+
+  ingestionRunId     String
+  ingestionRun       SourceIngestionRun @relation(fields: [ingestionRunId], references: [id], onDelete: Cascade)
+
+  // Optional backref to the source row that produced this signal (not required
+  // for synthesized signals like "compound: 3+ storms in 36 months")
+  sourceRecordId     String?
+
+  signalType         String   // "roof-age" | "storm-exposure" | "canvassing-recency" | "crm-contact-recency" | "neighbor-win" | ...
+  eventTimestamp     DateTime // when the event happened (source truth)
+
+  // Decay math ingredients — captured at ingest time so score snapshots are
+  // reproducible even if weights.ts changes later
+  baseWeight         Float
+  reliabilityWeight  Float
+  halfLifeDays       Int
+
+  // Signal-specific value (e.g., hail size inches, days since contact)
+  value              Float?
+
+  // Structured metadata (e.g., storm severity, neighbor customer ID)
+  metadata           String?  // JSON
+
+  @@index([trackedPropertyId, signalType])
+  @@index([signalType, eventTimestamp])
+  @@index([ingestionRunId])
+  @@index([eventTimestamp])
+}
+
+/// Immutable score snapshot. Recomputation creates a new row — never mutates
+/// an existing one. The `contributions` JSON holds the per-signal breakdown
+/// used to answer "why did this property score 87?" without recomputation.
+/// See LG-04.
+model PropertyScoreSnapshot {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+
+  trackedPropertyId  String
+  trackedProperty    TrackedProperty @relation(fields: [trackedPropertyId], references: [id], onDelete: Cascade)
+
+  totalScore         Float
+  formulaVersion     String   // e.g., "lead-intel-v1"
+  evaluatedAt        DateTime @default(now())
+
+  // JSON array of { signalEventId, signalType, baseWeight, reliabilityWeight, ageDays, halfLifeDays, effectiveWeight }
+  contributions      String   // JSON
+
+  // Which signals were considered (denormalized for fast filtering)
+  signalCount        Int
+
+  @@index([trackedPropertyId, evaluatedAt])
+  @@index([totalScore])
+}
+
+/// Outcome events flow back to the scoring layer. Idempotent via the
+/// (trackedPropertyId, eventType, sourceMutationId) unique constraint. Written
+/// inline from Customer/Canvassing mutation handlers via the writeOutcomeEvent
+/// helper (Plan 08-03). See LG-08.
+model PropertyOutcomeEvent {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+
+  trackedPropertyId  String
+  trackedProperty    TrackedProperty @relation(fields: [trackedPropertyId], references: [id], onDelete: Cascade)
+
+  eventType          String   // "customer-stage-changed" | "customer-status-changed" | "canvassing-appointment-set" | "canvassing-outcome-recorded"
+  eventTimestamp     DateTime @default(now())
+
+  // Idempotency handle — the ID of the upstream mutation that produced this event
+  sourceMutationId   String
+
+  // Structured payload (old/new stage, appointment date, outcome string, etc.)
+  payload            String   // JSON
+
+  @@unique([trackedPropertyId, eventType, sourceMutationId])
+  @@index([trackedPropertyId, eventTimestamp])
+  @@index([eventType])
+}
+
