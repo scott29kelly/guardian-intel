@@ -1,32 +1,12 @@
-# Guardian Intel — Infographic Generator + NotebookLM Multi-Artifact
+# Infographic Generator
 
 ## What This Is
 
-An AI-powered sales briefing generator for Guardian Intel that turns a single NotebookLM notebook into multiple rep-ready artifacts (slide decks, infographics, audio briefings, written reports) plus on-demand visual briefings for field reps. Reps select a customer and the system autonomously orchestrates the right set of artifacts, branded and delivered with zero configuration.
+An AI-powered visual briefing generator for Guardian Intel that creates on-demand infographic images for sales reps. Reps select a customer and content type, and the system autonomously selects the optimal AI model (or model chain) to produce a branded infographic — zero configuration, quality-first, invisible intelligence.
 
 ## Core Value
 
-Reps get actionable, multi-format briefings in one tap — no model pickers, no quality sliders, no configuration. A single 3-5 minute notebook creation yields every artifact a rep might need for a customer interaction, with background processing and push notifications so reps never babysit a modal.
-
-## Current Milestone: v1.1 NotebookLM Multi-Artifact + UI Loops
-
-**Goal:** Turn each NotebookLM notebook creation into 4 artifacts (deck, infographic, audio briefing, written report) with rep-facing UI to view all of them, and wire the push-notification flow so 3-5 minute background runs don't silently fail the rep.
-
-**Target features:**
-- Multi-artifact orchestration off a single notebook — backend service + API + Prisma model + storage paths
-- CustomerArtifactsPanel — 2x2 grid with per-artifact status, preview, audio player, markdown report viewer
-- Push notification subscribe prompt — mount existing dead component, heuristic trigger after first background generation
-- (Stretch) Proposals UI — only if primary scope lands under budget
-
-**Key context:**
-- NLM service already exposes all 4 generator entry points (`src/lib/services/notebooklm/index.ts` lines 186, 301, 438, 537) — they need orchestration, not new generation logic
-- Build on the async "fire and forget" pattern in `/api/decks/process-now/route.ts`
-- Reuse `assertCustomerAccess` (Phase 7 D-04), `recoverStuckDecks` (D-07), and existing preview/share components
-- Explicit deprioritizations: D-06 Supabase bucket lockdown, real SendGrid/Twilio delivery, NLM auth refresh hardening, Contracts/Carriers UI, v2 infographic features — safe while on mock data; must land before real-customer rollout
-
-**Current state (Phase 8 complete, 2026-04-10):**
-- Multi-artifact backend landed: `generateCustomerArtifacts` orchestrator, `POST /api/ai/generate-customer-artifacts`, per-artifact Prisma columns, generalized Supabase upload prefixes, per-artifact stuck-job sweep with orphan notebook cleanup
-- Next: Phase 9 (Multi-Artifact UI) — CustomerArtifactsPanel, audio player, report viewer
+Reps get actionable visual briefings in one tap — no model pickers, no quality sliders, no configuration. The system always produces the best output using whatever model or chain is optimal.
 
 ## Requirements
 

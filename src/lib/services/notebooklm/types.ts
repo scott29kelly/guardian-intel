@@ -53,33 +53,3 @@ export interface NotebookLMError {
   message: string;
   retryable: boolean;
 }
-
-// =============================================================================
-// MULTI-ARTIFACT ORCHESTRATION (Phase 8, D-03)
-// =============================================================================
-
-/**
- * Per-artifact status for multi-artifact generation jobs.
- *
- * Stored as `String?` in Prisma (no native enum — consistent with the
- * existing `status` column). Exported here as a TypeScript union for
- * type-safe reads/writes in the orchestrator, routes, and stuck-job sweep.
- *
- * - 'pending'    — artifact is requested but generation has not started
- * - 'processing' — generation is in flight
- * - 'ready'      — artifact generated successfully and URL/markdown is available
- * - 'failed'     — generation failed; see the sibling {type}Error column
- * - 'skipped'    — artifact was not in the job's requestedArtifacts array
- */
-export type ArtifactStatus =
-  | "pending"
-  | "processing"
-  | "ready"
-  | "failed"
-  | "skipped";
-
-/**
- * The four artifact types produced by a multi-artifact generation job.
- * Used as keys into the per-artifact status block on the status route response.
- */
-export type ArtifactType = "deck" | "infographic" | "audio" | "report";

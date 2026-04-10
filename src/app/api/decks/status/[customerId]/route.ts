@@ -115,20 +115,6 @@ export async function GET(
         infographicUrl: true,
         infographicStoragePath: true,
         reportMarkdown: true,
-        // Phase 8: per-artifact status columns (D-15, D-16)
-        deckStatus: true,
-        deckError: true,
-        deckCompletedAt: true,
-        infographicStatus: true,
-        infographicError: true,
-        infographicCompletedAt: true,
-        audioStatus: true,
-        audioError: true,
-        audioCompletedAt: true,
-        reportStatus: true,
-        reportError: true,
-        reportCompletedAt: true,
-        notebookId: true,
       },
     });
 
@@ -148,41 +134,6 @@ export async function GET(
       latestDeck.status === "processing" && 
       ageMinutes > 10;
 
-    // Phase 8 (D-15, D-16, D-17): build the per-artifact block. Existing top-level
-    // fields (pdfUrl, status, hasDeck, isPending, etc.) are preserved unchanged so
-    // legacy callers (deck generator UI) keep working. New callers read the
-    // `artifacts` block for per-type state.
-    //
-    // Report block (D-17) adds an inline `markdown` field from the reportMarkdown
-    // column; reports are NOT uploaded to Supabase.
-    const artifacts = {
-      deck: {
-        status: (latestDeck.deckStatus as string | null) ?? null,
-        url: latestDeck.pdfUrl ?? null,
-        error: latestDeck.deckError ?? null,
-        completedAt: latestDeck.deckCompletedAt ?? null,
-      },
-      infographic: {
-        status: (latestDeck.infographicStatus as string | null) ?? null,
-        url: latestDeck.infographicUrl ?? null,
-        error: latestDeck.infographicError ?? null,
-        completedAt: latestDeck.infographicCompletedAt ?? null,
-      },
-      audio: {
-        status: (latestDeck.audioStatus as string | null) ?? null,
-        url: latestDeck.audioUrl ?? null,
-        error: latestDeck.audioError ?? null,
-        completedAt: latestDeck.audioCompletedAt ?? null,
-      },
-      report: {
-        status: (latestDeck.reportStatus as string | null) ?? null,
-        url: null,
-        error: latestDeck.reportError ?? null,
-        completedAt: latestDeck.reportCompletedAt ?? null,
-        markdown: latestDeck.reportMarkdown ?? null,
-      },
-    };
-
     return NextResponse.json({
       hasDeck: true,
       deck: {
@@ -190,9 +141,7 @@ export async function GET(
         ageMinutes,
         isStale,
       },
-      // Phase 8: per-artifact block (D-15, D-16)
-      artifacts,
-      // Convenience flags for UI (unchanged)
+      // Convenience flags for UI
       isPending: latestDeck.status === "pending",
       isProcessing: latestDeck.status === "processing",
       isCompleted: latestDeck.status === "completed",
