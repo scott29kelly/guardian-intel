@@ -117,7 +117,7 @@ export function ArtifactViewerModal({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-4xl max-h-[calc(100vh-2rem)] bg-surface-primary rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
+            className="relative w-full max-w-4xl h-[calc(100vh-2rem)] bg-surface-primary rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -134,7 +134,7 @@ export function ArtifactViewerModal({
             </div>
 
             {/* Content: type-appropriate rendering */}
-            <div className="flex-1 overflow-hidden p-4">
+            <div className="flex-1 min-h-0 overflow-hidden p-4">
               {renderContent(artifactType, artifactState, customerName)}
             </div>
           </motion.div>
