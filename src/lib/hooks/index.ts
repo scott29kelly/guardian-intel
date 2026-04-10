@@ -32,3 +32,6 @@ export * from "./use-decks";
 
 // Performance Hooks
 export * from "./use-debounce";
+
+// Multi-Artifact
+export * from "./use-customer-artifacts";
