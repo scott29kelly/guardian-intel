@@ -1,87 +1,68 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: "Milestone: NotebookLM Multi-Artifact + UI Loops"
-status: executing
-last_updated: "2026-04-10T14:11:08.742Z"
-last_activity: 2026-04-10
+milestone: v1.0
+milestone_name: milestone
+status: Phase 07 complete
+last_updated: "2026-04-07T23:59:00.000Z"
 progress:
-  total_phases: 11
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 19
+  completed_plans: 19
   percent: 100
 ---
 
-# Project State: Guardian Intel — NotebookLM Multi-Artifact + UI Loops
+# Project State: Infographic Generator
 
 ## Project Reference
 
-**Core Value:** Reps get actionable, multi-format briefings in one tap — zero configuration, background processing, push notifications
-**Current Focus:** Phase 08 — multi-artifact-backend
+**Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
+**Current Focus:** v1.0 milestone complete — Phase 07 closed out
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
-Status: Executing Phase 08
-Last activity: 2026-04-10
-
-### v1.1 Phase Summary
-
-| Phase | Name | Requirements | Status |
-|-------|------|--------------|--------|
-| 8 | Multi-Artifact Backend | NLMA-01..06 | Not started |
-| 9 | Multi-Artifact UI | NLMA-07..11 | Not started |
-| 10 | Push Notification Flow | NLMA-12..15 | Not started |
-| 11 | Testing | NLMA-16..17 | Not started |
-| 12 | Proposals UI (Stretch) | NLMA-18 | Not started — optional |
-
-### v1.0 Completion Record (archived for context)
-
 Phase: 07 (cleanup-data-integrity-bugs-security-hardening-and-notebookl) — COMPLETE (3 of 3 plans)
-
 - Plan 07-01 (Tier 1 data integrity): D-01, D-02, D-03 — committed `c8ce061`, `18ace6c`, `e27a81e`
 - Plan 07-02 (Tier 2 security hardening): D-04, D-05 — committed `d2fd39e`; D-06 deferred — documented in `5f2cf5a` (see Discovered TODOs)
 - Plan 07-03 (Tier 4 NotebookLM operational hardening): D-07, D-08, D-09 — committed `5f90de7`
 
-### Phase 8 Context (ready-to-plan)
+### Phase 1 Context
 
-Backend orchestration for multi-artifact generation is a hard prerequisite for all downstream v1.1 phases. Key reference points in the existing codebase:
-
-- `src/lib/services/notebooklm/index.ts` — four generators at lines 186, 301, 438, 537; `generateCustomerDeck` pattern at line 658 is the closest analog to what `generateCustomerArtifacts` should look like
-- `src/lib/services/deck-processing.ts` — existing stuck-job sweep (`recoverStuckDecks`, Phase 7 D-07), storage upload pattern, push notification firing pattern
-- `src/app/api/decks/process-now/route.ts` — fire-and-forget background route pattern to copy for `/api/ai/generate-customer-artifacts`
-- `src/app/api/decks/status/[customerId]/route.ts` — status polling route to generalize for per-artifact polling
-- `prisma/schema.prisma` — `ScheduledDeck` model; extend with per-artifact status/URL fields or partner with a new `ScheduledArtifactSet` table (decide in plan phase)
-- `assertCustomerAccess` helper (Phase 7 D-04) — must wrap the new route
-- `recoverStuckDecks` (Phase 7 D-07) — generalize to per-artifact state while preserving already-completed artifacts in the same job
+- INFOG-001 through INFOG-005 already exist as untracked/modified files
+- This phase is verification + commit, not building from scratch
+- Goal: confirmed baseline that downstream phases can depend on
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 0 (v1.1) |
+| Plans completed | 0 |
 | Plans failed | 0 |
 | Nodes repaired | 0 |
-| Phases completed | 0/5 (v1.1) |
-
-_(v1.0 plan timings archived — see git history and prior STATE.md snapshots)_
+| Phases completed | 0/6 |
+| Phase 01 P01 | 3min | 3 tasks | 3 files |
+| Phase 01 P02 | 62s | 3 tasks | 3 files |
+| Phase 02 P02 | 134s | 2 tasks | 2 files |
+| Phase 02 P01 | 2min | 1 tasks | 2 files |
+| Phase 03 P01 | 2min | 2 tasks | 5 files |
+| Phase 03 P02 | 88s | 1 tasks | 2 files |
+| Phase 04 P01 | 53s | 1 tasks | 1 files |
+| Phase 04 P02 | 65s | 1 tasks | 1 files |
+| Phase 04 P03 | 109s | 2 tasks | 4 files |
+| Phase 05 P01 | 97s | 2 tasks | 4 files |
+| Phase 05 P02 | 146s | 2 tasks | 4 files |
+| Phase 05 P03 | 96s | 2 tasks | 2 files |
+| Phase 05 P04 | 120s | 2 tasks | 4 files |
+| Phase 06 P01 | 173s | 3 tasks | 3 files |
+| Phase 06 P02 | 58s | 1 tasks | 2 files |
+| Phase 06 P03 | 217s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
-### Key Decisions (v1.1)
-
-- **Phase structure: 5 phases (4 primary + 1 stretch).** Derived from natural v1.1 dependency ordering: backend → UI → push → testing → stretch. Backend is the hard prerequisite; UI and push both depend on it; testing waits for everything. Stretch (Proposals UI) is independent of the artifact pipeline and only attempted under budget.
-- **Phase 10 (Push) split from Phase 9 (UI).** Push wiring touches different files (`layout.tsx`, `push-notification-prompt.tsx`, `public/sw.js`, `deck-processing.ts`) from the artifacts panel components. Splitting keeps each phase coherent and avoids coupling component work to service worker debugging.
-- **Testing phase comes last (Phase 11).** E2E flow requires backend + UI + push all wired before the full test can run. Unit tests are in the same phase to keep test work consolidated rather than scattered per-phase.
-- **Phase 12 is explicitly flagged stretch.** `NLMA-18` (Proposals UI) does not block v1.1 milestone completion — primary scope is Phases 8-11.
-- **Prisma decision deferred to planning.** Whether to extend `ScheduledDeck` with per-artifact fields or introduce a new `ScheduledArtifactSet` table is left for the Phase 8 plan-check. Both options were noted in NLMA-01.
-
-### Key Decisions (v1.0 archived)
+### Key Decisions
 
 - Phase structure compressed from 8 PRD groups to 6 phases (standard granularity)
 - Groups 0+1 merged into Phase 1 (Foundation + Model Intelligence) since code already exists
@@ -122,7 +103,6 @@ _(v1.0 plan timings archived — see git history and prior STATE.md snapshots)_
 ### Roadmap Evolution
 
 - Phase 7 added: Cleanup: data integrity bugs, security hardening, and NotebookLM operational hardening (sourced from Codex adversarial review task-mnp6gcn3-ihhwdf, 2026-04-07)
-- **v1.1 milestone added (2026-04-09):** Phases 8-12 for NotebookLM multi-artifact + UI loops + push notification flow + testing + stretch Proposals UI. 18 new requirements (NLMA-01 through NLMA-18).
 
 ### Discovered TODOs
 
@@ -146,20 +126,21 @@ _(none yet)_
 
 ### Last Session
 
-- **Date:** 2026-04-09
-- **What happened:** Created v1.1 roadmap — Phases 8-12 mapping 18 NLMA requirements (multi-artifact backend, UI, push notifications, testing, and stretch proposals UI)
-- **Where we left off:** ROADMAP.md, STATE.md, and REQUIREMENTS.md traceability updated for v1.1; no phase plans yet
-- **Next step:** Run `/gsd:plan-phase 8` to decompose Multi-Artifact Backend into executable plans
+- **Date:** 2026-03-22
+- **What happened:** Completed 06-03-PLAN.md -- unit tests for model intelligence, prompt composer, intent parser + E2E specs
+- **Where we left off:** Phase 06 Plans 01, 02, and 03 complete
+- **Next step:** Phase 06 complete (if no more plans) or continue remaining plans
 
 ### Important Context for Next Session
 
-- Phase 8 is the hard prerequisite for all other v1.1 phases — no UI, push, or testing work can proceed until backend lands
-- NLM service already exposes all four generators; Phase 8 is orchestration + API + Prisma, not generation logic
-- Reuse `assertCustomerAccess` (Phase 7 D-04) on the new route
-- Generalize `recoverStuckDecks` (Phase 7 D-07) to per-artifact state without clobbering already-completed artifacts
-- Prisma decision (extend `ScheduledDeck` vs new `ScheduledArtifactSet`) deferred to Phase 8 plan-check
-- Stretch Phase 12 (Proposals UI) is optional — do not attempt unless Phases 8-11 land under budget
+- Infographic generator accessible from 3 app surfaces: customer card BRIEFING button, dashboard Prep My Day, profile modal tab
+- Customer card follows exact same pattern as PREP DECK / DeckGeneratorModal
+- Dashboard batch uses useInfographicBatch hook with BatchDayView
+- Profile modal has 4 quick-launch preset buttons that open generator modal
+- offlineSupport.ts provides Cache API-based PNG storage with WiFi awareness
+- sw.js updated with CacheFirst route for /infographics/cache/* URLs
 
 ---
 *State initialized: 2026-03-21*
-*Last updated: 2026-04-09 — v1.1 roadmap created (Phases 8-12)*
+*Last updated: 2026-04-07*
+*Last activity: 2026-04-07 - Completed quick task 260407-o2a: Remove stale Gemini Flash fallback comments in aiSlideGenerator.ts*

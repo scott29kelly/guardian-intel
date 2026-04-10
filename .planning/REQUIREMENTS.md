@@ -1,42 +1,7 @@
-# Requirements: Guardian Intel — Infographic Generator + NotebookLM Multi-Artifact
+# Requirements: Infographic Generator
 
-**Defined:** 2026-03-21 (v1.0), 2026-04-09 (v1.1)
-**Core Value:** Reps get actionable, multi-format briefings in one tap — zero configuration, background processing, push notifications
-
-## v1.1 Requirements — NotebookLM Multi-Artifact + UI Loops
-
-### Multi-Artifact Backend
-
-- [ ] **NLMA-01**: Prisma model for multi-artifact job tracking — either new `ScheduledArtifactSet` or extend `ScheduledDeck` with per-artifact status fields (`deckStatus`, `infographicStatus`, `audioStatus`, `reportStatus`) and per-artifact URLs; migrations committed
-- [ ] **NLMA-02**: `generateCustomerArtifacts({ customer, artifacts, notebookId? })` orchestrator in `src/lib/services/notebooklm/index.ts` — creates or reuses notebook, runs requested generators against single notebook, returns structured result with per-artifact outcomes
-- [ ] **NLMA-03**: POST `/api/ai/generate-customer-artifacts` route — accepts `{ customerId, artifacts: ['deck','infographic','audio','report'] }`, enforces `assertCustomerAccess` rep-ownership, creates job record, fires background processor, returns job ID immediately
-- [ ] **NLMA-04**: Per-artifact status polling — generalize `/api/decks/status/[customerId]` to return `{ deck, infographic, audio, report }` each with `{ status, url, progress, error }`
-- [ ] **NLMA-05**: Storage orchestration in `src/lib/services/deck-processing.ts` — distinct Supabase paths per artifact type (`decks/`, `infographics/`, `audio/`) and reports served inline from the `reportMarkdown` DB column (per Phase 8 D-17), with type-appropriate content-type headers for the three Supabase-backed artifacts
-- [ ] **NLMA-06**: Stuck-job recovery extended to per-artifact state — `recoverStuckDecks` updated to sweep any artifact stuck in "processing" > 15 minutes, preserving already-completed artifacts in the same job
-
-### Multi-Artifact UI
-
-- [ ] **NLMA-07**: `useCustomerArtifacts(customerId)` hook in `src/lib/hooks/` — polls per-artifact status endpoint, returns unified state with TanStack Query key factory, stops polling when all artifacts terminal
-- [ ] **NLMA-08**: `CustomerArtifactsPanel` component — 2x2 responsive grid with four artifact cards, each showing status (pending/processing/ready/failed), preview thumbnail, tap-to-open action, follows existing mobile-first bottom-sheet patterns
-- [ ] **NLMA-09**: `AudioBriefingPlayer` component — branded wrapper around `<audio controls>` with Navy/Gold/Teal palette, playback controls sized for mobile use, share action reuses `ShareSheet`
-- [ ] **NLMA-10**: `ReportViewer` component — `react-markdown` render with brand typography (Geist + palette), mobile scroll behavior, share/download actions
-- [ ] **NLMA-11**: Mount `CustomerArtifactsPanel` in customer profile modal and in `InfographicGeneratorModal` success state, wire "Generate all artifacts" action on customer card alongside existing deck/infographic buttons
-
-### Push Notification Flow
-
-- [ ] **NLMA-12**: Mount `push-notification-prompt.tsx` component in `src/app/(dashboard)/layout.tsx` with `localStorage`-gated render (prompt at most once per session, never on cold load)
-- [ ] **NLMA-13**: Trigger heuristic — prompt appears only after a rep has fired their first background generation in the session, dismissible state persists across reloads
-- [ ] **NLMA-14**: Verify `public/sw.js` push event handler surfaces toast on multi-artifact artifact-ready events, add per-artifact-type payload handling if missing
-- [ ] **NLMA-15**: Fire exactly ONE push notification per multi-artifact job when the entire job reaches terminal state — "All artifacts ready for {customerName}" on full success, "Generation finished with errors for {customerName}" if any artifact failed. Single tag `artifacts-${jobId}`, single URL `/decks?jobId=${jobId}`. **Phase 8 D-10 override**: per-artifact notifications were explicitly rejected by the user as "wearisome and annoying" — a 15-minute max wall time does not justify four separate pushes. Implementation lives in `src/lib/services/deck-processing.ts::sendArtifactJobCompletionNotification`; Phase 8 landed the implementation, Phase 10 owns the UX integration (mounting `push-notification-prompt.tsx`, session-gated trigger).
-
-### Testing
-
-- [ ] **NLMA-16**: Unit tests (Vitest) — `generateCustomerArtifacts` orchestrator logic, per-artifact stuck-job recovery edge cases, `useCustomerArtifacts` hook state transitions, audio/report component rendering
-- [ ] **NLMA-17**: E2E test (Playwright) — full flow: rep fires multi-artifact generation → background processing starts → push notification prompt appears → rep accepts → toast fires on artifact completion → `CustomerArtifactsPanel` shows all four artifacts viewable
-
-### Stretch (only if primary scope lands under budget)
-
-- [ ] **NLMA-18**: Proposals UI stretch — rep-facing "Generate proposal" button + preview + send flow on customer profile, reusing existing `src/lib/services/proposals/generator.ts` AI generation
+**Defined:** 2026-03-21
+**Core Value:** Reps get actionable visual briefings in one tap — zero configuration, quality-first, invisible intelligence
 
 ## v1 Requirements
 
@@ -149,31 +114,12 @@
 | INFOG-027 | Phase 6 | Pending |
 | INFOG-028 | Phase 6 | Complete |
 | INFOG-029 | Phase 6 | Complete |
-| NLMA-01 | Phase 8 | Pending |
-| NLMA-02 | Phase 8 | Pending |
-| NLMA-03 | Phase 8 | Pending |
-| NLMA-04 | Phase 8 | Pending |
-| NLMA-05 | Phase 8 | Pending |
-| NLMA-06 | Phase 8 | Pending |
-| NLMA-07 | Phase 9 | Pending |
-| NLMA-08 | Phase 9 | Pending |
-| NLMA-09 | Phase 9 | Pending |
-| NLMA-10 | Phase 9 | Pending |
-| NLMA-11 | Phase 9 | Pending |
-| NLMA-12 | Phase 10 | Pending |
-| NLMA-13 | Phase 10 | Pending |
-| NLMA-14 | Phase 10 | Pending |
-| NLMA-15 | Phase 10 | Pending |
-| NLMA-16 | Phase 11 | Pending |
-| NLMA-17 | Phase 11 | Pending |
-| NLMA-18 | Phase 12 (Stretch) | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total, 29 mapped (complete)
-- v1.1 requirements: 18 total, 18 mapped (0 complete)
-- Total mapped: 47/47
+- v1 requirements: 29 total
+- Mapped to phases: 29
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-04-09 — v1.1 NotebookLM Multi-Artifact requirements (NLMA-01..18) added and mapped to Phases 8-12*
+*Last updated: 2026-03-21 after roadmap phase compression (8 -> 6 phases)*

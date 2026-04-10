@@ -11,20 +11,16 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import {
-  generateCustomerArtifacts,
-  healthCheck,
+  generateCustomerDeck,
+  generateCustomerInfographic,
+  generateAudio,
+  generateInfographic,
+  generateReport,
   deleteNotebook,
+  healthCheck,
 } from "@/lib/services/notebooklm/index";
-import type {
-  CustomerDeckRequest,
-  ArtifactOutcome,
-} from "@/lib/services/notebooklm/index";
-import type {
-  ArtifactStatus,
-  ArtifactType,
-} from "@/lib/services/notebooklm/types";
+import type { CustomerDeckRequest } from "@/lib/services/notebooklm/index";
 import {
   formatCustomerDataForNotebook,
   formatWeatherHistoryForNotebook,
@@ -79,126 +75,26 @@ export async function recoverStuckDecks(
   staleMinutes: number = DEFAULT_STALE_MINUTES,
 ): Promise<number> {
   const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
-  const now = new Date();
-  const stallError = "Artifact stalled — recovered by stuck-job sweep";
-  let totalRecovered = 0;
 
-  // D-20: per-artifact sweep. Four separate updateMany calls, one per type.
-  // Because the orchestrator is sequential, at most one artifact per job is
-  // in 'processing' state at any moment. Only the stalled artifact's three
-  // columns flip; sibling completed/ready artifacts in the same row stay
-  // untouched.
-  //
-  // D-21: threshold compares against row updatedAt (not createdAt). Every
-  // per-artifact transition bumps updatedAt, so a healthy sequential job
-  // where each artifact takes ~8 minutes stays out of the sweep.
-
-  // Deck sweep
-  const deckResult = await prisma.scheduledDeck.updateMany({
+  const result = await prisma.scheduledDeck.updateMany({
     where: {
-      deckStatus: "processing",
+      status: "processing",
       updatedAt: { lt: cutoff },
     },
     data: {
-      deckStatus: "failed",
-      deckError: stallError,
-      deckCompletedAt: now,
+      status: "failed",
+      errorMessage: "Job stalled — recovered by stuck-job sweep",
+      completedAt: new Date(),
     },
   });
-  totalRecovered += deckResult.count;
 
-  // Infographic sweep
-  const infographicResult = await prisma.scheduledDeck.updateMany({
-    where: {
-      infographicStatus: "processing",
-      updatedAt: { lt: cutoff },
-    },
-    data: {
-      infographicStatus: "failed",
-      infographicError: stallError,
-      infographicCompletedAt: now,
-    },
-  });
-  totalRecovered += infographicResult.count;
-
-  // Audio sweep
-  const audioResult = await prisma.scheduledDeck.updateMany({
-    where: {
-      audioStatus: "processing",
-      updatedAt: { lt: cutoff },
-    },
-    data: {
-      audioStatus: "failed",
-      audioError: stallError,
-      audioCompletedAt: now,
-    },
-  });
-  totalRecovered += audioResult.count;
-
-  // Report sweep
-  const reportResult = await prisma.scheduledDeck.updateMany({
-    where: {
-      reportStatus: "processing",
-      updatedAt: { lt: cutoff },
-    },
-    data: {
-      reportStatus: "failed",
-      reportError: stallError,
-      reportCompletedAt: now,
-    },
-  });
-  totalRecovered += reportResult.count;
-
-  if (totalRecovered > 0) {
+  if (result.count > 0) {
     console.warn(
-      `[DeckProcessing] Recovered ${totalRecovered} stuck artifact(s) older than ${staleMinutes} minutes ` +
-        `(deck=${deckResult.count}, infographic=${infographicResult.count}, audio=${audioResult.count}, report=${reportResult.count})`,
+      `[DeckProcessing] Recovered ${result.count} stuck deck(s) older than ${staleMinutes} minutes`,
     );
   }
 
-  // D-22: best-effort NotebookLM-side cleanup. Find rows where all per-artifact
-  // statuses are terminal (ready/failed/skipped/null) AND notebookId is still set,
-  // then attempt deleteNotebook for each. Failures are logged but never block.
-  //
-  // "Terminal" here means: NOT 'pending' and NOT 'processing'. A null value
-  // counts as terminal (artifact was never requested or was skipped).
-  try {
-    const orphanCandidates = await prisma.scheduledDeck.findMany({
-      where: {
-        notebookId: { not: null },
-        AND: [
-          { deckStatus: { notIn: ["pending", "processing"] } },
-          { infographicStatus: { notIn: ["pending", "processing"] } },
-          { audioStatus: { notIn: ["pending", "processing"] } },
-          { reportStatus: { notIn: ["pending", "processing"] } },
-        ],
-      },
-      select: { id: true, notebookId: true },
-      take: 20, // bound the sweep cost on every status poll
-    });
-
-    for (const candidate of orphanCandidates) {
-      if (!candidate.notebookId) continue;
-      try {
-        await deleteNotebook(candidate.notebookId);
-        await prisma.scheduledDeck.update({
-          where: { id: candidate.id },
-          data: { notebookId: null },
-        });
-        console.log(`[DeckProcessing] Cleaned up orphaned notebook ${candidate.notebookId} for job ${candidate.id}`);
-      } catch (cleanupErr) {
-        console.warn(
-          `[DeckProcessing] Failed to clean up orphaned notebook ${candidate.notebookId} for job ${candidate.id}:`,
-          cleanupErr,
-        );
-      }
-    }
-  } catch (orphanErr) {
-    // Orphan query failure must never block the sweep — log and continue
-    console.warn("[DeckProcessing] Orphan notebook query failed (non-fatal):", orphanErr);
-  }
-
-  return totalRecovered;
+  return result.count;
 }
 
 /** Guardian Roofing notebook persona — shapes all artifacts from the notebook */
@@ -219,8 +115,7 @@ When creating content:
 // =============================================================================
 
 async function uploadToSupabase(
-  jobId: string,
-  prefix: "decks" | "infographics" | "audio",
+  deckId: string,
   filePath: string,
   storageName: string,
   contentType: string,
@@ -233,7 +128,7 @@ async function uploadToSupabase(
     const { createClient } = await import("@supabase/supabase-js");
     const supabase = createClient(supabaseUrl, supabaseKey);
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
-    const path = `${prefix}/${jobId}/${storageName}`;
+    const path = `decks/${deckId}/${storageName}`;
 
     const buffer = await fs.readFile(filePath);
     const { error: uploadError } = await supabase.storage
@@ -393,157 +288,251 @@ export async function processDeckWithNotebookLM(
       artifactConfigs,
     };
 
-    // Step 4: Build requestedArtifacts list in ArtifactType format.
-    // The DB column uses legacy "slide-deck" naming, but the orchestrator
-    // uses the clean ArtifactType union ("deck" | "infographic" | "audio" | "report").
-    // Map legacy → canonical here.
-    const legacyRequestedArtifacts: string[] = deck.requestedArtifacts || ["slide-deck"];
-    const typeMap: Record<string, ArtifactType> = {
-      "slide-deck": "deck",
-      "deck": "deck",
-      "infographic": "infographic",
-      "audio": "audio",
-      "report": "report",
-    };
-    const requestedTypes: ArtifactType[] = Array.from(
-      new Set(
-        legacyRequestedArtifacts
-          .map((t) => typeMap[t])
-          .filter((t): t is ArtifactType => !!t),
-      ),
-    );
+    // Step 4: Branch on requestedArtifacts
+    const requestedArtifacts: string[] = deck.requestedArtifacts || ["slide-deck"];
+    const needsSlideDeck = requestedArtifacts.includes("slide-deck");
 
-    if (requestedTypes.length === 0) {
-      throw new Error(
-        `No valid artifact types in requestedArtifacts: ${JSON.stringify(legacyRequestedArtifacts)}`,
+    // =========================================================================
+    // INFOGRAPHIC-ONLY PATH (no slide deck)
+    // =========================================================================
+    if (!needsSlideDeck) {
+      console.log(`[DeckProcessing] Infographic-only path for ${deck.customerName}`);
+      const infographicConfig = artifactConfigs.find((c: { type: string }) => c.type === "infographic");
+
+      const infoResult = await generateCustomerInfographic(deckRequest, {
+        orientation: infographicConfig?.orientation,
+        detail: infographicConfig?.detail,
+      });
+
+      if (!infoResult.success || !infoResult.outputPath) {
+        throw new Error(infoResult.error || "Infographic generation failed");
+      }
+
+      const uploaded = await uploadToSupabase(
+        deckId,
+        infoResult.outputPath,
+        `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
+        "image/png",
       );
+
+      fs.unlink(infoResult.outputPath).catch(() => {});
+
+      const processingTimeMs = Date.now() - startTime;
+      await prisma.scheduledDeck.update({
+        where: { id: deckId },
+        data: {
+          status: "completed",
+          infographicUrl: uploaded.url,
+          ...(uploaded.storagePath ? { infographicStoragePath: uploaded.storagePath } : {}),
+          resultPayload: JSON.stringify({ infographicOnly: true, infographicUrl: uploaded.url }),
+          completedAt: new Date(),
+          processingTimeMs,
+        },
+      });
+
+      // Cache the result for fast retrieval on repeat requests
+      if (uploaded.url && deck.templateId) {
+        const presetId = deck.templateId.replace(/^infographic-/, "");
+        cacheInfographic(
+          {
+            customerId: deck.customerId,
+            presetId,
+            imageUrl: uploaded.url,
+            generatedAt: new Date(),
+            expiresAt: new Date(Date.now() + 86400000),
+            pipeline: "notebooklm",
+          },
+          audience,
+        ).catch(() => {}); // best-effort
+      }
+
+      console.log(`[DeckProcessing] Infographic-only completed for ${deck.customerName} in ${processingTimeMs}ms`);
+      await sendDeckCompletionNotification(deck.requestedById, deck.customerName, deckId);
+      return { success: true, deckId, processingTimeMs };
     }
 
-    // Step 5: Delegate to the multi-artifact orchestrator (D-09 — no code duplication)
-    const orchestrationResult = await generateCustomerArtifacts({
-      jobId: deckId,
-      customerName: deck.customerName,
-      requestedArtifacts: requestedTypes,
-      deckRequest,
-    });
+    // =========================================================================
+    // SLIDE DECK PATH (existing)
+    // =========================================================================
+    console.log(`[DeckProcessing] Calling NotebookLM for ${deck.customerName}...`);
+    const result = await generateCustomerDeck(deckRequest);
 
-    if (orchestrationResult.aborted) {
-      throw new Error(orchestrationResult.abortReason || "Orchestration aborted");
+    if (!result.success || !result.outputPath) {
+      throw new Error(result.error || "NotebookLM generation failed");
     }
 
-    // Step 6: Upload artifacts + write per-artifact URL/status/completedAt columns
-    const now = new Date();
-    const updateData: Record<string, unknown> = {};
+    // Step 5: Convert PDF to slide images
+    console.log(`[DeckProcessing] Converting PDF to images from: ${result.outputPath}`);
     let slideImages: string[] = [];
     let pdfData: string | undefined;
+
+    try {
+      slideImages = await pdfToImages(result.outputPath);
+      console.log(`[DeckProcessing] Converted ${slideImages.length} slide images`);
+    } catch (conversionError) {
+      console.error("[DeckProcessing] PDF-to-image conversion failed:", conversionError);
+      console.error("[DeckProcessing] PDF path preserved for debugging:", result.outputPath);
+      const pdfBuffer = await fs.readFile(result.outputPath);
+      pdfData = pdfBuffer.toString("base64");
+      console.log(`[DeckProcessing] Stored PDF as base64 fallback (${Math.round(pdfBuffer.length / 1024)}KB)`);
+    }
+
+    // Step 6: Upload PDF to Supabase Storage (if configured)
     let pdfUrl: string | undefined;
-    let anyFailed = false;
+    let pdfStoragePath: string | undefined;
 
-    for (const outcome of orchestrationResult.outcomes as ArtifactOutcome[]) {
-      const completedAtKey = `${outcome.type}CompletedAt`;
-      const statusKey = `${outcome.type}Status`;
-      const errorKey = `${outcome.type}Error`;
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-      if (outcome.status === "failed") {
-        anyFailed = true;
-        updateData[statusKey] = "failed" as ArtifactStatus;
-        updateData[errorKey] = outcome.error ?? "Unknown error";
-        updateData[completedAtKey] = now;
-        continue;
-      }
+      if (supabaseUrl && supabaseKey) {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
+        const storagePath = `decks/${deckId}/${deck.customerName.replace(/\s+/g, "-")}.pdf`;
 
-      // status === 'ready' (skipped outcomes are not emitted by the orchestrator,
-      // so any non-failed outcome here is terminal-success)
-      updateData[statusKey] = "ready" as ArtifactStatus;
-      updateData[errorKey] = null;
-      updateData[completedAtKey] = now;
+        const pdfBuffer = await fs.readFile(result.outputPath);
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(storagePath, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
 
-      if (outcome.type === "deck" && outcome.outputPath) {
-        // Convert PDF to slide images + upload PDF to Supabase under 'decks/' prefix
-        try {
-          slideImages = await pdfToImages(outcome.outputPath);
-          console.log(`[DeckProcessing] Converted ${slideImages.length} slide images`);
-        } catch (conversionError) {
-          console.error("[DeckProcessing] PDF-to-image conversion failed:", conversionError);
-          const pdfBuffer = await fs.readFile(outcome.outputPath);
-          pdfData = pdfBuffer.toString("base64");
-          console.log(
-            `[DeckProcessing] Stored PDF as base64 fallback (${Math.round(pdfBuffer.length / 1024)}KB)`,
-          );
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(storagePath);
+          pdfUrl = urlData.publicUrl;
+          pdfStoragePath = storagePath;
+          console.log(`[DeckProcessing] PDF uploaded to: ${pdfUrl}`);
+        } else {
+          console.warn("[DeckProcessing] PDF upload failed:", uploadError.message);
         }
-        const uploaded = await uploadToSupabase(
-          deckId,
-          "decks",
-          outcome.outputPath,
-          `${deck.customerName.replace(/\s+/g, "-")}.pdf`,
-          "application/pdf",
-        );
-        pdfUrl = uploaded.url;
-        if (uploaded.url) updateData.pdfUrl = uploaded.url;
-        if (uploaded.storagePath) updateData.pdfStoragePath = uploaded.storagePath;
-        if (slideImages.length > 0) fs.unlink(outcome.outputPath).catch(() => {});
-      } else if (outcome.type === "infographic" && outcome.outputPath) {
-        const uploaded = await uploadToSupabase(
-          deckId,
-          "infographics",
-          outcome.outputPath,
-          `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
-          "image/png",
-        );
-        if (uploaded.url) updateData.infographicUrl = uploaded.url;
-        if (uploaded.storagePath) updateData.infographicStoragePath = uploaded.storagePath;
-        fs.unlink(outcome.outputPath).catch(() => {});
-      } else if (outcome.type === "audio" && outcome.outputPath) {
-        const uploaded = await uploadToSupabase(
-          deckId,
-          "audio",
-          outcome.outputPath,
-          `${deck.customerName.replace(/\s+/g, "-")}-audio.mp3`,
-          "audio/mpeg",
-        );
-        if (uploaded.url) updateData.audioUrl = uploaded.url;
-        if (uploaded.storagePath) updateData.audioStoragePath = uploaded.storagePath;
-        fs.unlink(outcome.outputPath).catch(() => {});
-      } else if (outcome.type === "report" && outcome.markdown) {
-        // D-17: report stays inline in reportMarkdown column
-        updateData.reportMarkdown = outcome.markdown;
+      }
+    } catch (uploadErr) {
+      console.warn("[DeckProcessing] Supabase upload error:", uploadErr);
+    }
+
+    // Clean up temp PDF (only if images were extracted successfully)
+    if (slideImages.length > 0) {
+      fs.unlink(result.outputPath).catch(() => {});
+    } else {
+      console.log(`[DeckProcessing] Keeping PDF for debugging: ${result.outputPath}`);
+    }
+
+    // =========================================================================
+    // Step 6b: Generate additional requested artifacts (reuse the same notebook)
+    // =========================================================================
+    const notebookId = result.notebookId;
+    let audioUrl: string | undefined;
+    let audioStoragePath: string | undefined;
+    let infographicUrl: string | undefined;
+    let infographicStoragePath: string | undefined;
+    let reportMarkdown: string | undefined;
+
+    if (notebookId && artifactConfigs.length > 0) {
+      // Multi-artifact path: generate additional artifacts, then clean up notebook
+      console.log(`[DeckProcessing] Processing ${artifactConfigs.length} additional artifact configs...`);
+
+      // Generate audio if requested
+      const audioConfig = artifactConfigs.find((c: { type: string }) => c.type === "audio");
+      if (audioConfig) {
+        console.log(`[DeckProcessing] Generating audio briefing...`);
+        try {
+          const audioResult = await generateAudio(notebookId, {
+            instructions: audioConfig.description,
+            format: audioConfig.format,
+            length: audioConfig.length,
+          });
+          if (audioResult.success && audioResult.outputPath) {
+            const uploaded = await uploadToSupabase(
+              deckId,
+              audioResult.outputPath,
+              `${deck.customerName.replace(/\s+/g, "-")}-audio.mp3`,
+              "audio/mpeg",
+            );
+            audioUrl = uploaded.url;
+            audioStoragePath = uploaded.storagePath;
+            console.log(`[DeckProcessing] Audio uploaded: ${audioUrl || "upload skipped (no Supabase)"}`);
+            fs.unlink(audioResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Audio generation failed: ${audioResult.error}`);
+          }
+        } catch (audioErr) {
+          console.warn("[DeckProcessing] Audio generation error:", audioErr);
+        }
+      }
+
+      // Generate infographic if requested
+      const infographicConfig = artifactConfigs.find((c: { type: string }) => c.type === "infographic");
+      if (infographicConfig) {
+        console.log(`[DeckProcessing] Generating infographic...`);
+        try {
+          const infoResult = await generateInfographic(notebookId, {
+            instructions: infographicConfig.description,
+            orientation: infographicConfig.orientation as "landscape" | "portrait" | "square" | undefined,
+            detail: infographicConfig.detail as "brief" | "standard" | "detailed" | undefined,
+          });
+          if (infoResult.success && infoResult.outputPath) {
+            const uploaded = await uploadToSupabase(
+              deckId,
+              infoResult.outputPath,
+              `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
+              "image/png",
+            );
+            infographicUrl = uploaded.url;
+            infographicStoragePath = uploaded.storagePath;
+            console.log(`[DeckProcessing] Infographic uploaded: ${infographicUrl || "upload skipped (no Supabase)"}`);
+            fs.unlink(infoResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Infographic generation failed: ${infoResult.error}`);
+          }
+        } catch (infoErr) {
+          console.warn("[DeckProcessing] Infographic generation error:", infoErr);
+        }
+      }
+
+      // Generate report if requested
+      const reportConfig = artifactConfigs.find((c: { type: string }) => c.type === "report");
+      if (reportConfig) {
+        console.log(`[DeckProcessing] Generating written report...`);
+        try {
+          const reportResult = await generateReport(notebookId, {
+            format: reportConfig.format,
+            appendInstructions: reportConfig.appendInstructions,
+            description: reportConfig.description,
+          });
+          if (reportResult.success && reportResult.outputPath) {
+            reportMarkdown = await fs.readFile(reportResult.outputPath, "utf-8");
+            console.log(`[DeckProcessing] Report generated (${reportMarkdown.length} chars)`);
+            fs.unlink(reportResult.outputPath).catch(() => {});
+          } else {
+            console.warn(`[DeckProcessing] Report generation failed: ${reportResult.error}`);
+          }
+        } catch (reportErr) {
+          console.warn("[DeckProcessing] Report generation error:", reportErr);
+        }
+      }
+
+      // Clean up the notebook now that all artifacts are generated
+      try {
+        await deleteNotebook(notebookId);
+        console.log(`[DeckProcessing] Cleaned up notebook ${notebookId}`);
+      } catch {
+        console.warn(`[DeckProcessing] Failed to clean up notebook ${notebookId}`);
+      }
+    } else if (notebookId) {
+      // No additional artifacts requested — clean up notebook from slide deck generation
+      try {
+        await deleteNotebook(notebookId);
+        console.log(`[DeckProcessing] Cleaned up notebook ${notebookId}`);
+      } catch {
+        console.warn(`[DeckProcessing] Failed to clean up notebook ${notebookId}`);
       }
     }
 
-    // Mark unrequested artifacts as 'skipped'
-    const allTypes: ArtifactType[] = ["deck", "infographic", "audio", "report"];
-    for (const type of allTypes) {
-      if (!requestedTypes.includes(type)) {
-        updateData[`${type}Status`] = "skipped" as ArtifactStatus;
-      }
-    }
-
-    // Best-effort: cache infographic result for fast retrieval on repeat requests
-    // (preserves the pre-refactor infographic-only cache behavior)
-    if (
-      requestedTypes.includes("infographic") &&
-      !requestedTypes.includes("deck") &&
-      typeof updateData.infographicUrl === "string" &&
-      deck.templateId
-    ) {
-      const presetId = deck.templateId.replace(/^infographic-/, "");
-      cacheInfographic(
-        {
-          customerId: deck.customerId,
-          presetId,
-          imageUrl: updateData.infographicUrl,
-          generatedAt: new Date(),
-          expiresAt: new Date(Date.now() + 86400000),
-          pipeline: "notebooklm",
-        },
-        audience,
-      ).catch(() => {}); // best-effort
-    }
-
-    // D-02: derive top-level status from per-artifact rollup
-    const derivedStatus: string = anyFailed ? "failed" : "completed";
-
-    // Step 7: Build resultPayload (backward-compatible for existing UI callers)
+    // Step 7: Build result payload
     const processingTimeMs = Date.now() - startTime;
     const resultPayload = {
       id: deckId,
@@ -560,10 +549,12 @@ export async function processDeckWithNotebookLM(
         generatedAt: new Date().toISOString(),
       })),
       // Only embed pdfData in resultPayload if Supabase upload failed (no pdfUrl).
+      // Otherwise the DB row balloons to 10MB+ and every status poll transfers it.
       ...(pdfData && !pdfUrl ? { pdfData } : {}),
-      ...(updateData.audioUrl ? { audioUrl: updateData.audioUrl } : {}),
-      ...(updateData.infographicUrl ? { infographicUrl: updateData.infographicUrl } : {}),
-      ...(updateData.reportMarkdown ? { reportMarkdown: updateData.reportMarkdown } : {}),
+      // Multi-artifact URLs (included in payload so DeckPreview can render them)
+      ...(audioUrl ? { audioUrl } : {}),
+      ...(infographicUrl ? { infographicUrl } : {}),
+      ...(reportMarkdown ? { reportMarkdown } : {}),
       metadata: {
         totalSlides: slideImages.length,
         generationTimeMs: processingTimeMs,
@@ -572,42 +563,32 @@ export async function processDeckWithNotebookLM(
       },
     };
 
-    // Step 8: Single atomic DB update — per-artifact columns + top-level rollup.
-    //
-    // The `as Prisma.ScheduledDeckUpdateInput` cast is type-safe: every key in
-    // `updateData` is either a literal Prisma column name or a computed key of
-    // the shape `${ArtifactType}Status|Error|CompletedAt`. Because `ArtifactType`
-    // is a closed union derived from the TypeScript type system (no user input
-    // reaches the key), each computed key is guaranteed at compile-time to be a
-    // valid ScheduledDeck column.
+    // Step 8: Update ScheduledDeck with all artifact URLs
     await prisma.scheduledDeck.update({
       where: { id: deckId },
       data: {
-        ...updateData,
-        status: derivedStatus,
+        status: "completed",
         resultPayload: JSON.stringify(resultPayload),
-        completedAt: now,
+        completedAt: new Date(),
         actualSlides: slideImages.length,
         processingTimeMs,
-      } as Prisma.ScheduledDeckUpdateInput,
+        ...(pdfUrl ? { pdfUrl } : {}),
+        ...(pdfStoragePath ? { pdfStoragePath } : {}),
+        ...(audioUrl ? { audioUrl } : {}),
+        ...(audioStoragePath ? { audioStoragePath } : {}),
+        ...(infographicUrl ? { infographicUrl } : {}),
+        ...(infographicStoragePath ? { infographicStoragePath } : {}),
+        ...(reportMarkdown ? { reportMarkdown } : {}),
+      },
     });
 
-    console.log(
-      `[DeckProcessing] Completed job ${deckId} in ${processingTimeMs}ms — status=${derivedStatus}, outcomes: ${orchestrationResult.outcomes
-        .map((o) => `${o.type}=${o.status}`)
-        .join(", ")}`,
-    );
+    console.log(`[DeckProcessing] Completed deck ${deckId} in ${processingTimeMs}ms (${slideImages.length} slides)`);
 
-    // Step 9: Single push notification per job (D-10 — overrides NLMA-15 + Phase 10 SC#4)
-    await sendArtifactJobCompletionNotification(
-      deck.requestedById,
-      deck.customerName,
-      deckId,
-      anyFailed,
-    );
+    // Step 9: Send push notification
+    await sendDeckCompletionNotification(deck.requestedById, deck.customerName, deckId);
 
     return {
-      success: !anyFailed,
+      success: true,
       deckId,
       slideCount: slideImages.length,
       processingTimeMs,
@@ -631,13 +612,8 @@ export async function processDeckWithNotebookLM(
       },
     });
 
-    // Notify user of failure — single notification per job (D-10)
-    await sendArtifactJobCompletionNotification(
-      deck.requestedById,
-      deck.customerName,
-      deckId,
-      true, // hasFailures
-    );
+    // Notify user of failure
+    await sendDeckFailureNotification(deck.requestedById, deck.customerName, deckId);
 
     return { success: false, deckId, error: errorMessage };
   }
@@ -723,29 +699,14 @@ QUALITY REQUIREMENTS:
 // NOTIFICATIONS
 // =============================================================================
 
-/**
- * Send ONE push notification per multi-artifact job (D-10).
- *
- * Overrides NLMA-15 and Phase 10 Success Criterion #4. Per user decision,
- * per-artifact notifications are "wearisome and annoying" — a 15-minute
- * max wall time does not justify four separate pushes. One push per job.
- *
- * @param hasFailures - true if ANY artifact in the job failed; controls copy
- */
-async function sendArtifactJobCompletionNotification(
+async function sendDeckCompletionNotification(
   userId: string,
   customerName: string,
-  jobId: string,
-  hasFailures: boolean,
+  deckId: string
 ): Promise<void> {
   try {
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const apiKey = process.env.INTERNAL_API_KEY;
-
-    const title = hasFailures ? "Generation Finished with Errors" : "Artifacts Ready";
-    const body = hasFailures
-      ? `Generation finished with errors for ${customerName}. Tap to review.`
-      : `All artifacts ready for ${customerName}.`;
 
     await fetch(`${baseUrl}/api/notifications/send`, {
       method: "POST",
@@ -755,13 +716,13 @@ async function sendArtifactJobCompletionNotification(
       },
       body: JSON.stringify({
         payload: {
-          title,
-          body,
-          tag: `artifacts-${jobId}`,
+          title: "Deck Ready",
+          body: `Your deck for ${customerName} is ready to view.`,
+          tag: `deck-${deckId}`,
           data: {
             type: "deal",
-            url: `/decks?jobId=${jobId}`,
-            entityId: jobId,
+            url: `/decks?deckId=${deckId}`,
+            entityId: deckId,
           },
         },
         userIds: [userId],
@@ -769,6 +730,41 @@ async function sendArtifactJobCompletionNotification(
       }),
     });
   } catch (err) {
-    console.warn("[DeckProcessing] Failed to send artifact job notification:", err);
+    console.warn("[DeckProcessing] Failed to send completion notification:", err);
+  }
+}
+
+async function sendDeckFailureNotification(
+  userId: string,
+  customerName: string,
+  deckId: string
+): Promise<void> {
+  try {
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const apiKey = process.env.INTERNAL_API_KEY;
+
+    await fetch(`${baseUrl}/api/notifications/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(apiKey ? { "x-api-key": apiKey } : {}),
+      },
+      body: JSON.stringify({
+        payload: {
+          title: "Deck Generation Failed",
+          body: `The deck for ${customerName} could not be generated. You can retry from the deck panel.`,
+          tag: `deck-${deckId}`,
+          data: {
+            type: "deal",
+            url: `/decks?deckId=${deckId}`,
+            entityId: deckId,
+          },
+        },
+        userIds: [userId],
+        type: "specific",
+      }),
+    });
+  } catch (err) {
+    console.warn("[DeckProcessing] Failed to send failure notification:", err);
   }
 }
