@@ -16,6 +16,8 @@ import type {
   InfographicOptions,
   GenerateResult,
   NotebookLMError,
+  ArtifactStatus,
+  ArtifactType,
 } from "./types";
 import * as path from "path";
 import * as os from "os";
@@ -625,6 +627,60 @@ export async function generateReport(
 
   console.log(`[NotebookLM] Report saved to: ${outputPath}`);
   return { success: true, outputPath };
+}
+
+// =============================================================================
+// MULTI-ARTIFACT ORCHESTRATOR (Phase 8, D-06/D-07/D-08)
+// =============================================================================
+
+/**
+ * Per-artifact result block returned by generateCustomerArtifacts.
+ *
+ * - `status`      — terminal state: 'ready' | 'failed' | 'skipped'
+ * - `outputPath?` — local temp file path for non-report artifacts (caller uploads + unlinks)
+ * - `markdown?`   — inline content for reports (D-17 — reports are not uploaded)
+ * - `error?`      — error message when status === 'failed'
+ */
+export interface ArtifactOutcome {
+  type: ArtifactType;
+  status: Extract<ArtifactStatus, "ready" | "failed" | "skipped">;
+  outputPath?: string;
+  markdown?: string;
+  error?: string;
+}
+
+/**
+ * Input shape for generateCustomerArtifacts.
+ *
+ * - `jobId`              — ScheduledDeck row id; orchestrator writes per-artifact status transitions to this row
+ * - `customerName`       — used for logging + temp filename hints
+ * - `requestedArtifacts` — subset of ArtifactType[]; order is IGNORED (sequence is fixed: deck → infographic → audio → report per D-07)
+ * - `deckRequest`        — existing CustomerDeckRequest shape; orchestrator uses it for notebook sources, persona, template instructions
+ * - `notebookId?`        — if provided, reuse existing notebook; otherwise create a new one
+ */
+export interface GenerateCustomerArtifactsInput {
+  jobId: string;
+  customerName: string;
+  requestedArtifacts: ArtifactType[];
+  deckRequest: CustomerDeckRequest;
+  notebookId?: string;
+}
+
+/**
+ * Output shape — one ArtifactOutcome per REQUESTED artifact, in fixed sequence order.
+ * Not-requested artifacts are omitted (the caller marks them 'skipped' in the DB).
+ *
+ * `notebookId` is the notebook actually used (either reused or freshly created).
+ * Always present even on early abort so the caller can attempt cleanup.
+ *
+ * `aborted` is true only if notebook creation itself failed — per D-08, per-artifact
+ * failures do NOT abort the job.
+ */
+export interface GenerateCustomerArtifactsResult {
+  notebookId: string | null;
+  aborted: boolean;
+  abortReason?: string;
+  outcomes: ArtifactOutcome[];
 }
 
 // =============================================================================
