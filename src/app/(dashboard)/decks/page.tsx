@@ -64,14 +64,9 @@ const statusFilters = [
   { value: "pending", label: "Pending" },
 ];
 
-function DeckCard({ deck }: { deck: DeckListItem }) {
+function DeckCard({ deck, onOpenArtifact }: { deck: DeckListItem; onOpenArtifact: (type: ArtifactType, state: ArtifactState, customerName: string) => void }) {
   const config = statusConfig[deck.status];
   const StatusIcon = config.icon;
-
-  // Artifact viewer modal state per D-DECKS-01/D-DECKS-02
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerType, setViewerType] = useState<ArtifactType | null>(null);
-  const [viewerState, setViewerState] = useState<ArtifactState | null>(null);
 
   function handleOpenArtifact(type: ArtifactType) {
     let state: ArtifactState;
@@ -89,9 +84,7 @@ function DeckCard({ deck }: { deck: DeckListItem }) {
         state = { status: "ready", url: null, error: null, completedAt: null, markdown: deck.reportMarkdown };
         break;
     }
-    setViewerType(type);
-    setViewerState(state);
-    setViewerOpen(true);
+    onOpenArtifact(type, state, deck.customerName);
   }
 
   return (
@@ -185,14 +178,6 @@ function DeckCard({ deck }: { deck: DeckListItem }) {
           </div>
         )}
 
-        {/* Artifact viewer modal */}
-        <ArtifactViewerModal
-          isOpen={viewerOpen}
-          onClose={() => { setViewerOpen(false); setViewerType(null); setViewerState(null); }}
-          artifactType={viewerType}
-          artifactState={viewerState}
-          customerName={deck.customerName}
-        />
       </CardContent>
     </Card>
   );
@@ -202,6 +187,10 @@ export default function DecksPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerType, setViewerType] = useState<ArtifactType | null>(null);
+  const [viewerState, setViewerState] = useState<ArtifactState | null>(null);
+  const [viewerCustomerName, setViewerCustomerName] = useState<string>("");
 
   const { data, isLoading, error } = useDecks({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -234,11 +223,19 @@ export default function DecksPage() {
     return result;
   }, [decks, typeFilter, searchQuery]);
 
+  const handleOpenArtifact = (type: ArtifactType, state: ArtifactState, customerName: string) => {
+    setViewerType(type);
+    setViewerState(state);
+    setViewerCustomerName(customerName);
+    setViewerOpen(true);
+  };
+
   const activeCount = decks.filter(
     (d) => d.status === "pending" || d.status === "processing"
   ).length;
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -338,7 +335,7 @@ export default function DecksPage() {
       {!isLoading && !error && filteredDecks.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredDecks.map((deck) => (
-            <DeckCard key={deck.id} deck={deck} />
+            <DeckCard key={deck.id} deck={deck} onOpenArtifact={handleOpenArtifact} />
           ))}
         </div>
       )}
@@ -375,5 +372,15 @@ export default function DecksPage() {
         </div>
       )}
     </motion.div>
+
+      {/* Artifact viewer modal -- rendered outside motion.div to avoid transform breaking fixed positioning */}
+      <ArtifactViewerModal
+        isOpen={viewerOpen}
+        onClose={() => { setViewerOpen(false); setViewerType(null); setViewerState(null); }}
+        artifactType={viewerType}
+        artifactState={viewerState}
+        customerName={viewerCustomerName}
+      />
+    </>
   );
 }
