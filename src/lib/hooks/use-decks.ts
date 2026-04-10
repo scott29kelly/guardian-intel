@@ -5,7 +5,7 @@
  * Auto-refreshes while any deck is pending or processing.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface DeckListItem {
   id: string;
@@ -38,7 +38,7 @@ interface UseDecksOptions {
   enabled?: boolean;
 }
 
-const decksPageKeys = {
+export const decksPageKeys = {
   all: ["decks", "page"] as const,
   list: (filters?: Record<string, string | undefined>) =>
     ["decks", "page", "list", filters] as const,
@@ -74,4 +74,21 @@ export function useDecks(options: UseDecksOptions = {}) {
     },
     staleTime: 5000,
   });
+}
+
+export function useDeleteDeck() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async ({ customerId, deckId }: { customerId: string; deckId: string }) => {
+      const response = await fetch(`/api/decks/status/${customerId}?deckId=${deckId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete deck");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: decksPageKeys.all });
+    },
+  });
+  return { deleteDeck: mutation.mutateAsync, isDeleting: mutation.isPending };
 }

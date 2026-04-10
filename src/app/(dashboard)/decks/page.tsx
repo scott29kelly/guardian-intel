@@ -21,12 +21,15 @@ import {
   CheckCircle2,
   RefreshCw,
   SlidersHorizontal,
+  Trash2,
 } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useDecks, type DeckListItem } from "@/lib/hooks/use-decks";
+import { useDecks, useDeleteDeck, type DeckListItem } from "@/lib/hooks/use-decks";
+import { useCustomerArtifacts } from "@/lib/hooks";
 import { cn, formatDistanceToNow } from "@/lib/utils";
-import { ArtifactViewerModal } from "@/features/multi-artifact";
+import { ArtifactViewerModal, GenerateArtifactsButton } from "@/features/multi-artifact";
 import type { ArtifactType, ArtifactState } from "@/features/multi-artifact";
 
 const statusConfig = {
@@ -64,9 +67,19 @@ const statusFilters = [
   { value: "pending", label: "Pending" },
 ];
 
-function DeckCard({ deck, onOpenArtifact }: { deck: DeckListItem; onOpenArtifact: (type: ArtifactType, state: ArtifactState, customerName: string) => void }) {
+function DeckCard({
+  deck,
+  onOpenArtifact,
+  onDelete,
+}: {
+  deck: DeckListItem;
+  onOpenArtifact: (type: ArtifactType, state: ArtifactState, customerName: string) => void;
+  onDelete: (deckId: string, customerId: string) => void;
+}) {
   const config = statusConfig[deck.status];
   const StatusIcon = config.icon;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { generate, isGenerating } = useCustomerArtifacts(deck.customerId);
 
   function handleOpenArtifact(type: ArtifactType) {
     let state: ArtifactState;
@@ -88,19 +101,29 @@ function DeckCard({ deck, onOpenArtifact }: { deck: DeckListItem; onOpenArtifact
   }
 
   return (
-    <Card className="bg-surface-primary border-border hover:border-accent-primary/30 transition-colors">
+    <Card className="relative bg-surface-primary border-border hover:border-accent-primary/30 transition-colors">
       <CardContent className="p-4">
-        {/* Header: customer name + status */}
+        {/* Header: customer name + status + delete */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-semibold text-text-primary truncate">
             {deck.customerName}
           </h3>
-          <Badge variant={config.variant} className="shrink-0">
-            <StatusIcon
-              className={cn("w-3 h-3 mr-1", config.className)}
-            />
-            {config.label}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge variant={config.variant}>
+              <StatusIcon
+                className={cn("w-3 h-3 mr-1", config.className)}
+              />
+              {config.label}
+            </Badge>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isGenerating}
+              className="p-1 rounded hover:bg-rose-500/10 text-text-muted hover:text-rose-400 transition-colors disabled:opacity-50"
+              title="Delete deck"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Template name */}
@@ -129,56 +152,112 @@ function DeckCard({ deck, onOpenArtifact }: { deck: DeckListItem; onOpenArtifact
           </div>
         )}
 
-        {/* Error message */}
-        {deck.status === "failed" && deck.errorMessage && (
-          <p className="text-xs text-rose-400 line-clamp-2 mb-3">
-            {deck.errorMessage}
-          </p>
+        {/* Failed: error message + retry button */}
+        {deck.status === "failed" && (
+          <div className="mb-3">
+            {deck.errorMessage && (
+              <p className="text-xs text-rose-400 line-clamp-2 mb-2">
+                {deck.errorMessage}
+              </p>
+            )}
+            <button
+              onClick={() => generate({ customerId: deck.customerId, artifacts: ["deck", "infographic", "audio", "report"] })}
+              disabled={isGenerating}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-lg hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Retrying...</>
+              ) : (
+                <><RefreshCw className="w-3 h-3" /> Retry</>
+              )}
+            </button>
+          </div>
         )}
 
         {/* Artifact chips -- open in-page modal per D-DECKS-01/D-DECKS-02 */}
         {deck.status === "completed" && (
-          <div className="flex flex-wrap gap-2">
-            {deck.pdfUrl && (
-              <button
-                onClick={() => handleOpenArtifact("deck")}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
-              >
-                <FileText className="w-3 h-3" />
-                Deck
-              </button>
-            )}
-            {deck.infographicUrl && (
-              <button
-                onClick={() => handleOpenArtifact("infographic")}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
-              >
-                <ImageIcon className="w-3 h-3" />
-                Infographic
-              </button>
-            )}
-            {deck.audioUrl && (
-              <button
-                onClick={() => handleOpenArtifact("audio")}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
-              >
-                <Headphones className="w-3 h-3" />
-                Audio
-              </button>
-            )}
-            {deck.reportMarkdown && (
-              <button
-                onClick={() => handleOpenArtifact("report")}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
-              >
-                <FileText className="w-3 h-3" />
-                Report
-              </button>
-            )}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {deck.pdfUrl && (
+                <button
+                  onClick={() => handleOpenArtifact("deck")}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+                >
+                  <FileText className="w-3 h-3" />
+                  Deck
+                </button>
+              )}
+              {deck.infographicUrl && (
+                <button
+                  onClick={() => handleOpenArtifact("infographic")}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+                >
+                  <ImageIcon className="w-3 h-3" />
+                  Infographic
+                </button>
+              )}
+              {deck.audioUrl && (
+                <button
+                  onClick={() => handleOpenArtifact("audio")}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+                >
+                  <Headphones className="w-3 h-3" />
+                  Audio
+                </button>
+              )}
+              {deck.reportMarkdown && (
+                <button
+                  onClick={() => handleOpenArtifact("report")}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+                >
+                  <FileText className="w-3 h-3" />
+                  Report
+                </button>
+              )}
+            </div>
+            {/* Regenerate with artifact type selector */}
+            <GenerateArtifactsButton
+              customerId={deck.customerId}
+              onGenerate={(artifacts) => generate({ customerId: deck.customerId, artifacts })}
+              isGenerating={isGenerating}
+              variant="inline"
+            />
           </div>
         )}
 
       </CardContent>
+
+      {/* Delete confirmation overlay */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(30, 58, 95, 0.92)" }}
+          >
+            <p className="text-sm font-medium text-white mb-3">Delete this deck?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-xs font-medium text-white/80 border border-white/30 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDelete(deck.id, deck.customerId);
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }
@@ -196,6 +275,16 @@ export default function DecksPage() {
     status: statusFilter !== "all" ? statusFilter : undefined,
     limit: 50,
   });
+
+  const { deleteDeck } = useDeleteDeck();
+
+  const handleDeleteDeck = async (deckId: string, customerId: string) => {
+    try {
+      await deleteDeck({ customerId, deckId });
+    } catch (err) {
+      console.error("[Decks] Failed to delete deck:", err);
+    }
+  };
 
   const decks = data?.decks || [];
 
@@ -335,7 +424,7 @@ export default function DecksPage() {
       {!isLoading && !error && filteredDecks.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredDecks.map((deck) => (
-            <DeckCard key={deck.id} deck={deck} onOpenArtifact={handleOpenArtifact} />
+            <DeckCard key={deck.id} deck={deck} onOpenArtifact={handleOpenArtifact} onDelete={handleDeleteDeck} />
           ))}
         </div>
       )}
