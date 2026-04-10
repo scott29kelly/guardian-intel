@@ -15,6 +15,7 @@ import { Prisma } from "@prisma/client";
 import {
   generateCustomerArtifacts,
   healthCheck,
+  deleteNotebook,
 } from "@/lib/services/notebooklm/index";
 import type {
   CustomerDeckRequest,
@@ -78,26 +79,126 @@ export async function recoverStuckDecks(
   staleMinutes: number = DEFAULT_STALE_MINUTES,
 ): Promise<number> {
   const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
+  const now = new Date();
+  const stallError = "Artifact stalled — recovered by stuck-job sweep";
+  let totalRecovered = 0;
 
-  const result = await prisma.scheduledDeck.updateMany({
+  // D-20: per-artifact sweep. Four separate updateMany calls, one per type.
+  // Because the orchestrator is sequential, at most one artifact per job is
+  // in 'processing' state at any moment. Only the stalled artifact's three
+  // columns flip; sibling completed/ready artifacts in the same row stay
+  // untouched.
+  //
+  // D-21: threshold compares against row updatedAt (not createdAt). Every
+  // per-artifact transition bumps updatedAt, so a healthy sequential job
+  // where each artifact takes ~8 minutes stays out of the sweep.
+
+  // Deck sweep
+  const deckResult = await prisma.scheduledDeck.updateMany({
     where: {
-      status: "processing",
+      deckStatus: "processing",
       updatedAt: { lt: cutoff },
     },
     data: {
-      status: "failed",
-      errorMessage: "Job stalled — recovered by stuck-job sweep",
-      completedAt: new Date(),
+      deckStatus: "failed",
+      deckError: stallError,
+      deckCompletedAt: now,
     },
   });
+  totalRecovered += deckResult.count;
 
-  if (result.count > 0) {
+  // Infographic sweep
+  const infographicResult = await prisma.scheduledDeck.updateMany({
+    where: {
+      infographicStatus: "processing",
+      updatedAt: { lt: cutoff },
+    },
+    data: {
+      infographicStatus: "failed",
+      infographicError: stallError,
+      infographicCompletedAt: now,
+    },
+  });
+  totalRecovered += infographicResult.count;
+
+  // Audio sweep
+  const audioResult = await prisma.scheduledDeck.updateMany({
+    where: {
+      audioStatus: "processing",
+      updatedAt: { lt: cutoff },
+    },
+    data: {
+      audioStatus: "failed",
+      audioError: stallError,
+      audioCompletedAt: now,
+    },
+  });
+  totalRecovered += audioResult.count;
+
+  // Report sweep
+  const reportResult = await prisma.scheduledDeck.updateMany({
+    where: {
+      reportStatus: "processing",
+      updatedAt: { lt: cutoff },
+    },
+    data: {
+      reportStatus: "failed",
+      reportError: stallError,
+      reportCompletedAt: now,
+    },
+  });
+  totalRecovered += reportResult.count;
+
+  if (totalRecovered > 0) {
     console.warn(
-      `[DeckProcessing] Recovered ${result.count} stuck deck(s) older than ${staleMinutes} minutes`,
+      `[DeckProcessing] Recovered ${totalRecovered} stuck artifact(s) older than ${staleMinutes} minutes ` +
+        `(deck=${deckResult.count}, infographic=${infographicResult.count}, audio=${audioResult.count}, report=${reportResult.count})`,
     );
   }
 
-  return result.count;
+  // D-22: best-effort NotebookLM-side cleanup. Find rows where all per-artifact
+  // statuses are terminal (ready/failed/skipped/null) AND notebookId is still set,
+  // then attempt deleteNotebook for each. Failures are logged but never block.
+  //
+  // "Terminal" here means: NOT 'pending' and NOT 'processing'. A null value
+  // counts as terminal (artifact was never requested or was skipped).
+  try {
+    const orphanCandidates = await prisma.scheduledDeck.findMany({
+      where: {
+        notebookId: { not: null },
+        AND: [
+          { deckStatus: { notIn: ["pending", "processing"] } },
+          { infographicStatus: { notIn: ["pending", "processing"] } },
+          { audioStatus: { notIn: ["pending", "processing"] } },
+          { reportStatus: { notIn: ["pending", "processing"] } },
+        ],
+      },
+      select: { id: true, notebookId: true },
+      take: 20, // bound the sweep cost on every status poll
+    });
+
+    for (const candidate of orphanCandidates) {
+      if (!candidate.notebookId) continue;
+      try {
+        await deleteNotebook(candidate.notebookId);
+        await prisma.scheduledDeck.update({
+          where: { id: candidate.id },
+          data: { notebookId: null },
+        });
+        console.log(`[DeckProcessing] Cleaned up orphaned notebook ${candidate.notebookId} for job ${candidate.id}`);
+      } catch (cleanupErr) {
+        console.warn(
+          `[DeckProcessing] Failed to clean up orphaned notebook ${candidate.notebookId} for job ${candidate.id}:`,
+          cleanupErr,
+        );
+      }
+    }
+  } catch (orphanErr) {
+    // Orphan query failure must never block the sweep — log and continue
+    console.warn("[DeckProcessing] Orphan notebook query failed (non-fatal):", orphanErr);
+  }
+
+  return totalRecovered;
 }
 
 /** Guardian Roofing notebook persona — shapes all artifacts from the notebook */
