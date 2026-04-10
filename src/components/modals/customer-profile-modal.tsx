@@ -10,6 +10,8 @@ import { ActivityTimeline } from "@/components/customer/activity-timeline";
 import { ProfileOverviewTab } from "./customer-profile/profile-overview-tab";
 import { ProfileNotesTab } from "./customer-profile/profile-notes-tab";
 import { InfographicGeneratorModal } from "@/features/infographic-generator/components";
+import { CustomerArtifactsPanel, GenerateArtifactsButton } from "@/features/multi-artifact";
+import { useCustomerArtifacts } from "@/lib/hooks";
 
 interface CustomerProfileModalProps {
   customer: Customer;
@@ -34,6 +36,7 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
   const [notes, setNotes] = useState<Note[]>([]);
 
   const scores = calculateCustomerScores({ customer, intelItems, weatherEvents });
+  const { artifacts, hasDeck, generate, isGenerating } = useCustomerArtifacts(customer.id);
 
   const handleAddNote = (noteText: string) => {
     const newNote: Note = {
@@ -138,18 +141,26 @@ export function CustomerProfileModal({ customer, intelItems = [], weatherEvents 
                 {activeTab === "infographics" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-text-primary">Briefings</h3>
-                      <button
-                        onClick={() => setShowInfographicGenerator(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90"
-                      >
-                        <Zap className="h-3 w-3" />
-                        Generate New
-                      </button>
+                      <h3 className="text-sm font-semibold text-text-primary">Artifacts</h3>
+                      <GenerateArtifactsButton
+                        customerId={customer.id}
+                        onGenerate={(selectedArtifacts) => generate({ customerId: customer.id, artifacts: selectedArtifacts })}
+                        isGenerating={isGenerating}
+                      />
                     </div>
-                    <p className="text-sm text-text-muted">
-                      Generated briefings for this customer will appear here.
-                    </p>
+
+                    {/* Show panel if artifacts exist, per D-12 */}
+                    {hasDeck ? (
+                      <CustomerArtifactsPanel
+                        customerId={customer.id}
+                        customerName={`${customer.firstName} ${customer.lastName}`}
+                      />
+                    ) : (
+                      <p className="text-sm text-text-muted">
+                        Generated briefings and artifacts for this customer will appear here.
+                      </p>
+                    )}
+
                     {/* Quick-launch presets */}
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-text-secondary">Quick Launch</p>

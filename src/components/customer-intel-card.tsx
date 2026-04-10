@@ -32,6 +32,8 @@ import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-pre
 import { RecentActivityPreview } from "./customer/activity-timeline";
 import { DeckGeneratorModal } from "@/features/deck-generator";
 import { InfographicGeneratorModal } from "@/features/infographic-generator/components";
+import { GenerateArtifactsButton } from "@/features/multi-artifact";
+import { useCustomerArtifacts } from "@/lib/hooks";
 
 interface CustomerIntelCardProps {
   customer: Customer;
@@ -68,6 +70,7 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const [showDeckGenerator, setShowDeckGenerator] = useState(false);
   const [showInfographicGenerator, setShowInfographicGenerator] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const { generate, isGenerating } = useCustomerArtifacts(customer.id);
 
   const handleActivitySaved = (activity: ActivityLog) => {
     setActivities(prev => [activity, ...prev]);
@@ -470,6 +473,15 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <Image className="h-3.5 w-3.5" />
                       <span className="text-[10px] font-medium">BRIEFING</span>
                     </button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <GenerateArtifactsButton
+                        customerId={customer.id}
+                        onGenerate={(artifacts) => generate({ customerId: customer.id, artifacts })}
+                        isGenerating={isGenerating}
+                        variant="inline"
+                        className="font-mono"
+                      />
+                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

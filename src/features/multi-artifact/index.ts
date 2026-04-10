@@ -7,3 +7,9 @@
  */
 
 export * from "./types/artifact-ui.types";
+export { CustomerArtifactsPanel } from "./components/CustomerArtifactsPanel";
+export { ArtifactCard } from "./components/ArtifactCard";
+export { ArtifactViewerModal } from "./components/ArtifactViewerModal";
+export { AudioBriefingPlayer } from "./components/AudioBriefingPlayer";
+export { ReportViewer } from "./components/ReportViewer";
+export { GenerateArtifactsButton } from "./components/GenerateArtifactsButton";
