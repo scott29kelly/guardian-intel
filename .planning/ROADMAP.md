@@ -158,14 +158,13 @@ Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into f
 **UI hint**: yes
 
 ### Phase 10: Push Notification Flow
-**Goal**: Reps get reliably prompted to enable push once they've shown intent, and their service worker surfaces a toast the moment any individual artifact finishes — not just the full set
+**Goal**: Reps get reliably prompted to enable push once they've shown intent, and their service worker fires exactly one push notification per job when all requested artifacts have reached a terminal state (per Phase 8 D-10)
 **Depends on**: Phase 8 (backend events must exist to be consumed)
 **Requirements**: NLMA-12, NLMA-13, NLMA-14, NLMA-15
 **Success Criteria** (what must be TRUE):
   1. `push-notification-prompt.tsx` is mounted in the dashboard layout and never appears on cold load — only after a rep has fired their first background generation in the current session
   2. A rep who dismisses the prompt does not see it again on reload (persisted via `localStorage`), and a rep who accepts receives the browser permission flow exactly once
-  3. When the backend marks a single artifact as ready (e.g., audio finishes before report), `deck-processing.ts` fires a push notification for that artifact and `public/sw.js` surfaces a corresponding toast with per-artifact-type content
-  4. A rep mid-generation sees "Your audio briefing is ready" while the report is still processing, proving per-artifact-completion events fire independently of full-set completion
+  3. When the backend marks a multi-artifact job as terminal (all requested artifacts reached ready/failed/skipped), `deck-processing.ts::sendArtifactJobCompletionNotification` fires exactly ONE push notification — "All artifacts ready" on success, "Generation finished with errors" on partial failure — and `public/sw.js` surfaces a corresponding toast with the job id as the notification tag. Phase 8 D-10 overrode the original per-artifact notification plan; Phase 10 verifies the single-notification UX and mounts the prompt.
 **Plans:** TBD
 **UI hint**: yes
 
@@ -175,7 +174,7 @@ Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into f
 **Requirements**: NLMA-16, NLMA-17
 **Success Criteria** (what must be TRUE):
   1. Vitest unit tests cover `generateCustomerArtifacts` orchestrator happy path and failure branches, per-artifact stuck-job recovery edge cases, `useCustomerArtifacts` state transitions, and audio/report component rendering
-  2. Playwright E2E spec drives the full flow: rep fires multi-artifact generation, push notification prompt appears, rep accepts, toasts fire as artifacts complete, `CustomerArtifactsPanel` ends showing all four artifacts viewable
+  2. Playwright E2E spec drives the full flow: rep fires multi-artifact generation, push notification prompt appears, rep accepts, one toast fires when the job reaches terminal state, `CustomerArtifactsPanel` ends showing all four artifacts viewable
   3. Test suites run green in CI and fail clearly on regression (orchestrator contract changes, hook state machine drift, UI status rendering)
 **Plans:** TBD
 
