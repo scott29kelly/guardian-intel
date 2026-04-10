@@ -22,6 +22,8 @@ import type {
 import * as path from "path";
 import * as os from "os";
 import * as fs from "fs/promises";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 // =============================================================================
 // NOTEBOOK MANAGEMENT
@@ -908,4 +910,263 @@ export async function healthCheck(): Promise<{ ok: boolean; error?: string; cook
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
+}
+
+// =============================================================================
+// MULTI-ARTIFACT ORCHESTRATOR (Phase 8, D-06)
+// =============================================================================
+
+/**
+ * Orchestrate multi-artifact generation for a single customer job.
+ *
+ * D-06: Reusable entry point called from both the new POST route
+ *       (/api/ai/generate-customer-artifacts) and the legacy
+ *       processDeckWithNotebookLM path (via Plan 05 refactor).
+ * D-07: Sequential, fail-tolerant. Order is fixed: deck → infographic → audio → report.
+ *       Each generator is wrapped in try/catch; a per-artifact failure marks that
+ *       artifact as 'failed' and continues to the next one.
+ * D-08: Artifacts are independent. Deck failure does NOT abort infographic/audio/report —
+ *       they all read from the notebook's sources directly.
+ * D-17: Reports stay inline in the reportMarkdown column. No Supabase upload for reports.
+ * D-22: Best-effort NotebookLM-side cleanup — deleteNotebook() inside try/catch after
+ *       all requested artifacts reach a terminal state.
+ *
+ * NOTE: This function does NOT upload artifacts to Supabase — that's the caller's
+ * responsibility. It writes per-artifact status transitions to ScheduledDeck but
+ * leaves url/storagePath writes to the caller (which owns uploadToSupabase in
+ * deck-processing.ts). This avoids a circular dep notebooklm → deck-processing.
+ *
+ * The caller receives outcomes with `outputPath` (for deck/infographic/audio) or
+ * `markdown` (for report) and is responsible for:
+ *   1. Uploading outputPath files via uploadToSupabase with the correct prefix
+ *   2. Writing the returned url/storagePath to ScheduledDeck
+ *   3. Unlinking the temp file
+ *   4. Persisting reportMarkdown to the DB column
+ *
+ * SECURITY: The caller is responsible for verifying that `jobId` belongs to the
+ * authenticated rep's customer (via assertCustomerAccess) BEFORE invoking this
+ * function. The orchestrator is a library function with no auth checks of its own.
+ */
+export async function generateCustomerArtifacts(
+  input: GenerateCustomerArtifactsInput,
+): Promise<GenerateCustomerArtifactsResult> {
+  const { jobId, customerName, requestedArtifacts, deckRequest } = input;
+  let notebookId: string | null = input.notebookId ?? null;
+  const outcomes: ArtifactOutcome[] = [];
+
+  console.log(
+    `[MultiArtifact] Starting orchestration for job ${jobId} (${customerName}) — artifacts: ${requestedArtifacts.join(", ")}`,
+  );
+
+  // --- Step 1: Create or reuse the notebook ---
+  if (!notebookId) {
+    try {
+      const notebookTitle = `Guardian Artifacts: ${customerName} - ${new Date().toISOString().split("T")[0]}`;
+      notebookId = await createNotebook(notebookTitle);
+      console.log(`[MultiArtifact] Created notebook ${notebookId} for job ${jobId}`);
+
+      // Persist notebookId immediately so stuck-job sweep can clean it up on failure
+      await prisma.scheduledDeck.update({
+        where: { id: jobId },
+        data: { notebookId },
+      });
+
+      // Add sources
+      const sources: NotebookSource[] = [
+        {
+          type: "text",
+          content: deckRequest.customerData,
+          title: `${customerName} - Customer Profile`,
+        },
+      ];
+      if (deckRequest.weatherHistory) {
+        sources.push({
+          type: "text",
+          content: deckRequest.weatherHistory,
+          title: `${customerName} - Weather History`,
+        });
+      }
+      if (deckRequest.additionalSources) {
+        for (const extra of deckRequest.additionalSources) {
+          sources.push({ type: "text", content: extra.content, title: extra.title });
+        }
+      }
+      await addSources(notebookId, sources);
+      console.log(`[MultiArtifact] Added ${sources.length} sources to notebook ${notebookId}`);
+
+      // Configure persona (non-fatal — generation still works with default persona)
+      if (deckRequest.persona) {
+        try {
+          await configureNotebook(notebookId, {
+            mode: "detailed",
+            persona: deckRequest.persona,
+            responseLength: "longer",
+          });
+        } catch (personaErr) {
+          console.warn(`[MultiArtifact] Persona configuration failed (non-fatal):`, personaErr);
+        }
+      }
+    } catch (setupErr) {
+      const errorMessage = setupErr instanceof Error ? setupErr.message : String(setupErr);
+      console.error(`[MultiArtifact] Notebook setup failed for job ${jobId}:`, errorMessage);
+      return {
+        notebookId,
+        aborted: true,
+        abortReason: `Notebook setup failed: ${errorMessage}`,
+        outcomes: [],
+      };
+    }
+  } else {
+    console.log(`[MultiArtifact] Reusing existing notebook ${notebookId} for job ${jobId}`);
+    // Persist reused notebookId in case it wasn't already on the row
+    await prisma.scheduledDeck
+      .update({
+        where: { id: jobId },
+        data: { notebookId },
+      })
+      .catch(() => {});
+  }
+
+  const artifactConfigs = deckRequest.artifactConfigs ?? [];
+
+  // --- Step 2: Fixed sequential order (D-07) ---
+  // Deck → Infographic → Audio → Report. Unrequested artifacts are skipped.
+  // The fixed order array is type-safe: every value is a member of the ArtifactType
+  // union, so the computed `${type}Status` key is guaranteed to be a valid column name.
+  const order: ArtifactType[] = ["deck", "infographic", "audio", "report"];
+
+  for (const type of order) {
+    if (!requestedArtifacts.includes(type)) {
+      continue; // Caller marks these 'skipped' in the DB
+    }
+
+    // Transition this artifact to 'processing' so the stuck-job sweep sees it
+    // T-08-07: computed key is type-safe — no user input reaches the column name
+    await prisma.scheduledDeck.update({
+      where: { id: jobId },
+      data: {
+        [`${type}Status`]: "processing" as ArtifactStatus,
+      } as Prisma.ScheduledDeckUpdateInput,
+    });
+
+    try {
+      console.log(`[MultiArtifact] Generating ${type} for job ${jobId}...`);
+
+      if (type === "deck") {
+        // Use generateSlideDeck directly against the reused notebook
+        const deckFormat = deckRequest.audience === "customer-facing" ? "detailed" : "presenter";
+        const result = await generateSlideDeck(notebookId, {
+          instructions: deckRequest.templateInstructions,
+          format: deckFormat,
+        });
+        if (result.success && result.outputPath) {
+          outcomes.push({ type: "deck", status: "ready", outputPath: result.outputPath });
+        } else {
+          outcomes.push({
+            type: "deck",
+            status: "failed",
+            error: result.error ?? "Deck generation failed",
+          });
+        }
+      } else if (type === "infographic") {
+        const cfg = artifactConfigs.find((c) => c.type === "infographic");
+        const result = await generateInfographic(notebookId, {
+          instructions: cfg?.description ?? deckRequest.templateInstructions,
+          orientation: (cfg?.orientation ?? "landscape") as
+            | "landscape"
+            | "portrait"
+            | "square",
+          detail: (cfg?.detail ??
+            (deckRequest.audience === "customer-facing" ? "detailed" : "standard")) as
+            | "brief"
+            | "standard"
+            | "detailed",
+        });
+        if (result.success && result.outputPath) {
+          outcomes.push({
+            type: "infographic",
+            status: "ready",
+            outputPath: result.outputPath,
+          });
+        } else {
+          outcomes.push({
+            type: "infographic",
+            status: "failed",
+            error: result.error ?? "Infographic generation failed",
+          });
+        }
+      } else if (type === "audio") {
+        const cfg = artifactConfigs.find((c) => c.type === "audio");
+        const result = await generateAudio(notebookId, {
+          instructions: cfg?.description,
+          format: cfg?.format,
+          length: cfg?.length,
+        });
+        if (result.success && result.outputPath) {
+          outcomes.push({ type: "audio", status: "ready", outputPath: result.outputPath });
+        } else {
+          outcomes.push({
+            type: "audio",
+            status: "failed",
+            error: result.error ?? "Audio generation failed",
+          });
+        }
+      } else if (type === "report") {
+        const cfg = artifactConfigs.find((c) => c.type === "report");
+        const result = await generateReport(notebookId, {
+          format: cfg?.format,
+          appendInstructions: cfg?.appendInstructions,
+          description: cfg?.description,
+        });
+        if (result.success && result.outputPath) {
+          // D-17: read markdown inline, don't upload to Supabase
+          const markdown = await fs.readFile(result.outputPath, "utf-8");
+          // Best-effort unlink — temp file is no longer needed once content is in memory
+          fs.unlink(result.outputPath).catch(() => {});
+          outcomes.push({ type: "report", status: "ready", markdown });
+        } else {
+          outcomes.push({
+            type: "report",
+            status: "failed",
+            error: result.error ?? "Report generation failed",
+          });
+        }
+      }
+    } catch (artifactErr) {
+      // D-07/D-08: per-artifact failure does NOT abort the loop
+      const errorMessage =
+        artifactErr instanceof Error ? artifactErr.message : String(artifactErr);
+      console.warn(`[MultiArtifact] ${type} generation threw for job ${jobId}:`, errorMessage);
+      outcomes.push({ type, status: "failed", error: errorMessage });
+    }
+  }
+
+  // --- Step 3: Best-effort notebook cleanup (D-22) ---
+  if (notebookId) {
+    try {
+      await deleteNotebook(notebookId);
+      console.log(`[MultiArtifact] Cleaned up notebook ${notebookId} for job ${jobId}`);
+      // Clear notebookId on the row after successful cleanup so the sweep won't retry
+      await prisma.scheduledDeck
+        .update({
+          where: { id: jobId },
+          data: { notebookId: null },
+        })
+        .catch(() => {});
+    } catch (cleanupErr) {
+      console.warn(
+        `[MultiArtifact] Failed to clean up notebook ${notebookId}:`,
+        cleanupErr,
+      );
+      // notebookId stays on the row so the stuck-job sweep can retry cleanup later
+    }
+  }
+
+  console.log(
+    `[MultiArtifact] Orchestration complete for job ${jobId}: ${outcomes
+      .map((o) => `${o.type}=${o.status}`)
+      .join(", ")}`,
+  );
+
+  return { notebookId, aborted: false, outcomes };
 }
