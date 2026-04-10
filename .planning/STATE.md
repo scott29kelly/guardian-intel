@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase 08 context gathered — ready for planning
-last_updated: "2026-04-09T00:00:00.000Z"
+status: Ready to execute
+last_updated: "2026-04-10T01:42:54.735Z"
 progress:
   total_phases: 8
   completed_phases: 7
@@ -17,22 +17,32 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** Phase 08 — Lead Generation Pipeline Foundation (context gathered, planning pending)
+**Current Focus:** Phase 08 — Lead Generation Pipeline Foundation (planning complete, ready to execute)
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
 
-Phase: 08 (lead-generation-pipeline-foundation) — CONTEXT GATHERED (0 of 5 plans)
+Phase: 08 (lead-generation-pipeline-foundation) — READY TO EXECUTE (0 of 5 plans)
+
 - 08-CONTEXT.md committed `58f2b33` — 10 locked decisions LG-01..LG-10
-- Plans pending: 08-01 schema/migration, 08-02 lead-intel services, 08-03 ingest/query/outcome APIs, 08-04 Pipeline Inspector UI, 08-05 tests
+- Plans committed `4431c79` (verified pass, zero blockers):
+  - 08-01-PLAN.md — Schema + PostGIS Migration (wave 1) — LG-01, LG-02
+  - 08-02-PLAN.md — lead-intel service layer (wave 2) — LG-03, LG-04, LG-07
+  - 08-03-PLAN.md — Ingest/Backfill/Query/Outcome APIs + saved query (wave 3) — LG-05, LG-06, LG-08, LG-09
+  - 08-04-PLAN.md — Pipeline Inspector UI at /pipeline (wave 4) — LG-10
+  - 08-05-PLAN.md — Tests + verification env unblock + LG-07 grep enforcement (wave 5)
+- Dependency chain: 08-01 → 08-02 → 08-03 → 08-04 → 08-05 (linear, no parallelization)
+- Schema push gate: Plan 08-01 Task 08-01.4 is BLOCKING — runs `prisma migrate dev --name 08_lead_intel_postgis` + `prisma db push` + `prisma generate` with psql sanity checks
+- **LG-08 partial coverage (disclosed)**: customer-stage hook ships at full fidelity in Plan 08-03; canvassing-pin mutation hook deferred to a follow-up micro-phase because those mutations live across `src/app/api/canvassing/**` + SalesRabbit adapter code, outside the Phase 8 surgical-insertion allowlist. The `writeOutcomeEvent` helper itself supports both event types. Plan 08-05 appends a STATE.md TODO tracking the canvassing follow-up.
 - Branch: `codex/lead-gen-pipeline-feature-plan` (carried over from prior-session codex rescue investigation)
 - Source spec: `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`
 
 ### Phase 07 (closed)
 
 Phase: 07 (cleanup-data-integrity-bugs-security-hardening-and-notebookl) — COMPLETE (3 of 3 plans)
+
 - Plan 07-01 (Tier 1 data integrity): D-01, D-02, D-03 — committed `c8ce061`, `18ace6c`, `e27a81e`
 - Plan 07-02 (Tier 2 security hardening): D-04, D-05 — committed `d2fd39e`; D-06 deferred — documented in `5f2cf5a` (see Discovered TODOs)
 - Plan 07-03 (Tier 4 NotebookLM operational hardening): D-07, D-08, D-09 — committed `5f90de7`
@@ -137,9 +147,9 @@ _(none yet)_
 ### Last Session
 
 - **Date:** 2026-04-09
-- **What happened:** Captured Phase 08 (Lead Generation Pipeline Foundation) context via `/gsd-discuss-phase 08 --auto`. Added Phase 8 entry to ROADMAP.md, created phase directory, wrote `08-CONTEXT.md` with 10 locked decisions (LG-01..LG-10) and `08-DISCUSSION-LOG.md` audit trail. Carried forward two pre-existing verification blockers (vitest `spawn EPERM`, missing ESLint) and added a new Discovered TODO for the deferred lead-intel RLS hardening. Committed `58f2b33`.
-- **Where we left off:** Phase 08 context gathered, awaiting explicit user invocation of `/gsd-plan-phase 08` (auto-advance was intentionally suppressed per the user's accepted proposal — they want a checkpoint to review CONTEXT.md before planning starts).
-- **Next step:** User invokes `/gsd-plan-phase 08` to write the 5 plan files (08-01 schema/migration → 08-02 lead-intel services → 08-03 ingest/query/outcome APIs → 08-04 Pipeline Inspector UI → 08-05 tests).
+- **What happened:** Captured Phase 08 context (`/gsd-discuss-phase 08 --auto` → commit `58f2b33`), then planned Phase 08 (`/gsd-plan-phase 08`) — spawned gsd-planner to write all 5 PLAN.md files, spawned gsd-plan-checker for verification (VERIFICATION PASSED, zero blockers), committed plans as `4431c79`. Also restructured ROADMAP.md to move Phase 8 into the `## Phase Details` section with a proper `**Success Criteria**` block (commit `dd4b917`) so the gsd-tools parser could find it. Flagged the LG-08 canvassing-pin mutation hook as partial/deferred — customer-stage hook is full fidelity, canvassing hook is documented as a follow-up micro-phase in Plan 08-03 and tracked via a new STATE.md TODO added by Plan 08-05.
+- **Where we left off:** Phase 08 planning complete, plans verified, auto-advance to execute-phase was intentionally suppressed per the user's accepted proposal — they want a checkpoint to review the 5 PLAN.md files before running `/gsd-execute-phase 08`.
+- **Next step:** User reviews `08-01-PLAN.md` through `08-05-PLAN.md`, confirms the LG-08 canvassing scope reduction is acceptable (or decides to split the phase), then invokes `/gsd-execute-phase 08` to begin Wave 1 (Plan 08-01 schema + PostGIS migration).
 
 ### Important Context for Next Session
 
