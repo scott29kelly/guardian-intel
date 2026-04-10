@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase 07 complete
-last_updated: "2026-04-07T23:59:00.000Z"
+status: Phase 08 context gathered — ready for planning
+last_updated: "2026-04-09T00:00:00.000Z"
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
-  total_plans: 19
+  total_plans: 24
   completed_plans: 19
-  percent: 100
+  percent: 79
 ---
 
 # Project State: Infographic Generator
@@ -17,12 +17,20 @@ progress:
 ## Project Reference
 
 **Core Value:** Reps get actionable visual briefings in one tap -- zero configuration, quality-first, invisible intelligence
-**Current Focus:** v1.0 milestone complete — Phase 07 closed out
+**Current Focus:** Phase 08 — Lead Generation Pipeline Foundation (context gathered, planning pending)
 **Project File:** .planning/PROJECT.md
 **Requirements:** .planning/REQUIREMENTS.md
 **Roadmap:** .planning/ROADMAP.md
 
 ## Current Position
+
+Phase: 08 (lead-generation-pipeline-foundation) — CONTEXT GATHERED (0 of 5 plans)
+- 08-CONTEXT.md committed `58f2b33` — 10 locked decisions LG-01..LG-10
+- Plans pending: 08-01 schema/migration, 08-02 lead-intel services, 08-03 ingest/query/outcome APIs, 08-04 Pipeline Inspector UI, 08-05 tests
+- Branch: `codex/lead-gen-pipeline-feature-plan` (carried over from prior-session codex rescue investigation)
+- Source spec: `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`
+
+### Phase 07 (closed)
 
 Phase: 07 (cleanup-data-integrity-bugs-security-hardening-and-notebookl) — COMPLETE (3 of 3 plans)
 - Plan 07-01 (Tier 1 data integrity): D-01, D-02, D-03 — committed `c8ce061`, `18ace6c`, `e27a81e`
@@ -107,6 +115,8 @@ Phase: 07 (cleanup-data-integrity-bugs-security-hardening-and-notebookl) — COM
 ### Discovered TODOs
 
 - **Production hardening — Supabase `deck-pdfs` bucket lockdown.** Bucket is currently public with no RLS policies (verified 2026-04-07). 16 mock files in storage, 16 mock URLs in `ScheduledDeck` rows. Required before any real customer data lands: flip bucket private, add `storage.objects` RLS, switch both `getPublicUrl` call sites in `src/lib/services/deck-processing.ts` to `createSignedUrl` (7-day TTL), add regenerate-on-poll, backfill existing rows. Reference: Phase 7 D-06 deferral in `.planning/phases/07-cleanup-data-integrity-bugs-security-hardening-and-notebookl/07-02-SUMMARY.md`; Codex review job `task-mnp6gcn3-ihhwdf`.
+- **Production hardening — Lead-Intel table RLS + rep-ownership filtering.** Phase 8 ships `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` with the same loose policy posture as existing `Customer`/`WeatherEvent` (no RLS). Locked as Phase 8 LG-02. To resolve in the same future security pass as the Phase 7 D-06 lockdown above: add RLS policies for all `lead_intel_*` tables, add rep-ownership filtering on `GET /api/lead-intel/properties` (currently any authenticated user sees all tracked properties), and audit the `LEAD_INTEL_INGEST_SECRET` rotation/storage strategy. Reference: `.planning/phases/08-lead-generation-pipeline-foundation/08-CONTEXT.md` LG-02 + LG-06 deferred subsections.
+- **Pre-existing verification environment — vitest spawn EPERM + missing ESLint binary.** During the prior-session investigation for Phase 8, `npm run test:run -- tests/unit/scoring.test.ts` failed with `spawn EPERM` (Windows permissions issue) and `npm run lint` failed because `next lint` cannot find ESLint in the current environment. NOT introduced by Phase 8 — these are pre-existing repo conditions. Phase 8 Plan 08-05 owns either resolving them or documenting the workaround command before tests can ship. Reference: `08-CONTEXT.md <known_blocked>`.
 
 ### Blockers
 
@@ -126,12 +136,21 @@ _(none yet)_
 
 ### Last Session
 
-- **Date:** 2026-03-22
-- **What happened:** Completed 06-03-PLAN.md -- unit tests for model intelligence, prompt composer, intent parser + E2E specs
-- **Where we left off:** Phase 06 Plans 01, 02, and 03 complete
-- **Next step:** Phase 06 complete (if no more plans) or continue remaining plans
+- **Date:** 2026-04-09
+- **What happened:** Captured Phase 08 (Lead Generation Pipeline Foundation) context via `/gsd-discuss-phase 08 --auto`. Added Phase 8 entry to ROADMAP.md, created phase directory, wrote `08-CONTEXT.md` with 10 locked decisions (LG-01..LG-10) and `08-DISCUSSION-LOG.md` audit trail. Carried forward two pre-existing verification blockers (vitest `spawn EPERM`, missing ESLint) and added a new Discovered TODO for the deferred lead-intel RLS hardening. Committed `58f2b33`.
+- **Where we left off:** Phase 08 context gathered, awaiting explicit user invocation of `/gsd-plan-phase 08` (auto-advance was intentionally suppressed per the user's accepted proposal — they want a checkpoint to review CONTEXT.md before planning starts).
+- **Next step:** User invokes `/gsd-plan-phase 08` to write the 5 plan files (08-01 schema/migration → 08-02 lead-intel services → 08-03 ingest/query/outcome APIs → 08-04 Pipeline Inspector UI → 08-05 tests).
 
 ### Important Context for Next Session
+
+- **Phase 08 is a new product area** (Lead Generation Pipeline / property-first intelligence) inside the existing v1.0 milestone — it does NOT touch the Infographic Generator product, deck-generator, customers, outreach, terrain, or any other existing surface. Strictly additive.
+- **Coexistence is locked (LG-07):** new `src/lib/services/lead-intel/` lives alongside existing `src/lib/services/scoring/` and `src/lib/services/property/` without modifying them. Cross-imports between the two service trees are forbidden.
+- **Source spec is the DOCX, not the PDF:** `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`. The PDF in the same folder is NOT canonical.
+- **PostGIS will be enabled in Plan 08-01:** the migration runs `CREATE EXTENSION IF NOT EXISTS postgis;` and adds `Unsupported("geography(Point,4326)")?` on `TrackedProperty.location` with a GIST index.
+- **Branch is `codex/lead-gen-pipeline-feature-plan`** (carried over from prior-session codex rescue investigation; clean working tree before this session).
+- **Auto-advance was intentionally suppressed.** The user wants to review `08-CONTEXT.md` before planning. Do NOT auto-launch `/gsd-plan-phase` from this session — wait for explicit user invocation.
+
+### Infographic Generator (Phase 06 final state — for context only)
 
 - Infographic generator accessible from 3 app surfaces: customer card BRIEFING button, dashboard Prep My Day, profile modal tab
 - Customer card follows exact same pattern as PREP DECK / DeckGeneratorModal
@@ -142,5 +161,5 @@ _(none yet)_
 
 ---
 *State initialized: 2026-03-21*
-*Last updated: 2026-04-07*
-*Last activity: 2026-04-07 - Completed quick task 260407-o2a: Remove stale Gemini Flash fallback comments in aiSlideGenerator.ts*
+*Last updated: 2026-04-09*
+*Last activity: 2026-04-09 - Captured Phase 08 (Lead Generation Pipeline Foundation) context via /gsd-discuss-phase 08 --auto. Committed 58f2b33.*
