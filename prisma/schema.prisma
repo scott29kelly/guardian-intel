@@ -202,6 +202,10 @@ model Customer {
   competitorActivities CompetitorActivity[]
   outreachMessages     OutreachMessage[]
 
+  // Lead-Intel bridge (Phase 8, LG-01)
+  trackedPropertyId String?
+  trackedProperty   TrackedProperty? @relation(fields: [trackedPropertyId], references: [id], onDelete: SetNull)
+
   // Performance indexes
   @@index([assignedRepId])
   @@index([leadScore])
@@ -211,6 +215,7 @@ model Customer {
   @@index([updatedAt])
   @@index([createdAt])
   @@index([profitPotential])
+  @@index([trackedPropertyId])
 }
 
 // ============================================
@@ -248,7 +253,11 @@ model WeatherEvent {
   // Can be linked to customer or standalone for area
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+
+  // Lead-Intel bridge (Phase 8, LG-01)
+  trackedPropertyId String?
+  trackedProperty   TrackedProperty? @relation(fields: [trackedPropertyId], references: [id], onDelete: SetNull)
+
   // Location
   latitude      Float
   longitude     Float
@@ -288,6 +297,7 @@ model WeatherEvent {
   // Performance indexes
   @@index([eventDate])
   @@index([zipCode])
+  @@index([trackedPropertyId])
 }
 
 model InsuranceClaim {
@@ -382,6 +392,12 @@ model PropertyData {
   sourceId      String?
   rawData       String?  // JSON
   lastFetched   DateTime @default(now())
+
+  // Lead-Intel bridge (Phase 8, LG-01)
+  trackedPropertyId String?
+  trackedProperty   TrackedProperty? @relation(fields: [trackedPropertyId], references: [id], onDelete: SetNull)
+
+  @@index([trackedPropertyId])
 }
 
 // ============================================
@@ -808,6 +824,11 @@ model CanvassingPin {
   updatedAt       DateTime  @updatedAt
   customerId      String?
   customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Lead-Intel bridge (Phase 8, LG-01)
+  trackedPropertyId String?
+  trackedProperty   TrackedProperty? @relation(fields: [trackedPropertyId], references: [id], onDelete: SetNull)
+
   externalId      String?   @unique
   externalSource  String    @default("salesrabbit")
   address         String
@@ -843,6 +864,7 @@ model CanvassingPin {
   @@index([status])
   @@index([zipCode])
   @@index([territoryId])
+  @@index([trackedPropertyId])
 }
 
 model CanvassingRoute {
