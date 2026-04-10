@@ -154,8 +154,13 @@ Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into f
   3. `AudioBriefingPlayer` plays a ready audio briefing inline with Navy/Gold/Teal branded controls sized for mobile thumb use and offers a share action through the existing `ShareSheet`
   4. `ReportViewer` renders the markdown report with Geist typography and brand palette, scrolls smoothly on mobile, and offers share/download actions
   5. The customer profile modal, `InfographicGeneratorModal` success state, and customer card all surface the artifacts panel or a "Generate all artifacts" action alongside the existing deck/infographic buttons
-**Plans:** TBD
+**Plans:** 4 plans
 **UI hint**: yes
+Plans:
+- [ ] 09-01-PLAN.md -- Types, artifact config constants, and useCustomerArtifacts polling hook (NLMA-07)
+- [ ] 09-02-PLAN.md -- AudioBriefingPlayer and ReportViewer components (NLMA-09, NLMA-10)
+- [ ] 09-03-PLAN.md -- ArtifactCard, ArtifactViewerModal, CustomerArtifactsPanel, GenerateArtifactsButton (NLMA-08)
+- [ ] 09-04-PLAN.md -- Integration mounts on customer card, profile modal, Decks page, InfographicGeneratorModal (NLMA-11)
 
 ### Phase 10: Push Notification Flow
 **Goal**: Reps get reliably prompted to enable push once they've shown intent, and their service worker fires exactly one push notification per job when all requested artifacts have reached a terminal state (per Phase 8 D-10)
@@ -202,11 +207,11 @@ Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into f
 | 6. Integration + Polish | 3/3 | Complete | 2026-03-22 |
 | 7. Cleanup + Hardening | 3/3 | Complete | 2026-04-07 |
 | 8. Multi-Artifact Backend | 0/? | Not started | - |
-| 9. Multi-Artifact UI | 0/? | Not started | - |
+| 9. Multi-Artifact UI | 0/4 | Planned | - |
 | 10. Push Notification Flow | 0/? | Not started | - |
 | 11. Testing | 0/? | Not started | - |
 | 12. Proposals UI (Stretch) | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-21*
-*Last updated: 2026-04-09 — v1.1 milestone added (Phases 8-12)*
+*Last updated: 2026-04-10 — Phase 9 planned (4 plans in 4 waves)*
