@@ -105,6 +105,24 @@ Plans:
 - [x] 06-02-PLAN.md -- Offline support: service worker PNG caching, WiFi awareness utilities (INFOG-027)
 - [x] 06-03-PLAN.md -- Tests: unit tests for model intelligence, prompt composer, intent parser + E2E generation flows (INFOG-028, INFOG-029)
 
+### Phase 8: Lead Generation Pipeline Foundation
+**Goal**: Stand up a property-first intelligence backbone — canonical `TrackedProperty` entities, immutable source-record and provenance layer, temporal signal events with decay metadata, explainable rule-based score snapshots, outcome feedback, PostGIS-backed spatial queries, n8n ingest contract (no external connectors yet), backfill from existing internal data (`Customer`, `WeatherEvent`, `CanvassingPin`, `Interaction`, `PropertyData`), and a minimal Pipeline Inspector page. Phase 1 of the Lead Generation Machine roadmap from `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`. Does NOT include external source connectors, learned weights, outreach automation, or ML scoring — those are Phases 2-4 of the lead-gen roadmap.
+**Depends on**: Phase 7 (merge-clean baseline; no shared code)
+**Requirements**: LG-01, LG-02, LG-03, LG-04, LG-05, LG-06, LG-07, LG-08, LG-09, LG-10
+**Success Criteria** (what must be TRUE):
+  1. New Prisma models (`TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent`) plus nullable `trackedPropertyId` bridge fields exist on `Customer`, `WeatherEvent`, `CanvassingPin`, `PropertyData`, and the migration enables `postgis`, adds `geography(Point,4326)` on `TrackedProperty.location`, and creates a GIST index that `ST_DWithin` queries against
+  2. `src/lib/services/lead-intel/` exists with `normalization`, `entity-resolution`, `ingest`, `backfill`, `queries`, `spatial`, `scoring` subdirectories; no cross-imports with existing `src/lib/services/scoring/` or `src/lib/services/property/`
+  3. Internal-data backfill from `Customer`, `WeatherEvent`, `CanvassingPin`, `Interaction`, and `PropertyData` produces `TrackedProperty` rows with `PropertySourceRecord` provenance, `PropertySignalEvent` rows with decay metadata, and explainable `PropertyScoreSnapshot` rows
+  4. Ingest API (`POST /api/lead-intel/ingest`) authenticates n8n via `LEAD_INTEL_INGEST_SECRET`, list/detail APIs (`GET /api/lead-intel/properties`, `:id`) require NextAuth, backfill API requires admin role, and the doc-aligned saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor 12mo) returns results from backfilled data
+  5. Pipeline Inspector page at `/pipeline` renders KPI cards, filter bar, tracked-property table, and a detail pane showing provenance, signal history, score explanation, and outcome history — without modifying any existing dashboard, customers, outreach, terrain, deck-generator, or sidebar code
+**Plans:** 5 plans
+Plans:
+- [ ] 08-01-PLAN.md -- Schema + migration: `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` + bridge FKs + PostGIS enablement + GIST indexes (LG-01, LG-02)
+- [ ] 08-02-PLAN.md -- `src/lib/services/lead-intel/` service layer: normalization, entity-resolution, ingest, backfill, queries, spatial, scoring with decay math and explainable snapshots (LG-03, LG-04, LG-07)
+- [ ] 08-03-PLAN.md -- Ingest/query/outcome APIs + internal backfill script + one saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor win 12mo) + outcome write-back hooks (LG-05, LG-06, LG-08, LG-09)
+- [ ] 08-04-PLAN.md -- Pipeline Inspector UI at `/pipeline`: KPIs, filters, tracked-property table, detail pane with provenance/signal history/score explanation/outcomes (LG-10)
+- [ ] 08-05-PLAN.md -- Tests: unit (normalization, resolution, decay math, query builders) + API (ingest auth, idempotent re-ingest, backfill stats, radius query, outcome→snapshot refresh) + migration (PostGIS + `ST_DWithin` smoke)
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -127,20 +145,6 @@ Plans:
 - [ ] 07-01-PLAN.md -- Tier 1: D-01 claim field drift, D-02 sequential batch loop, D-03 strict 401 (data integrity)
 - [ ] 07-02-PLAN.md -- Tier 2: D-04/D-05 rep-ownership authorization via assertCustomerAccess, D-06 Supabase bucket ACL verification (security hardening)
 - [ ] 07-03-PLAN.md -- Tier 4: D-07 stuck-job recovery sweep, D-08 cancel processing jobs, D-09 delete orphaned cron route (operational hardening)
-
-### Phase 8: Lead Generation Pipeline Foundation
-
-**Goal:** Stand up a property-first intelligence backbone — canonical `TrackedProperty` entities, immutable source-record and provenance layer, temporal signal events with decay metadata, explainable rule-based score snapshots, outcome feedback, PostGIS-backed spatial queries, n8n ingest contract (no external connectors yet), backfill from existing internal data (`Customer`, `WeatherEvent`, `CanvassingPin`, `Interaction`, `PropertyData`), and a minimal Pipeline Inspector page. Phase 1 of the Lead Generation Machine roadmap from `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`. Does NOT include external source connectors, learned weights, outreach automation, or ML scoring — those are Phases 2-4 of the lead-gen roadmap.
-**Requirements**: LG-01, LG-02, LG-03, LG-04, LG-05, LG-06, LG-07, LG-08, LG-09, LG-10 (ten locked decisions from 08-CONTEXT.md — new-feature phase, no INFOG-xxx requirement IDs)
-**Depends on:** Phase 7 (merge-clean baseline; no shared code)
-**Plans:** 5 plans
-
-Plans:
-- [ ] 08-01-PLAN.md -- Schema + migration: `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` + bridge FKs + PostGIS enablement + GIST indexes (LG-01, LG-02)
-- [ ] 08-02-PLAN.md -- `src/lib/services/lead-intel/` service layer: normalization, entity-resolution, ingest, backfill, queries, spatial, scoring with decay math and explainable snapshots (LG-03, LG-04, LG-07)
-- [ ] 08-03-PLAN.md -- Ingest/query/outcome APIs + internal backfill script + one saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor win 12mo) + outcome write-back hooks (LG-05, LG-06, LG-08, LG-09)
-- [ ] 08-04-PLAN.md -- Pipeline Inspector UI at `/pipeline`: KPIs, filters, tracked-property table, detail pane with provenance/signal history/score explanation/outcomes (LG-10)
-- [ ] 08-05-PLAN.md -- Tests: unit (normalization, resolution, decay math, query builders) + API (ingest auth, idempotent re-ingest, backfill stats, radius query, outcome→snapshot refresh) + migration (PostGIS + `ST_DWithin` smoke)
 
 ---
 *Roadmap created: 2026-03-21*
