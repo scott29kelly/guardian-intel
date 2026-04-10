@@ -115,7 +115,8 @@ When creating content:
 // =============================================================================
 
 async function uploadToSupabase(
-  deckId: string,
+  jobId: string,
+  prefix: "decks" | "infographics" | "audio",
   filePath: string,
   storageName: string,
   contentType: string,
@@ -128,7 +129,7 @@ async function uploadToSupabase(
     const { createClient } = await import("@supabase/supabase-js");
     const supabase = createClient(supabaseUrl, supabaseKey);
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || "deck-pdfs";
-    const path = `decks/${deckId}/${storageName}`;
+    const path = `${prefix}/${jobId}/${storageName}`;
 
     const buffer = await fs.readFile(filePath);
     const { error: uploadError } = await supabase.storage
@@ -310,6 +311,7 @@ export async function processDeckWithNotebookLM(
 
       const uploaded = await uploadToSupabase(
         deckId,
+        "infographics",
         infoResult.outputPath,
         `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
         "image/png",
@@ -448,6 +450,7 @@ export async function processDeckWithNotebookLM(
           if (audioResult.success && audioResult.outputPath) {
             const uploaded = await uploadToSupabase(
               deckId,
+              "audio",
               audioResult.outputPath,
               `${deck.customerName.replace(/\s+/g, "-")}-audio.mp3`,
               "audio/mpeg",
@@ -477,6 +480,7 @@ export async function processDeckWithNotebookLM(
           if (infoResult.success && infoResult.outputPath) {
             const uploaded = await uploadToSupabase(
               deckId,
+              "infographics",
               infoResult.outputPath,
               `${deck.customerName.replace(/\s+/g, "-")}-infographic.png`,
               "image/png",
