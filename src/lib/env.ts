@@ -69,6 +69,10 @@ const envSchema = z.object({
   // Cron Jobs (Vercel Cron or self-hosted)
   CRON_SECRET: z.string().optional(), // Shared secret for authenticating cron requests
 
+  // Lead Intel (Phase 8)
+  // n8n ingest shared-secret header auth — Phase 8 LG-06
+  LEAD_INTEL_INGEST_SECRET: z.string().min(32).optional(),
+
   // Push Notifications (VAPID)
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
@@ -113,7 +117,21 @@ function validateEnv() {
   if (!hasAIKey) {
     console.warn("⚠️  No AI API keys configured. AI features will use mock responses.");
   }
-  
+
+  // Phase 8 LG-06: LEAD_INTEL_INGEST_SECRET is required in production so the
+  // n8n ingest endpoint can't be hit without auth. In development we warn
+  // and continue so local devs can run without configuring it.
+  if (!parsed.data.LEAD_INTEL_INGEST_SECRET) {
+    if (parsed.data.NODE_ENV === "production") {
+      throw new Error(
+        "LEAD_INTEL_INGEST_SECRET is required in production. Set a >=32 char shared secret that matches the n8n workflow header X-Lead-Intel-Ingest-Key.",
+      );
+    }
+    console.warn(
+      "⚠️  LEAD_INTEL_INGEST_SECRET not set. POST /api/lead-intel/ingest will reject all requests. Set the env var to enable.",
+    );
+  }
+
   return parsed.data;
 }
 
@@ -134,6 +152,7 @@ function getDefaultEnv(): z.infer<typeof envSchema> {
     NOTEBOOKLM_PYTHON_CMD: "python3",
     NOTEBOOKLM_BRIDGE_SCRIPT: "scripts/notebooklm-bridge.py",
     NOTEBOOKLM_TIMEOUT_MS: "300000",
+    LEAD_INTEL_INGEST_SECRET: undefined,
   } as z.infer<typeof envSchema>;
 }
 

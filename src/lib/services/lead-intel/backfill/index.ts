@@ -14,3 +14,4 @@ export { extractContactRecency } from "./extractors/crm-contact-recency";
 export type { ContactRecencyExtractorInput } from "./extractors/crm-contact-recency";
 export { extractNeighborWins } from "./extractors/neighbor-win";
 export type { NeighborWinExtractorInput } from "./extractors/neighbor-win";
+export { runInternalBackfill } from "./run";

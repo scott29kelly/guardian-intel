@@ -8,3 +8,5 @@
 
 export { listTrackedProperties, getPropertyDetail } from "./properties";
 export type { PropertyListFilters, PropertyListRow, PropertyDetail } from "./properties";
+export { highValueRoofStormNeighbor } from "./saved";
+export type { HighValueMatch } from "./saved";
