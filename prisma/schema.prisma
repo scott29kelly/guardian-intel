@@ -757,6 +757,23 @@ model ScheduledDeck {
   infographicStoragePath String?
   reportMarkdown         String?    @db.Text
 
+  // Per-artifact status (D-01) — String? union of 'pending' | 'processing' | 'ready' | 'failed' | 'skipped'
+  deckStatus             String?
+  deckError              String?
+  deckCompletedAt        DateTime?
+  infographicStatus      String?
+  infographicError       String?
+  infographicCompletedAt DateTime?
+  audioStatus            String?
+  audioError             String?
+  audioCompletedAt       DateTime?
+  reportStatus           String?
+  reportError            String?
+  reportCompletedAt      DateTime?
+
+  // NotebookLM notebook reuse + best-effort cleanup (D-04)
+  notebookId             String?
+
   // Timing
   scheduledFor    DateTime  @default(now())  // When batch should process this
   completedAt     DateTime?
