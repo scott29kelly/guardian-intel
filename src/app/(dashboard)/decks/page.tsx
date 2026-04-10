@@ -13,7 +13,6 @@ import {
   Layers,
   Search,
   Loader2,
-  Download,
   FileText,
   Image as ImageIcon,
   Headphones,
@@ -25,9 +24,10 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useDecks, type DeckListItem } from "@/lib/hooks/use-decks";
 import { cn, formatDistanceToNow } from "@/lib/utils";
+import { ArtifactViewerModal } from "@/features/multi-artifact";
+import type { ArtifactType, ArtifactState } from "@/features/multi-artifact";
 
 const statusConfig = {
   pending: {
@@ -67,6 +67,32 @@ const statusFilters = [
 function DeckCard({ deck }: { deck: DeckListItem }) {
   const config = statusConfig[deck.status];
   const StatusIcon = config.icon;
+
+  // Artifact viewer modal state per D-DECKS-01/D-DECKS-02
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerType, setViewerType] = useState<ArtifactType | null>(null);
+  const [viewerState, setViewerState] = useState<ArtifactState | null>(null);
+
+  function handleOpenArtifact(type: ArtifactType) {
+    let state: ArtifactState;
+    switch (type) {
+      case "deck":
+        state = { status: "ready", url: deck.pdfUrl, error: null, completedAt: null };
+        break;
+      case "infographic":
+        state = { status: "ready", url: deck.infographicUrl, error: null, completedAt: null };
+        break;
+      case "audio":
+        state = { status: "ready", url: deck.audioUrl, error: null, completedAt: null };
+        break;
+      case "report":
+        state = { status: "ready", url: null, error: null, completedAt: null, markdown: deck.reportMarkdown };
+        break;
+    }
+    setViewerType(type);
+    setViewerState(state);
+    setViewerOpen(true);
+  }
 
   return (
     <Card className="bg-surface-primary border-border hover:border-accent-primary/30 transition-colors">
@@ -117,41 +143,56 @@ function DeckCard({ deck }: { deck: DeckListItem }) {
           </p>
         )}
 
-        {/* Artifact download buttons */}
+        {/* Artifact chips -- open in-page modal per D-DECKS-01/D-DECKS-02 */}
         {deck.status === "completed" && (
           <div className="flex flex-wrap gap-2">
-            {deck.infographicUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={deck.infographicUrl} target="_blank" rel="noopener noreferrer">
-                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
-                  Infographic
-                </a>
-              </Button>
-            )}
             {deck.pdfUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={deck.pdfUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="w-3.5 h-3.5 mr-1.5" />
-                  PDF
-                </a>
-              </Button>
+              <button
+                onClick={() => handleOpenArtifact("deck")}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                Deck
+              </button>
+            )}
+            {deck.infographicUrl && (
+              <button
+                onClick={() => handleOpenArtifact("infographic")}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+              >
+                <ImageIcon className="w-3 h-3" />
+                Infographic
+              </button>
             )}
             {deck.audioUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={deck.audioUrl} target="_blank" rel="noopener noreferrer">
-                  <Headphones className="w-3.5 h-3.5 mr-1.5" />
-                  Audio
-                </a>
-              </Button>
+              <button
+                onClick={() => handleOpenArtifact("audio")}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+              >
+                <Headphones className="w-3 h-3" />
+                Audio
+              </button>
             )}
             {deck.reportMarkdown && (
-              <Badge variant="outline" className="text-xs">
-                <FileText className="w-3 h-3 mr-1" />
+              <button
+                onClick={() => handleOpenArtifact("report")}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-surface-secondary border border-border rounded-full hover:bg-surface-hover transition-colors"
+              >
+                <FileText className="w-3 h-3" />
                 Report
-              </Badge>
+              </button>
             )}
           </div>
         )}
+
+        {/* Artifact viewer modal */}
+        <ArtifactViewerModal
+          isOpen={viewerOpen}
+          onClose={() => { setViewerOpen(false); setViewerType(null); setViewerState(null); }}
+          artifactType={viewerType}
+          artifactState={viewerState}
+          customerName={deck.customerName}
+        />
       </CardContent>
     </Card>
   );
