@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Customer, Prisma } from "@prisma/client";
 import { CustomerQueryInput, CreateCustomerInput, UpdateCustomerInput, BulkUpdateCustomersInput } from "@/lib/validations";
+import { writeOutcomeEvent } from "@/lib/services/lead-intel";
 
 // Types for query results
 interface CustomerWithRelations extends Customer {
@@ -235,10 +236,53 @@ export async function updateCustomer(
   id: string,
   data: UpdateCustomerInput
 ): Promise<Customer> {
-  return prisma.customer.update({
+  // Capture previous stage/status BEFORE the update so the outcome payload
+  // can show the before/after for explainability.
+  const previous = (data.stage !== undefined || data.status !== undefined)
+    ? await prisma.customer.findUnique({
+        where: { id },
+        select: { stage: true, status: true, trackedPropertyId: true },
+      })
+    : null;
+
+  const updated = await prisma.customer.update({
     where: { id },
     data,
   });
+
+  // LG-08: outcome write-back to lead-intel
+  // Only fires when stage or status actually changed AND the customer is
+  // bridged to a TrackedProperty. Best-effort — writeOutcomeEvent itself
+  // swallows and logs any errors so a lead-intel failure cannot break the
+  // customer update hot path.
+  if (previous?.trackedPropertyId) {
+    if (data.stage !== undefined && data.stage !== previous.stage) {
+      await writeOutcomeEvent({
+        trackedPropertyId: previous.trackedPropertyId,
+        eventType: "customer-stage-changed",
+        sourceMutationId: `customer:${id}:stage:${updated.updatedAt.toISOString()}`,
+        payload: {
+          customerId: id,
+          fromStage: previous.stage,
+          toStage: updated.stage,
+        },
+      });
+    }
+    if (data.status !== undefined && data.status !== previous.status) {
+      await writeOutcomeEvent({
+        trackedPropertyId: previous.trackedPropertyId,
+        eventType: "customer-status-changed",
+        sourceMutationId: `customer:${id}:status:${updated.updatedAt.toISOString()}`,
+        payload: {
+          customerId: id,
+          fromStatus: previous.status,
+          toStatus: updated.status,
+        },
+      });
+    }
+  }
+
+  return updated;
 }
 
 /**
@@ -261,6 +305,17 @@ export async function bulkUpdateCustomers(
   ids: string[],
   updates: BulkUpdateCustomersInput["updates"]
 ): Promise<{ count: number }> {
+  // LG-08: outcome write-back to lead-intel
+  // Bulk update hot path — capture previous stage/status only when a field
+  // we care about is actually being changed.
+  const outcomeRelevant = updates.stage !== undefined || updates.status !== undefined;
+  const previousRows = outcomeRelevant
+    ? await prisma.customer.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, stage: true, status: true, trackedPropertyId: true },
+      })
+    : [];
+
   const result = await prisma.customer.updateMany({
     where: { id: { in: ids } },
     data: {
@@ -269,6 +324,31 @@ export async function bulkUpdateCustomers(
       ...(updates.assignedRepId !== undefined && { assignedRepId: updates.assignedRepId }),
     },
   });
+
+  // LG-08: outcome write-back to lead-intel — fire one event per customer
+  // whose stage or status actually changed
+  if (outcomeRelevant) {
+    const now = new Date();
+    for (const prev of previousRows) {
+      if (!prev.trackedPropertyId) continue;
+      if (updates.stage && updates.stage !== prev.stage) {
+        await writeOutcomeEvent({
+          trackedPropertyId: prev.trackedPropertyId,
+          eventType: "customer-stage-changed",
+          sourceMutationId: `customer:${prev.id}:stage:bulk:${now.toISOString()}`,
+          payload: { customerId: prev.id, fromStage: prev.stage, toStage: updates.stage },
+        });
+      }
+      if (updates.status && updates.status !== prev.status) {
+        await writeOutcomeEvent({
+          trackedPropertyId: prev.trackedPropertyId,
+          eventType: "customer-status-changed",
+          sourceMutationId: `customer:${prev.id}:status:bulk:${now.toISOString()}`,
+          payload: { customerId: prev.id, fromStatus: prev.status, toStatus: updates.status },
+        });
+      }
+    }
+  }
 
   return { count: result.count };
 }
@@ -322,3 +402,20 @@ function calculateInitialLeadScore(data: CreateCustomerInput): number {
 
   return Math.min(100, Math.max(0, score));
 }
+
+// =============================================================================
+// LG-08 FOLLOW-UP: Canvassing outcome write-back
+// =============================================================================
+//
+// The CanvassingPin.appointmentDate and CanvassingPin.outcome fields are
+// mutated in src/app/api/canvassing/** and in the SalesRabbit sync code.
+// Those paths are out of scope for Phase 8 Plan 08-03 (the planner limited
+// this task to the central customer data layer). A follow-up micro-phase
+// should insert writeOutcomeEvent calls into the canvassing mutation paths
+// with eventType = "canvassing-appointment-set" and
+// eventType = "canvassing-outcome-recorded". The writeOutcomeEvent helper
+// (src/lib/services/lead-intel/scoring/outcomes.ts) is ready to receive them.
+//
+// Tracked as a STATE.md TODO at end of Phase 8.
+//
+// LG-08: outcome write-back to lead-intel
