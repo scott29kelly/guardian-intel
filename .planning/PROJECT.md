@@ -24,6 +24,10 @@ Reps get actionable, multi-format briefings in one tap — no model pickers, no 
 - Reuse `assertCustomerAccess` (Phase 7 D-04), `recoverStuckDecks` (D-07), and existing preview/share components
 - Explicit deprioritizations: D-06 Supabase bucket lockdown, real SendGrid/Twilio delivery, NLM auth refresh hardening, Contracts/Carriers UI, v2 infographic features — safe while on mock data; must land before real-customer rollout
 
+**Current state (Phase 8 complete, 2026-04-10):**
+- Multi-artifact backend landed: `generateCustomerArtifacts` orchestrator, `POST /api/ai/generate-customer-artifacts`, per-artifact Prisma columns, generalized Supabase upload prefixes, per-artifact stuck-job sweep with orphan notebook cleanup
+- Next: Phase 9 (Multi-Artifact UI) — CustomerArtifactsPanel, audio player, report viewer
+
 ## Requirements
 
 ### Validated
