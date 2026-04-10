@@ -11,7 +11,7 @@
 - [ ] **NLMA-02**: `generateCustomerArtifacts({ customer, artifacts, notebookId? })` orchestrator in `src/lib/services/notebooklm/index.ts` — creates or reuses notebook, runs requested generators against single notebook, returns structured result with per-artifact outcomes
 - [ ] **NLMA-03**: POST `/api/ai/generate-customer-artifacts` route — accepts `{ customerId, artifacts: ['deck','infographic','audio','report'] }`, enforces `assertCustomerAccess` rep-ownership, creates job record, fires background processor, returns job ID immediately
 - [ ] **NLMA-04**: Per-artifact status polling — generalize `/api/decks/status/[customerId]` to return `{ deck, infographic, audio, report }` each with `{ status, url, progress, error }`
-- [ ] **NLMA-05**: Storage orchestration in `src/lib/services/deck-processing.ts` — distinct Supabase paths per artifact type (`decks/`, `infographics/`, `audio/`, `reports/`) with type-appropriate content-type headers
+- [ ] **NLMA-05**: Storage orchestration in `src/lib/services/deck-processing.ts` — distinct Supabase paths per artifact type (`decks/`, `infographics/`, `audio/`) and reports served inline from the `reportMarkdown` DB column (per Phase 8 D-17), with type-appropriate content-type headers for the three Supabase-backed artifacts
 - [ ] **NLMA-06**: Stuck-job recovery extended to per-artifact state — `recoverStuckDecks` updated to sweep any artifact stuck in "processing" > 15 minutes, preserving already-completed artifacts in the same job
 
 ### Multi-Artifact UI
@@ -27,7 +27,7 @@
 - [ ] **NLMA-12**: Mount `push-notification-prompt.tsx` component in `src/app/(dashboard)/layout.tsx` with `localStorage`-gated render (prompt at most once per session, never on cold load)
 - [ ] **NLMA-13**: Trigger heuristic — prompt appears only after a rep has fired their first background generation in the session, dismissible state persists across reloads
 - [ ] **NLMA-14**: Verify `public/sw.js` push event handler surfaces toast on multi-artifact artifact-ready events, add per-artifact-type payload handling if missing
-- [ ] **NLMA-15**: Extend `deck-processing.ts` to fire push notifications per-artifact-completion (not just full-set completion), so reps get "your audio briefing is ready" even if reports are still generating
+- [ ] **NLMA-15**: Fire exactly ONE push notification per multi-artifact job when the entire job reaches terminal state — "All artifacts ready for {customerName}" on full success, "Generation finished with errors for {customerName}" if any artifact failed. Single tag `artifacts-${jobId}`, single URL `/decks?jobId=${jobId}`. **Phase 8 D-10 override**: per-artifact notifications were explicitly rejected by the user as "wearisome and annoying" — a 15-minute max wall time does not justify four separate pushes. Implementation lives in `src/lib/services/deck-processing.ts::sendArtifactJobCompletionNotification`; Phase 8 landed the implementation, Phase 10 owns the UX integration (mounting `push-notification-prompt.tsx`, session-gated trigger).
 
 ### Testing
 
