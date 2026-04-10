@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Check, Sparkles, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ArtifactType } from "@/features/multi-artifact";
@@ -59,7 +60,9 @@ export function GenerateArtifactsButton({
 }: GenerateArtifactsButtonProps) {
   const [selectedArtifacts, setSelectedArtifacts] = useState<ArtifactType[]>(DEFAULT_SELECTION);
   const [showSelector, setShowSelector] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -123,7 +126,27 @@ export function GenerateArtifactsButton({
     <div ref={containerRef} className={cn("relative", className)}>
       {/* Main button per D-11 */}
       <button
-        onClick={() => (showSelector ? handleGenerate() : setShowSelector(true))}
+        ref={buttonRef}
+        onClick={() => {
+          if (showSelector) {
+            handleGenerate();
+          } else {
+            // Compute dropdown position from button rect
+            if (buttonRef.current) {
+              const rect = buttonRef.current.getBoundingClientRect();
+              const spaceAbove = rect.top;
+              const dropdownHeight = 160; // approximate height of 4 items
+              if (spaceAbove > dropdownHeight) {
+                // Open upward
+                setDropdownPos({ top: rect.top - dropdownHeight - 4, left: rect.left });
+              } else {
+                // Open downward
+                setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+              }
+            }
+            setShowSelector(true);
+          }
+        }}
         disabled={isGenerating}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
@@ -151,42 +174,47 @@ export function GenerateArtifactsButton({
         )}
       </button>
 
-      {/* Checkbox selector dropdown per D-10 */}
-      <AnimatePresence>
-        {showSelector && !isGenerating && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="absolute bottom-full left-0 mb-1 w-56 bg-surface-primary border border-border rounded-lg shadow-lg z-50 p-2"
-          >
-            {ARTIFACT_ORDER.map((type) => {
-              const config = ARTIFACT_CONFIG[type];
-              const isSelected = selectedArtifacts.includes(type);
-              return (
-                <button
-                  key={type}
-                  onClick={() => toggleArtifact(type)}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-text-primary hover:bg-surface-secondary rounded transition-colors"
-                >
-                  {/* Checkbox indicator -- matches TopicPicker pattern */}
-                  <div
-                    className={cn(
-                      "w-4 h-4 rounded flex items-center justify-center text-[10px] transition-colors",
-                      isSelected
-                        ? "bg-accent-primary text-white"
-                        : "bg-surface-secondary border border-border",
-                    )}
+      {/* Checkbox selector dropdown per D-10 -- portaled to body to avoid overflow clipping */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {showSelector && !isGenerating && dropdownPos && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.1 }}
+              className="fixed w-56 bg-surface-primary border border-border rounded-lg shadow-lg p-2"
+              style={{ top: dropdownPos.top, left: dropdownPos.left, zIndex: 99999 }}
+            >
+              {ARTIFACT_ORDER.map((type) => {
+                const config = ARTIFACT_CONFIG[type];
+                const isSelected = selectedArtifacts.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleArtifact(type)}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-text-primary hover:bg-surface-secondary rounded transition-colors"
                   >
-                    {isSelected && <Check className="w-3 h-3" />}
-                  </div>
-                  <span>{config.label}</span>
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                    {/* Checkbox indicator -- matches TopicPicker pattern */}
+                    <div
+                      className={cn(
+                        "w-4 h-4 rounded flex items-center justify-center text-[10px] transition-colors",
+                        isSelected
+                          ? "bg-accent-primary text-white"
+                          : "bg-surface-secondary border border-border",
+                      )}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </div>
+                    <span>{config.label}</span>
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

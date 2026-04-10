@@ -134,7 +134,7 @@ export function ArtifactViewerModal({
             </div>
 
             {/* Content: type-appropriate rendering */}
-            <div className="flex-1 min-h-0 overflow-hidden p-4">
+            <div className="flex-1 min-h-0 overflow-hidden p-4 h-full">
               {renderContent(artifactType, artifactState, customerName)}
             </div>
           </motion.div>
