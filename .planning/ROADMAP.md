@@ -157,10 +157,10 @@ Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into f
 **Plans:** 4 plans
 **UI hint**: yes
 Plans:
-- [ ] 09-01-PLAN.md -- Types, artifact config constants, and useCustomerArtifacts polling hook (NLMA-07)
-- [ ] 09-02-PLAN.md -- AudioBriefingPlayer and ReportViewer components (NLMA-09, NLMA-10)
-- [ ] 09-03-PLAN.md -- ArtifactCard, ArtifactViewerModal, CustomerArtifactsPanel, GenerateArtifactsButton (NLMA-08)
-- [ ] 09-04-PLAN.md -- Integration mounts on customer card, profile modal, Decks page, InfographicGeneratorModal (NLMA-11)
+- [x] 09-01-PLAN.md -- Types, artifact config constants, and useCustomerArtifacts polling hook (NLMA-07)
+- [x] 09-02-PLAN.md -- AudioBriefingPlayer and ReportViewer components (NLMA-09, NLMA-10)
+- [x] 09-03-PLAN.md -- ArtifactCard, ArtifactViewerModal, CustomerArtifactsPanel, GenerateArtifactsButton (NLMA-08)
+- [x] 09-04-PLAN.md -- Integration mounts on customer card, profile modal, Decks page, InfographicGeneratorModal (NLMA-11)
 
 ### Phase 10: Push Notification Flow
 **Goal**: Reps get reliably prompted to enable push once they've shown intent, and their service worker fires exactly one push notification per job when all requested artifacts have reached a terminal state (per Phase 8 D-10)
