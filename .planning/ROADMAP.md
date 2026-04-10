@@ -117,11 +117,11 @@ Plans:
   5. Pipeline Inspector page at `/pipeline` renders KPI cards, filter bar, tracked-property table, and a detail pane showing provenance, signal history, score explanation, and outcome history — without modifying any existing dashboard, customers, outreach, terrain, deck-generator, or sidebar code
 **Plans:** 5 plans
 Plans:
-- [ ] 08-01-PLAN.md -- Schema + migration: `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` + bridge FKs + PostGIS enablement + GIST indexes (LG-01, LG-02)
-- [ ] 08-02-PLAN.md -- `src/lib/services/lead-intel/` service layer: normalization, entity-resolution, ingest, backfill, queries, spatial, scoring with decay math and explainable snapshots (LG-03, LG-04, LG-07)
-- [ ] 08-03-PLAN.md -- Ingest/query/outcome APIs + internal backfill script + one saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor win 12mo) + outcome write-back hooks (LG-05, LG-06, LG-08, LG-09)
-- [ ] 08-04-PLAN.md -- Pipeline Inspector UI at `/pipeline`: KPIs, filters, tracked-property table, detail pane with provenance/signal history/score explanation/outcomes (LG-10)
-- [ ] 08-05-PLAN.md -- Tests: unit (normalization, resolution, decay math, query builders) + API (ingest auth, idempotent re-ingest, backfill stats, radius query, outcome→snapshot refresh) + migration (PostGIS + `ST_DWithin` smoke)
+- [x] 08-01-PLAN.md -- Schema + migration: `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` + bridge FKs + PostGIS enablement + GIST indexes (LG-01, LG-02)
+- [x] 08-02-PLAN.md -- `src/lib/services/lead-intel/` service layer: normalization, entity-resolution, ingest, backfill, queries, spatial, scoring with decay math and explainable snapshots (LG-03, LG-04, LG-07)
+- [x] 08-03-PLAN.md -- Ingest/query/outcome APIs + internal backfill script + one saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor win 12mo) + outcome write-back hooks (LG-05, LG-06, LG-08, LG-09)
+- [x] 08-04-PLAN.md -- Pipeline Inspector UI at `/pipeline`: KPIs, filters, tracked-property table, detail pane with provenance/signal history/score explanation/outcomes (LG-10)
+- [x] 08-05-PLAN.md -- Tests: unit (normalization, resolution, decay math, query builders) + API (ingest auth, idempotent re-ingest, backfill stats, radius query, outcome→snapshot refresh) + migration (PostGIS + `ST_DWithin` smoke)
 
 ## Progress
 
