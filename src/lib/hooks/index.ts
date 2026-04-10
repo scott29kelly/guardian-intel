@@ -32,3 +32,6 @@ export * from "./use-decks";
 
 // Performance Hooks
 export * from "./use-debounce";
+
+// Phase 8 — Lead Intel Pipeline Inspector
+export * from "./use-lead-intel";
