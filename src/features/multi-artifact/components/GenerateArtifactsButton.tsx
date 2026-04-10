@@ -155,10 +155,10 @@ export function GenerateArtifactsButton({
       <AnimatePresence>
         {showSelector && !isGenerating && (
           <motion.div
-            initial={{ opacity: 0, y: -4 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="absolute top-full left-0 mt-1 w-56 bg-surface-primary border border-border rounded-lg shadow-lg z-50 p-2"
+            exit={{ opacity: 0, y: 4 }}
+            className="absolute bottom-full left-0 mb-1 w-56 bg-surface-primary border border-border rounded-lg shadow-lg z-50 p-2"
           >
             {ARTIFACT_ORDER.map((type) => {
               const config = ARTIFACT_CONFIG[type];

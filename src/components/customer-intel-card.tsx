@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, memo, useMemo } from "react";
+import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -15,13 +15,11 @@ import {
   Clock,
   Target,
   Zap,
-  Presentation,
   ArrowUpRight,
   Calendar,
   DollarSign,
   Bot,
   ClipboardList,
-  Image,
 } from "lucide-react";
 import { Customer, IntelItem, WeatherEvent } from "@/types/crm";
 import { calculateCustomerScores, getUrgencyExplanation, getChurnExplanation } from "@/lib/services/scoring";
@@ -30,8 +28,6 @@ import { AIChatPanel } from "./ai/chat-panel";
 import { QuickLogModal, type ActivityLog } from "./ai/quick-log-modal";
 import { StreetViewThumbnail, StreetViewModal } from "./property/street-view-preview";
 import { RecentActivityPreview } from "./customer/activity-timeline";
-import { DeckGeneratorModal } from "@/features/deck-generator";
-import { InfographicGeneratorModal } from "@/features/infographic-generator/components";
 import { GenerateArtifactsButton } from "@/features/multi-artifact";
 import { useCustomerArtifacts } from "@/lib/hooks";
 
@@ -67,8 +63,6 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const [showAIChat, setShowAIChat] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [showStreetViewModal, setShowStreetViewModal] = useState(false);
-  const [showDeckGenerator, setShowDeckGenerator] = useState(false);
-  const [showInfographicGenerator, setShowInfographicGenerator] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const { generate, isGenerating } = useCustomerArtifacts(customer.id);
 
@@ -91,12 +85,6 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
   const retentionTooltip = `Likelihood of closing: ${getChurnExplanation(scores.factors.churn)}`;
   const profitTooltip = `Estimated profit based on ${(customer.squareFootage ?? 0).toLocaleString()} sqft, ${customer.roofType ?? 'unknown roof type'}, and $${(customer.propertyValue ?? 0).toLocaleString()} property value`;
 
-  // Memoize deck generator context to prevent creating new object on every render
-  // This prevents the modal's useEffect from re-triggering during generation
-  const deckGeneratorContext = useMemo(() => ({
-    customerId: customer.id,
-    customerName: `${customer.firstName} ${customer.lastName}`,
-  }), [customer.id, customer.firstName, customer.lastName]);
 
   return (
     <>
@@ -453,26 +441,6 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
                       <Bot className="w-3 h-3" />
                       ASK AI
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDeckGenerator(true);
-                      }}
-                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
-                    >
-                      <Presentation className="w-3 h-3" />
-                      PREP DECK
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowInfographicGenerator(true);
-                      }}
-                      className="px-3 py-1.5 bg-surface-secondary border border-border rounded font-mono text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all flex items-center gap-1"
-                    >
-                      <Image className="h-3.5 w-3.5" />
-                      <span className="text-[10px] font-medium">BRIEFING</span>
-                    </button>
                     <div onClick={(e) => e.stopPropagation()}>
                       <GenerateArtifactsButton
                         customerId={customer.id}
@@ -558,23 +526,6 @@ export const CustomerIntelCard = memo(function CustomerIntelCard({
         zipCode={customer.zipCode}
       />
 
-      {/* Deck Generator Modal — always mounted to preserve state during async generation */}
-      <DeckGeneratorModal
-        isOpen={showDeckGenerator}
-        onClose={() => setShowDeckGenerator(false)}
-        initialContext={deckGeneratorContext}
-        initialTemplateId="customer-cheat-sheet"
-      />
-
-      {/* Infographic Generator Modal */}
-      {showInfographicGenerator && (
-        <InfographicGeneratorModal
-          isOpen={showInfographicGenerator}
-          onClose={() => setShowInfographicGenerator(false)}
-          customerId={customer.id}
-          customerName={customer.firstName + " " + customer.lastName}
-        />
-      )}
     </>
   );
 });
