@@ -102,13 +102,19 @@ export async function POST(request: NextRequest) {
     try {
       for (const row of body.rows as IngestedSourceRow[]) {
         stats.recordsRead += 1;
-        // Basic row shape validation — reject malformed rows but continue the batch
+        // Row shape validation — reject malformed rows but continue the batch.
+        // Validates required strings, date, and reliabilityWeight range [0, 1].
         if (
           !row.sourceType ||
           !row.sourceId ||
           !row.address ||
+          !row.city ||
+          !row.state ||
           !row.zipCode ||
-          !row.sourceRecordedAt
+          !row.sourceRecordedAt ||
+          typeof row.reliabilityWeight !== "number" ||
+          row.reliabilityWeight < 0 ||
+          row.reliabilityWeight > 1
         ) {
           stats.recordsSkipped += 1;
           stats.errors.push(`invalid row: sourceId=${row.sourceId ?? "?"}`);
