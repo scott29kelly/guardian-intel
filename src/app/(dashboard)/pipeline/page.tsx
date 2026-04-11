@@ -27,10 +27,13 @@ import { DetailPane } from "./components/detail-pane";
 export default function PipelineInspectorPage() {
   const [filters, setFilters] = useState<LeadIntelPropertyListFilters>({ limit: 50 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [savedQueryEnabled, setSavedQueryEnabled] = useState(false);
+  const [activePreset, setActivePreset] = useState<"all" | "high-value">("all");
 
   const listQuery = useLeadIntelProperties(filters);
-  const savedQuery = useLeadIntelSavedQuery("high-value-roof-storm-neighbor", savedQueryEnabled);
+  const savedQuery = useLeadIntelSavedQuery(
+    "high-value-roof-storm-neighbor",
+    activePreset === "high-value",
+  );
 
   // Derive KPIs from the current list page. In a later phase we'll add a
   // dedicated stats endpoint; Phase 8 computes these client-side.
@@ -45,15 +48,13 @@ export default function PipelineInspectorPage() {
         (r) => r.lastScoreAt && now - new Date(r.lastScoreAt).getTime() < day,
       ).length,
       pendingResolutions: rows.filter((r) => r.resolutionStatus === "pending_review").length,
-      // Outcomes this week are not in the list response — shown as 0 until the
-      // detail view is opened, or a dedicated stats endpoint is added later.
       outcomesThisWeek: 0,
     };
   }, [listQuery.data]);
 
-  // Merge saved-query results into the visible table when the user runs it
+  // Merge saved-query results into the visible table when preset is active
   const visibleRows = useMemo(() => {
-    if (savedQueryEnabled && savedQuery.data?.rows) {
+    if (activePreset === "high-value" && savedQuery.data?.rows) {
       return savedQuery.data.rows.map((r) => ({
         id: r.id,
         address: r.address,
@@ -68,7 +69,7 @@ export default function PipelineInspectorPage() {
       }));
     }
     return listQuery.data?.rows ?? [];
-  }, [savedQueryEnabled, savedQuery.data, listQuery.data]);
+  }, [activePreset, savedQuery.data, listQuery.data]);
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 md:p-6">
@@ -91,18 +92,18 @@ export default function PipelineInspectorPage() {
         filters={filters}
         onFiltersChange={(next) => {
           setFilters(next);
-          setSavedQueryEnabled(false);
+          setActivePreset("all");
         }}
-        onRunSavedQuery={() => setSavedQueryEnabled(true)}
-        savedQueryLoading={savedQuery.isFetching}
+        activePreset={activePreset}
+        onPresetChange={setActivePreset}
       />
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <PropertyTable
             rows={visibleRows}
-            total={savedQueryEnabled ? savedQuery.data?.rows.length ?? 0 : listQuery.data?.total ?? 0}
-            loading={savedQueryEnabled ? savedQuery.isFetching : listQuery.isFetching}
+            total={activePreset === "high-value" ? savedQuery.data?.rows.length ?? 0 : listQuery.data?.total ?? 0}
+            loading={activePreset === "high-value" ? savedQuery.isFetching : listQuery.isFetching}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
