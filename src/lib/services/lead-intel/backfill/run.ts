@@ -114,31 +114,35 @@ export async function runInternalBackfill(params: {
         data: { trackedPropertyId: resolution.trackedPropertyId },
       });
 
-      // Roof age signal
-      await writeSignals(
-        [
-          extractRoofAge({
-            trackedPropertyId: resolution.trackedPropertyId,
-            sourceType: "customer",
-            sourceRecordedAt: c.updatedAt,
-            ingestionRunId: ctx.runId,
-            roofAge: c.roofAge,
-            yearBuilt: c.yearBuilt,
-          }),
-        ],
-        ctx.runId,
-        stats,
-      );
+      // Only write signals when the source record was newly created
+      // to prevent duplicate signal rows on backfill re-runs
+      if (resolution.created) {
+        // Roof age signal
+        await writeSignals(
+          [
+            extractRoofAge({
+              trackedPropertyId: resolution.trackedPropertyId,
+              sourceType: "customer",
+              sourceRecordedAt: c.updatedAt,
+              ingestionRunId: ctx.runId,
+              roofAge: c.roofAge,
+              yearBuilt: c.yearBuilt,
+            }),
+          ],
+          ctx.runId,
+          stats,
+        );
 
-      // Nearby Guardian wins signal (needs coordinates)
-      if (c.latitude != null && c.longitude != null) {
-        const winDrafts = await extractNeighborWins({
-          trackedPropertyId: resolution.trackedPropertyId,
-          ingestionRunId: ctx.runId,
-          latitude: c.latitude,
-          longitude: c.longitude,
-        });
-        await writeSignals(winDrafts, ctx.runId, stats);
+        // Nearby Guardian wins signal (needs coordinates)
+        if (c.latitude != null && c.longitude != null) {
+          const winDrafts = await extractNeighborWins({
+            trackedPropertyId: resolution.trackedPropertyId,
+            ingestionRunId: ctx.runId,
+            latitude: c.latitude,
+            longitude: c.longitude,
+          });
+          await writeSignals(winDrafts, ctx.runId, stats);
+        }
       }
     }
 
@@ -166,6 +170,7 @@ export async function runInternalBackfill(params: {
         ? null
         : `${w.latitude?.toFixed(5) ?? "?"},${w.longitude?.toFixed(5) ?? "?"}`;
       let trackedPropertyId: string | null = null;
+      let sourceRecordCreated = false;
 
       if (w.customerId) {
         // Short-circuit via the Customer bridge FK (set above)
@@ -174,6 +179,7 @@ export async function runInternalBackfill(params: {
           select: { trackedPropertyId: true },
         });
         trackedPropertyId = cust?.trackedPropertyId ?? null;
+        // Customer bridge path: property already existed, no new source record
       }
 
       if (!trackedPropertyId && address) {
@@ -196,6 +202,7 @@ export async function runInternalBackfill(params: {
           longitude: w.longitude,
         });
         trackedPropertyId = resolution.trackedPropertyId;
+        sourceRecordCreated = resolution.created;
         if (resolution.created) stats.propertiesCreated += 1;
         else stats.propertiesMatched += 1;
       }
@@ -207,22 +214,26 @@ export async function runInternalBackfill(params: {
           where: { id: w.id },
           data: { trackedPropertyId },
         });
-        await writeSignals(
-          [
-            extractStormExposure({
-              trackedPropertyId,
-              ingestionRunId: ctx.runId,
-              weatherEventId: w.id,
-              eventDate: w.eventDate,
-              severity: w.severity,
-              eventType: w.eventType,
-              hailSize: w.hailSize,
-              windSpeed: w.windSpeed,
-            }),
-          ],
-          ctx.runId,
-          stats,
-        );
+        // Only write signals when the source record was newly created
+        // to prevent duplicate signal rows on backfill re-runs
+        if (sourceRecordCreated) {
+          await writeSignals(
+            [
+              extractStormExposure({
+                trackedPropertyId,
+                ingestionRunId: ctx.runId,
+                weatherEventId: w.id,
+                eventDate: w.eventDate,
+                severity: w.severity,
+                eventType: w.eventType,
+                hailSize: w.hailSize,
+                windSpeed: w.windSpeed,
+              }),
+            ],
+            ctx.runId,
+            stats,
+          );
+        }
       } else {
         stats.recordsSkipped += 1;
       }
@@ -270,39 +281,43 @@ export async function runInternalBackfill(params: {
         data: { trackedPropertyId: resolution.trackedPropertyId },
       });
 
-      // Canvassing recency signal
-      if (p.knockedAt) {
+      // Only write signals when the source record was newly created
+      // to prevent duplicate signal rows on backfill re-runs
+      if (resolution.created) {
+        // Canvassing recency signal
+        if (p.knockedAt) {
+          await writeSignals(
+            [
+              extractCanvassingRecency({
+                trackedPropertyId: resolution.trackedPropertyId,
+                ingestionRunId: ctx.runId,
+                canvassingPinId: p.id,
+                knockedAt: p.knockedAt,
+                outcome: p.outcome,
+                status: p.status,
+              }),
+            ],
+            ctx.runId,
+            stats,
+          );
+        }
+
+        // Roof age from canvassing observation
         await writeSignals(
           [
-            extractCanvassingRecency({
+            extractRoofAge({
               trackedPropertyId: resolution.trackedPropertyId,
+              sourceType: "canvassing-pin",
+              sourceRecordedAt: p.updatedAt,
               ingestionRunId: ctx.runId,
-              canvassingPinId: p.id,
-              knockedAt: p.knockedAt,
-              outcome: p.outcome,
-              status: p.status,
+              roofAge: p.roofAge,
+              yearBuilt: p.yearBuilt,
             }),
           ],
           ctx.runId,
           stats,
         );
       }
-
-      // Roof age from canvassing observation
-      await writeSignals(
-        [
-          extractRoofAge({
-            trackedPropertyId: resolution.trackedPropertyId,
-            sourceType: "canvassing-pin",
-            sourceRecordedAt: p.updatedAt,
-            ingestionRunId: ctx.runId,
-            roofAge: p.roofAge,
-            yearBuilt: p.yearBuilt,
-          }),
-        ],
-        ctx.runId,
-        stats,
-      );
     }
 
     // --- Interactions (MOST RECENT per customer only) ---
@@ -326,19 +341,30 @@ export async function runInternalBackfill(params: {
         continue;
       }
       stats.recordsWritten += 1;
-      await writeSignals(
-        [
-          extractContactRecency({
-            trackedPropertyId: cust.trackedPropertyId,
-            ingestionRunId: ctx.runId,
-            customerId: i.customerId,
-            latestInteractionId: i.id,
-            latestInteractionAt: i.createdAt,
-          }),
-        ],
-        ctx.runId,
-        stats,
-      );
+      // Guard against duplicate signals on re-runs: only write if no
+      // crm-contact-recency signal exists yet for this tracked property
+      const existingSignal = await prisma.propertySignalEvent.findFirst({
+        where: {
+          trackedPropertyId: cust.trackedPropertyId,
+          signalType: "crm-contact-recency",
+        },
+        select: { id: true },
+      });
+      if (!existingSignal) {
+        await writeSignals(
+          [
+            extractContactRecency({
+              trackedPropertyId: cust.trackedPropertyId,
+              ingestionRunId: ctx.runId,
+              customerId: i.customerId,
+              latestInteractionId: i.id,
+              latestInteractionAt: i.createdAt,
+            }),
+          ],
+          ctx.runId,
+          stats,
+        );
+      }
     }
 
     // --- PropertyData (bridge FK + roof-age signal) ---
@@ -377,19 +403,23 @@ export async function runInternalBackfill(params: {
         data: { trackedPropertyId: resolution.trackedPropertyId },
       });
 
-      await writeSignals(
-        [
-          extractRoofAge({
-            trackedPropertyId: resolution.trackedPropertyId,
-            sourceType: "property-data",
-            sourceRecordedAt: pd.updatedAt,
-            ingestionRunId: ctx.runId,
-            yearBuilt: pd.yearBuilt,
-          }),
-        ],
-        ctx.runId,
-        stats,
-      );
+      // Only write signals when the source record was newly created
+      // to prevent duplicate signal rows on backfill re-runs
+      if (resolution.created) {
+        await writeSignals(
+          [
+            extractRoofAge({
+              trackedPropertyId: resolution.trackedPropertyId,
+              sourceType: "property-data",
+              sourceRecordedAt: pd.updatedAt,
+              ingestionRunId: ctx.runId,
+              yearBuilt: pd.yearBuilt,
+            }),
+          ],
+          ctx.runId,
+          stats,
+        );
+      }
     }
 
     // --- Refresh denormalized aggregates on TrackedProperty ---
