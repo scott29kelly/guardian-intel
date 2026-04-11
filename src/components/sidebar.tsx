@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Building2,
   Layers,
+  Crosshair,
   type LucideIcon,
 } from "lucide-react";
 
@@ -91,6 +92,11 @@ const navigation: NavItem[] = [
     name: "Decks",
     href: "/decks",
     icon: Layers,
+  },
+  {
+    name: "Lead Generator",
+    href: "/pipeline",
+    icon: Crosshair,
   },
 ];
 
