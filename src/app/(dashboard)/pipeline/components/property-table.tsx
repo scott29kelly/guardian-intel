@@ -27,26 +27,26 @@ function formatScore(s: number | null): string {
 export function PropertyTable(props: PropertyTableProps) {
   if (props.loading && props.rows.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+      <div className="rounded-lg border border-border bg-surface-primary p-8 text-center text-sm text-text-muted">
         Loading tracked properties\u2026
       </div>
     );
   }
   if (!props.loading && props.rows.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+      <div className="rounded-lg border border-border bg-surface-primary p-8 text-center text-sm text-text-muted">
         No tracked properties match the current filters.
       </div>
     );
   }
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface-primary shadow-warm-sm">
+      <div className="border-b border-border bg-surface-secondary px-4 py-2 text-xs text-text-secondary">
         Showing {props.rows.length} of {props.total.toLocaleString()} properties
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+        <table className="min-w-full divide-y divide-border text-sm">
+          <thead className="bg-surface-secondary text-xs uppercase tracking-wider text-text-muted">
             <tr>
               <th className="px-3 py-2 text-left">Address</th>
               <th className="px-3 py-2 text-left">City / ZIP</th>
@@ -56,30 +56,30 @@ export function PropertyTable(props: PropertyTableProps) {
               <th className="px-3 py-2 text-left">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-border/50">
             {props.rows.map((row) => {
               const selected = row.id === props.selectedId;
               return (
                 <tr
                   key={row.id}
-                  className={`cursor-pointer hover:bg-slate-50 ${selected ? "bg-[#1E3A5F]/5" : ""}`}
+                  className={`cursor-pointer transition-colors hover:bg-surface-hover ${selected ? "bg-accent-primary/10" : ""}`}
                   onClick={() => props.onSelect(row.id)}
                 >
-                  <td className="px-3 py-2 font-medium text-slate-900">{row.address}</td>
-                  <td className="px-3 py-2 text-slate-600">
+                  <td className="px-3 py-2 font-medium text-text-primary">{row.address}</td>
+                  <td className="px-3 py-2 text-text-secondary">
                     {row.city}, {row.state} {row.zipCode}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold text-[#1E3A5F]">
+                  <td className="px-3 py-2 text-right font-semibold text-accent-primary">
                     {formatScore(row.latestScore)}
                   </td>
-                  <td className="px-3 py-2 text-right text-slate-600">{row.signalCount}</td>
-                  <td className="px-3 py-2 text-slate-600">{formatDate(row.lastSignalAt)}</td>
+                  <td className="px-3 py-2 text-right text-text-secondary">{row.signalCount}</td>
+                  <td className="px-3 py-2 text-text-secondary">{formatDate(row.lastSignalAt)}</td>
                   <td className="px-3 py-2">
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-xs ${
                         row.resolutionStatus === "pending_review"
-                          ? "bg-[#D4A656]/20 text-[#D4A656]"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-accent-warning/20 text-accent-warning"
+                          : "bg-surface-secondary text-text-secondary"
                       }`}
                     >
                       {row.resolutionStatus}

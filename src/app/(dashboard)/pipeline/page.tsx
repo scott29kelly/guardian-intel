@@ -73,8 +73,8 @@ export default function PipelineInspectorPage() {
   return (
     <div className="flex h-full flex-col gap-4 p-4 md:p-6">
       <div>
-        <h1 className="text-xl font-bold text-[#1E3A5F]">Pipeline Inspector</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-xl font-bold text-text-primary">Pipeline Inspector</h1>
+        <p className="text-sm text-text-muted">
           Lead Generation Machine — property-first intelligence backbone (Phase 8 / Foundation).
         </p>
       </div>

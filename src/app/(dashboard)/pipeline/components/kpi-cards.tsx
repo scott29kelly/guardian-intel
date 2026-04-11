@@ -12,21 +12,21 @@
 interface KpiCardProps {
   label: string;
   value: number | string;
-  accent?: "navy" | "gold" | "teal" | "slate";
+  accent?: "primary" | "secondary" | "warning" | "muted";
 }
 
-function KpiCard({ label, value, accent = "navy" }: KpiCardProps) {
+function KpiCard({ label, value, accent = "primary" }: KpiCardProps) {
   const accentClasses: Record<string, string> = {
-    navy: "border-[#1E3A5F] text-[#1E3A5F]",
-    gold: "border-[#D4A656] text-[#D4A656]",
-    teal: "border-[#4A90A4] text-[#4A90A4]",
-    slate: "border-slate-400 text-slate-600",
+    primary: "border-accent-primary text-accent-primary",
+    secondary: "border-accent-secondary text-accent-secondary",
+    warning: "border-accent-warning text-accent-warning",
+    muted: "border-border-hover text-text-secondary",
   };
   return (
     <div
-      className={`rounded-lg border-l-4 bg-white p-4 shadow-sm ${accentClasses[accent]}`}
+      className={`rounded-lg border-l-4 bg-surface-primary border border-border p-4 shadow-warm-sm ${accentClasses[accent]}`}
     >
-      <div className="text-xs uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-text-muted">{label}</div>
       <div className="mt-1 text-2xl font-semibold">{value}</div>
     </div>
   );
@@ -44,10 +44,10 @@ export function KpiCards(props: KpiCardsProps) {
   const fmt = (n: number) => (props.loading ? "\u2014" : n.toLocaleString());
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <KpiCard label="Total tracked" value={fmt(props.totalTracked)} accent="navy" />
-      <KpiCard label="Scored last 24h" value={fmt(props.scoredLast24h)} accent="teal" />
-      <KpiCard label="Pending resolutions" value={fmt(props.pendingResolutions)} accent="gold" />
-      <KpiCard label="Outcomes this week" value={fmt(props.outcomesThisWeek)} accent="slate" />
+      <KpiCard label="Total tracked" value={fmt(props.totalTracked)} accent="primary" />
+      <KpiCard label="Scored last 24h" value={fmt(props.scoredLast24h)} accent="secondary" />
+      <KpiCard label="Pending resolutions" value={fmt(props.pendingResolutions)} accent="warning" />
+      <KpiCard label="Outcomes this week" value={fmt(props.outcomesThisWeek)} accent="muted" />
     </div>
   );
 }

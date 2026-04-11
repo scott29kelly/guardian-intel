@@ -8,24 +8,24 @@ export interface ScoreExplanationProps {
 
 export function ScoreExplanation(props: ScoreExplanationProps) {
   if (!props.latestSnapshot) {
-    return <p className="text-sm text-slate-500">No score snapshot yet.</p>;
+    return <p className="text-sm text-text-muted">No score snapshot yet.</p>;
   }
   let contributions: LeadIntelScoreContribution[] = [];
   try {
     contributions = JSON.parse(props.latestSnapshot.contributions);
   } catch {
-    return <p className="text-sm text-rose-600">Failed to parse score contributions.</p>;
+    return <p className="text-sm text-accent-danger">Failed to parse score contributions.</p>;
   }
   const sorted = [...contributions].sort((a, b) => b.effectiveWeight - a.effectiveWeight);
   return (
     <div>
       <div className="mb-3 flex items-baseline justify-between">
         <div>
-          <div className="text-xs uppercase tracking-wider text-slate-500">Latest score</div>
-          <div className="text-3xl font-bold text-[#1E3A5F]">
+          <div className="text-xs uppercase tracking-wider text-text-muted">Latest score</div>
+          <div className="text-3xl font-bold text-accent-primary">
             {props.latestSnapshot.totalScore.toFixed(1)}
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-text-muted">
             formula {props.latestSnapshot.formulaVersion} • evaluated{" "}
             {new Date(props.latestSnapshot.evaluatedAt).toLocaleString()}
           </div>
@@ -35,16 +35,16 @@ export function ScoreExplanation(props: ScoreExplanationProps) {
         {sorted.map((c) => (
           <li
             key={c.signalEventId}
-            className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+            className="flex items-center justify-between rounded border border-border bg-surface-secondary px-2 py-1 text-xs"
           >
             <div className="flex-1">
-              <div className="font-medium text-slate-800">{c.signalType}</div>
-              <div className="text-slate-500">
+              <div className="font-medium text-text-primary">{c.signalType}</div>
+              <div className="text-text-muted">
                 base {c.baseWeight.toFixed(1)} × rel {c.reliabilityWeight.toFixed(2)} × decay{" "}
                 {c.decayFactor.toFixed(3)} (age {c.ageDays.toFixed(0)}d / half-life {c.halfLifeDays}d)
               </div>
             </div>
-            <div className="ml-3 tabular-nums font-semibold text-[#1E3A5F]">
+            <div className="ml-3 tabular-nums font-semibold text-accent-primary">
               {c.effectiveWeight.toFixed(2)}
             </div>
           </li>

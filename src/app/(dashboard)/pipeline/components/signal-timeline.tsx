@@ -7,16 +7,16 @@ export interface SignalTimelineProps {
 }
 
 const SIGNAL_COLOR: Record<string, string> = {
-  "roof-age": "bg-[#1E3A5F]",
-  "storm-exposure": "bg-[#4A90A4]",
-  "canvassing-recency": "bg-[#D4A656]",
-  "crm-contact-recency": "bg-slate-500",
-  "neighbor-win": "bg-emerald-600",
+  "roof-age": "bg-accent-primary",
+  "storm-exposure": "bg-accent-secondary",
+  "canvassing-recency": "bg-accent-warning",
+  "crm-contact-recency": "bg-text-muted",
+  "neighbor-win": "bg-accent-success",
 };
 
 export function SignalTimeline(props: SignalTimelineProps) {
   if (props.signals.length === 0) {
-    return <p className="text-sm text-slate-500">No signals yet.</p>;
+    return <p className="text-sm text-text-muted">No signals yet.</p>;
   }
   const sorted = [...props.signals].sort(
     (a, b) => new Date(b.eventTimestamp).getTime() - new Date(a.eventTimestamp).getTime(),
@@ -24,20 +24,20 @@ export function SignalTimeline(props: SignalTimelineProps) {
   return (
     <ol className="space-y-2">
       {sorted.slice(0, 50).map((s) => (
-        <li key={s.id} className="flex items-start gap-3 rounded border border-slate-200 bg-white p-2">
+        <li key={s.id} className="flex items-start gap-3 rounded border border-border bg-surface-primary p-2">
           <div
             className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${
-              SIGNAL_COLOR[s.signalType] ?? "bg-slate-400"
+              SIGNAL_COLOR[s.signalType] ?? "bg-text-muted"
             }`}
           />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-medium text-slate-800">{s.signalType}</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs font-medium text-text-primary">{s.signalType}</div>
+              <div className="text-xs text-text-muted">
                 {new Date(s.eventTimestamp).toLocaleDateString()}
               </div>
             </div>
-            <div className="mt-0.5 text-xs text-slate-500">
+            <div className="mt-0.5 text-xs text-text-muted">
               base {s.baseWeight.toFixed(1)} × reliability {s.reliabilityWeight.toFixed(2)} • half-life{" "}
               {s.halfLifeDays}d{s.value != null ? ` • value ${s.value}` : ""}
             </div>
@@ -45,7 +45,7 @@ export function SignalTimeline(props: SignalTimelineProps) {
         </li>
       ))}
       {sorted.length > 50 && (
-        <li className="text-xs italic text-slate-400">+{sorted.length - 50} more signals</li>
+        <li className="text-xs italic text-text-muted">+{sorted.length - 50} more signals</li>
       )}
     </ol>
   );

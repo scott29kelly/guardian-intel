@@ -35,13 +35,13 @@ export function FilterBar(props: FilterBarProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-primary p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <div>
-          <label className="block text-xs font-medium text-slate-600">Min score</label>
+          <label className="block text-xs font-medium text-text-secondary">Min score</label>
           <input
             type="number"
-            className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded border border-border bg-surface-primary px-2 py-1 text-sm text-text-primary focus:border-accent-primary focus:outline-none"
             value={local.minScore ?? ""}
             onChange={(e) =>
               setLocal({ ...local, minScore: e.target.value ? Number(e.target.value) : undefined })
@@ -49,10 +49,10 @@ export function FilterBar(props: FilterBarProps) {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600">Max score</label>
+          <label className="block text-xs font-medium text-text-secondary">Max score</label>
           <input
             type="number"
-            className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded border border-border bg-surface-primary px-2 py-1 text-sm text-text-primary focus:border-accent-primary focus:outline-none"
             value={local.maxScore ?? ""}
             onChange={(e) =>
               setLocal({ ...local, maxScore: e.target.value ? Number(e.target.value) : undefined })
@@ -60,26 +60,26 @@ export function FilterBar(props: FilterBarProps) {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600">ZIP</label>
+          <label className="block text-xs font-medium text-text-secondary">ZIP</label>
           <input
             type="text"
-            className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded border border-border bg-surface-primary px-2 py-1 text-sm text-text-primary focus:border-accent-primary focus:outline-none"
             value={local.zipCode ?? ""}
             onChange={(e) => setLocal({ ...local, zipCode: e.target.value || undefined })}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600">State</label>
+          <label className="block text-xs font-medium text-text-secondary">State</label>
           <input
             type="text"
-            className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded border border-border bg-surface-primary px-2 py-1 text-sm text-text-primary focus:border-accent-primary focus:outline-none"
             value={local.state ?? ""}
             onChange={(e) => setLocal({ ...local, state: e.target.value || undefined })}
           />
         </div>
       </div>
       <div>
-        <div className="text-xs font-medium text-slate-600">Signal types</div>
+        <div className="text-xs font-medium text-text-secondary">Signal types</div>
         <div className="mt-2 flex flex-wrap gap-2">
           {SIGNAL_TYPES.map((s) => {
             const active = local.signalTypes?.includes(s);
@@ -88,10 +88,10 @@ export function FilterBar(props: FilterBarProps) {
                 key={s}
                 type="button"
                 onClick={() => toggleSignal(s)}
-                className={`rounded-full border px-3 py-1 text-xs ${
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                   active
-                    ? "border-[#1E3A5F] bg-[#1E3A5F] text-white"
-                    : "border-slate-300 bg-white text-slate-600"
+                    ? "border-accent-primary bg-accent-primary text-white"
+                    : "border-border bg-surface-secondary text-text-secondary hover:bg-surface-hover"
                 }`}
               >
                 {s}
@@ -101,7 +101,7 @@ export function FilterBar(props: FilterBarProps) {
         </div>
       </div>
       <div className="flex items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-xs text-slate-600">
+        <label className="flex items-center gap-2 text-xs text-text-secondary">
           <input
             type="checkbox"
             checked={local.hasPendingResolution ?? false}
@@ -115,14 +115,14 @@ export function FilterBar(props: FilterBarProps) {
           <button
             type="button"
             onClick={reset}
-            className="rounded border border-slate-300 bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-50"
+            className="rounded border border-border bg-surface-primary px-3 py-1 text-xs text-text-secondary hover:bg-surface-hover transition-colors"
           >
             Reset
           </button>
           <button
             type="button"
             onClick={apply}
-            className="rounded bg-[#1E3A5F] px-3 py-1 text-xs text-white hover:bg-[#162a44]"
+            className="rounded bg-accent-primary px-3 py-1 text-xs text-white hover:opacity-90 transition-opacity"
           >
             Apply filters
           </button>
@@ -130,7 +130,7 @@ export function FilterBar(props: FilterBarProps) {
             type="button"
             onClick={props.onRunSavedQuery}
             disabled={props.savedQueryLoading}
-            className="rounded bg-[#D4A656] px-3 py-1 text-xs text-white hover:bg-[#b88f44] disabled:opacity-60"
+            className="rounded bg-accent-warning px-3 py-1 text-xs text-white hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             {props.savedQueryLoading ? "Running\u2026" : "Run saved query: high-value roof+storm+neighbor"}
           </button>
