@@ -134,7 +134,7 @@ export interface PropertyDetail {
   }>;
 }
 
-export async function getPropertyDetail(id: string): Promise<PropertyDetail | null> {
+export async function getPropertyDetail(id: string, _recomputed = false): Promise<PropertyDetail | null> {
   const property = await prisma.trackedProperty.findUnique({
     where: { id },
     include: {
@@ -160,17 +160,20 @@ export async function getPropertyDetail(id: string): Promise<PropertyDetail | nu
 
   // Lazy recomputation: if the latest signal is newer than the latest
   // snapshot (or no snapshot exists), recompute on read.
+  // Guard: only recurse once to prevent infinite loops from clock skew
+  // or computeScoreSnapshot failing to advance the evaluatedAt timestamp.
   const latestSnapshot = property.scoreSnapshots[0] ?? null;
   const latestSignalAt =
     property.signalEvents[0]?.eventTimestamp ?? property.lastSignalAt ?? null;
   const shouldRecompute =
-    !latestSnapshot ||
-    (latestSignalAt && latestSignalAt > latestSnapshot.evaluatedAt);
+    !_recomputed &&
+    (!latestSnapshot ||
+      (latestSignalAt && latestSignalAt > latestSnapshot.evaluatedAt));
 
   if (shouldRecompute) {
     await computeScoreSnapshot(id);
-    // Re-read the property so the caller gets the fresh snapshot
-    return getPropertyDetail(id);
+    // Re-read the property so the caller gets the fresh snapshot (guard: only one retry)
+    return getPropertyDetail(id, true);
   }
 
   return {
