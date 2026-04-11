@@ -16,6 +16,8 @@ import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Loader2, MessageSquare, LayoutGrid, Palette } from "lucide-react";
 import { SlideLightbox, ZoomOverlay, type LightboxImage } from "@/features/deck-generator/components/SlideLightbox";
+import { GenerateArtifactsButton } from "@/features/multi-artifact";
+import { useCustomerArtifacts } from "@/lib/hooks";
 import type {
   GenerationMode,
   InfographicAudience,
@@ -59,6 +61,7 @@ export function InfographicGeneratorModal({
 }: InfographicGeneratorModalProps) {
   const { isGenerating, progress, result, error, generate, reset } =
     useInfographicGeneration(customerId);
+  const { generate: generateArtifacts, isGenerating: isGeneratingArtifacts } = useCustomerArtifacts(customerId);
 
   // UI state
   const [activeTab, setActiveTab] = useState<GenerationMode>("preset");
@@ -286,6 +289,19 @@ export function InfographicGeneratorModal({
                   <p className="text-sm font-medium text-text-primary text-center py-8">
                     Your briefing is ready!
                   </p>
+                )}
+
+                {/* Multi-artifact generation per D-11 */}
+                {customerId && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-text-muted mb-2">Generate all artifact types:</p>
+                    <GenerateArtifactsButton
+                      customerId={customerId}
+                      onGenerate={(artifacts) => generateArtifacts({ customerId, artifacts })}
+                      isGenerating={isGeneratingArtifacts}
+                      variant="inline"
+                    />
+                  </div>
                 )}
               </div>
             )}

@@ -1,18 +1,25 @@
-# Roadmap: Infographic Generator
+# Roadmap: Infographic Generator + NotebookLM Multi-Artifact
 
-**Milestone:** v1 - AI-powered visual briefing generator
+**Milestone:** v1.1 - NotebookLM Multi-Artifact + UI Loops (current)
+**Previous Milestone:** v1 - AI-powered visual briefing generator (Phases 1-7, complete)
 **Granularity:** Standard
-**Total Phases:** 6
-**Total Requirements:** 29
+**Total Phases:** 12 (7 v1.0 + 5 v1.1 including one stretch)
+**Total Requirements:** 47 (29 v1.0 + 18 v1.1)
 
 ## Phases
 
-- [ ] **Phase 1: Foundation + Model Intelligence** - Verify existing code (types, branding, model registry, adapter, router), commit as baseline
-- [ ] **Phase 2: Data Layer** - Data assembler, prompt composer, and intent parser for content pipeline
-- [ ] **Phase 3: Templates** - All 5 infographic presets plus template index and helpers
-- [ ] **Phase 4: Generation Engine** - Orchestrator service, API routes, and cache layer
+- [x] **Phase 1: Foundation + Model Intelligence** - Verify existing code (types, branding, model registry, adapter, router), commit as baseline
+- [x] **Phase 2: Data Layer** - Data assembler, prompt composer, and intent parser for content pipeline
+- [x] **Phase 3: Templates** - All 5 infographic presets plus template index and helpers
+- [x] **Phase 4: Generation Engine** - Orchestrator service, API routes, and cache layer
 - [x] **Phase 5: Hooks + UI** - React hooks and all UI components for the generation experience
 - [x] **Phase 6: Integration + Polish** - Wire into existing app surfaces, offline support, and tests
+- [x] **Phase 7: Cleanup + Hardening** - Data integrity bugs, rep-ownership authorization, NotebookLM operational hardening
+- [ ] **Phase 8: Multi-Artifact Backend** - Prisma model, orchestrator, API routes, storage paths, and stuck-job recovery for per-artifact job tracking
+- [ ] **Phase 9: Multi-Artifact UI** - CustomerArtifactsPanel with 2x2 grid, audio player, report viewer, and customer profile wiring
+- [ ] **Phase 10: Push Notification Flow** - Mount prompt component with heuristic trigger, wire per-artifact push events through service worker
+- [ ] **Phase 11: Testing** - Unit tests for orchestrator + hook + components, E2E test for full rep-fires-multi-artifact flow
+- [ ] **Phase 12 (Stretch): Proposals UI** - Optional rep-facing proposal generation flow, only if primary scope lands under budget
 
 ## Phase Details
 
@@ -83,6 +90,7 @@ Plans:
   4. Preview component supports pinch-to-zoom, share sheet offers SMS/email/link, and batch view displays a swipeable card stack
   5. Conversational input accepts natural language with suggested topic chips
 **Plans:** 4 plans
+**UI hint**: yes
 Plans:
 - [x] 05-01-PLAN.md -- React hooks: useInfographicGeneration, useInfographicBatch, useInfographicPresets (INFOG-016, INFOG-017, INFOG-018)
 - [x] 05-02-PLAN.md -- Generator modal with three-mode tabs, PresetSelector, and TopicPicker (INFOG-019, INFOG-020)
@@ -100,28 +108,92 @@ Plans:
   4. Offline mode caches generated PNGs via service worker, prompts on WiFi awareness, and offers regeneration when back online
   5. Unit tests cover model scoring, data assembler metrics, prompt templates, and intent classification; E2E tests cover generation flows and sharing
 **Plans:** 3 plans
+**UI hint**: yes
 Plans:
 - [x] 06-01-PLAN.md -- App surface integration: customer card button, dashboard Prep My Day, profile modal tab (INFOG-024, INFOG-025, INFOG-026)
 - [x] 06-02-PLAN.md -- Offline support: service worker PNG caching, WiFi awareness utilities (INFOG-027)
 - [x] 06-03-PLAN.md -- Tests: unit tests for model intelligence, prompt composer, intent parser + E2E generation flows (INFOG-028, INFOG-029)
 
-### Phase 8: Lead Generation Pipeline Foundation
-**Goal**: Stand up a property-first intelligence backbone — canonical `TrackedProperty` entities, immutable source-record and provenance layer, temporal signal events with decay metadata, explainable rule-based score snapshots, outcome feedback, PostGIS-backed spatial queries, n8n ingest contract (no external connectors yet), backfill from existing internal data (`Customer`, `WeatherEvent`, `CanvassingPin`, `Interaction`, `PropertyData`), and a minimal Pipeline Inspector page. Phase 1 of the Lead Generation Machine roadmap from `C:\Users\scott\Documents\business\concepts\lead-generation-machine\Lead_Generation_Machine - app idea overview.docx`. Does NOT include external source connectors, learned weights, outreach automation, or ML scoring — those are Phases 2-4 of the lead-gen roadmap.
-**Depends on**: Phase 7 (merge-clean baseline; no shared code)
-**Requirements**: LG-01, LG-02, LG-03, LG-04, LG-05, LG-06, LG-07, LG-08, LG-09, LG-10
-**Success Criteria** (what must be TRUE):
-  1. New Prisma models (`TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent`) plus nullable `trackedPropertyId` bridge fields exist on `Customer`, `WeatherEvent`, `CanvassingPin`, `PropertyData`, and the migration enables `postgis`, adds `geography(Point,4326)` on `TrackedProperty.location`, and creates a GIST index that `ST_DWithin` queries against
-  2. `src/lib/services/lead-intel/` exists with `normalization`, `entity-resolution`, `ingest`, `backfill`, `queries`, `spatial`, `scoring` subdirectories; no cross-imports with existing `src/lib/services/scoring/` or `src/lib/services/property/`
-  3. Internal-data backfill from `Customer`, `WeatherEvent`, `CanvassingPin`, `Interaction`, and `PropertyData` produces `TrackedProperty` rows with `PropertySourceRecord` provenance, `PropertySignalEvent` rows with decay metadata, and explainable `PropertyScoreSnapshot` rows
-  4. Ingest API (`POST /api/lead-intel/ingest`) authenticates n8n via `LEAD_INTEL_INGEST_SECRET`, list/detail APIs (`GET /api/lead-intel/properties`, `:id`) require NextAuth, backfill API requires admin role, and the doc-aligned saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor 12mo) returns results from backfilled data
-  5. Pipeline Inspector page at `/pipeline` renders KPI cards, filter bar, tracked-property table, and a detail pane showing provenance, signal history, score explanation, and outcome history — without modifying any existing dashboard, customers, outreach, terrain, deck-generator, or sidebar code
-**Plans:** 5 plans
+### Phase 7: Cleanup: data integrity bugs, security hardening, and NotebookLM operational hardening
+
+**Goal:** Fix three tiers of debt in the deck-generator and infographic-generator pipelines: Tier 1 data integrity bugs (claim field drift, fake-sequential batch loop, silent first-user fallback), Tier 2 security hardening (rep-ownership authorization on infographic + deck-status routes, Supabase bucket ACL verification), and Tier 4 NotebookLM operational hardening (stuck-job recovery sweep, cancelable processing jobs, removal of orphaned cron route). Sourced from Codex adversarial review `task-mnp6gcn3-ihhwdf` (2026-04-07).
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 (nine locked decisions from 07-CONTEXT.md — remediation phase, no INFOG-xxx requirement IDs)
+**Depends on:** Phase 6
+**Plans:** 3 plans
+
 Plans:
-- [x] 08-01-PLAN.md -- Schema + migration: `TrackedProperty`, `SourceIngestionRun`, `PropertySourceRecord`, `PropertyResolution`, `PropertySignalEvent`, `PropertyScoreSnapshot`, `PropertyOutcomeEvent` + bridge FKs + PostGIS enablement + GIST indexes (LG-01, LG-02)
-- [x] 08-02-PLAN.md -- `src/lib/services/lead-intel/` service layer: normalization, entity-resolution, ingest, backfill, queries, spatial, scoring with decay math and explainable snapshots (LG-03, LG-04, LG-07)
-- [x] 08-03-PLAN.md -- Ingest/query/outcome APIs + internal backfill script + one saved compound query (roof age 15-25 + 3 storms 36mo + Guardian neighbor win 12mo) + outcome write-back hooks (LG-05, LG-06, LG-08, LG-09)
-- [x] 08-04-PLAN.md -- Pipeline Inspector UI at `/pipeline`: KPIs, filters, tracked-property table, detail pane with provenance/signal history/score explanation/outcomes (LG-10)
-- [x] 08-05-PLAN.md -- Tests: unit (normalization, resolution, decay math, query builders) + API (ingest auth, idempotent re-ingest, backfill stats, radius query, outcome→snapshot refresh) + migration (PostGIS + `ST_DWithin` smoke)
+- [x] 07-01-PLAN.md -- Tier 1: D-01 claim field drift, D-02 sequential batch loop, D-03 strict 401 (data integrity)
+- [x] 07-02-PLAN.md -- Tier 2: D-04/D-05 rep-ownership authorization via assertCustomerAccess, D-06 Supabase bucket ACL verification (security hardening)
+- [x] 07-03-PLAN.md -- Tier 4: D-07 stuck-job recovery sweep, D-08 cancel processing jobs, D-09 delete orphaned cron route (operational hardening)
+
+---
+
+## v1.1 Milestone: NotebookLM Multi-Artifact + UI Loops
+
+Phases 8-12 deliver the v1.1 milestone: turn each NotebookLM notebook run into four rep-ready artifacts (deck, infographic, audio briefing, written report) with a unified rep-facing UI and reliable push notifications so reps don't babysit 3-5 minute background generations. Stretch Phase 12 (Proposals UI) is optional — only if primary scope (Phases 8-11) lands under budget.
+
+### Phase 8: Multi-Artifact Backend
+**Goal**: A single API call produces all four artifacts off one notebook, tracked per-artifact in the database, stored in distinct Supabase paths, and recoverable when any artifact gets stuck
+**Depends on**: Phase 7
+**Requirements**: NLMA-01, NLMA-02, NLMA-03, NLMA-04, NLMA-05, NLMA-06
+**Success Criteria** (what must be TRUE):
+  1. A rep-authorized POST to `/api/ai/generate-customer-artifacts` with `{ customerId, artifacts: ['deck','infographic','audio','report'] }` returns a job ID immediately and begins background generation against a single reused notebook
+  2. Polling the status endpoint returns per-artifact state (`deck`, `infographic`, `audio`, `report` each with `status`, `url`, `progress`, `error`), transitioning from `pending` to `processing` to `ready` independently as each generator finishes
+  3. Each completed artifact lands in its type-specific Supabase path (`decks/`, `infographics/`, `audio/`, `reports/`) with the correct content-type header and a retrievable URL
+  4. A job whose audio artifact hangs in "processing" for more than 15 minutes is swept by the stuck-job recovery pass without clobbering the already-completed deck or infographic in the same job
+  5. Prisma migrations land cleanly against the existing `ScheduledDeck` model or a partnered `ScheduledArtifactSet` table, committed with the schema change and generated client
+**Plans:** TBD
+
+### Phase 9: Multi-Artifact UI
+**Goal**: Reps see all four artifacts for a customer in one mobile-first panel — grid view, inline audio playback, markdown report rendering — and can launch "Generate all artifacts" from the existing customer surfaces
+**Depends on**: Phase 8
+**Requirements**: NLMA-07, NLMA-08, NLMA-09, NLMA-10, NLMA-11
+**Success Criteria** (what must be TRUE):
+  1. `useCustomerArtifacts(customerId)` polls the per-artifact status endpoint, returns a unified TanStack Query state, and stops polling once all four artifacts are in a terminal state
+  2. `CustomerArtifactsPanel` renders a 2x2 responsive grid where each card shows live status (pending/processing/ready/failed), a preview thumbnail, and a tap-to-open action that respects the existing mobile bottom-sheet patterns
+  3. `AudioBriefingPlayer` plays a ready audio briefing inline with Navy/Gold/Teal branded controls sized for mobile thumb use and offers a share action through the existing `ShareSheet`
+  4. `ReportViewer` renders the markdown report with Geist typography and brand palette, scrolls smoothly on mobile, and offers share/download actions
+  5. The customer profile modal, `InfographicGeneratorModal` success state, and customer card all surface the artifacts panel or a "Generate all artifacts" action alongside the existing deck/infographic buttons
+**Plans:** 4 plans
+**UI hint**: yes
+Plans:
+- [x] 09-01-PLAN.md -- Types, artifact config constants, and useCustomerArtifacts polling hook (NLMA-07)
+- [x] 09-02-PLAN.md -- AudioBriefingPlayer and ReportViewer components (NLMA-09, NLMA-10)
+- [x] 09-03-PLAN.md -- ArtifactCard, ArtifactViewerModal, CustomerArtifactsPanel, GenerateArtifactsButton (NLMA-08)
+- [x] 09-04-PLAN.md -- Integration mounts on customer card, profile modal, Decks page, InfographicGeneratorModal (NLMA-11)
+
+### Phase 10: Push Notification Flow
+**Goal**: Reps get reliably prompted to enable push once they've shown intent, and their service worker fires exactly one push notification per job when all requested artifacts have reached a terminal state (per Phase 8 D-10)
+**Depends on**: Phase 8 (backend events must exist to be consumed)
+**Requirements**: NLMA-12, NLMA-13, NLMA-14, NLMA-15
+**Success Criteria** (what must be TRUE):
+  1. `push-notification-prompt.tsx` is mounted in the dashboard layout and never appears on cold load — only after a rep has fired their first background generation in the current session
+  2. A rep who dismisses the prompt does not see it again on reload (persisted via `localStorage`), and a rep who accepts receives the browser permission flow exactly once
+  3. When the backend marks a multi-artifact job as terminal (all requested artifacts reached ready/failed/skipped), `deck-processing.ts::sendArtifactJobCompletionNotification` fires exactly ONE push notification — "All artifacts ready" on success, "Generation finished with errors" on partial failure — and `public/sw.js` surfaces a corresponding toast with the job id as the notification tag. Phase 8 D-10 overrode the original per-artifact notification plan; Phase 10 verifies the single-notification UX and mounts the prompt.
+**Plans:** TBD
+**UI hint**: yes
+
+### Phase 11: Testing
+**Goal**: The multi-artifact pipeline has unit coverage on orchestrator + hook + components and an end-to-end Playwright spec that drives the full rep flow
+**Depends on**: Phases 8, 9, 10 (all primary scope must be wired)
+**Requirements**: NLMA-16, NLMA-17
+**Success Criteria** (what must be TRUE):
+  1. Vitest unit tests cover `generateCustomerArtifacts` orchestrator happy path and failure branches, per-artifact stuck-job recovery edge cases, `useCustomerArtifacts` state transitions, and audio/report component rendering
+  2. Playwright E2E spec drives the full flow: rep fires multi-artifact generation, push notification prompt appears, rep accepts, one toast fires when the job reaches terminal state, `CustomerArtifactsPanel` ends showing all four artifacts viewable
+  3. Test suites run green in CI and fail clearly on regression (orchestrator contract changes, hook state machine drift, UI status rendering)
+**Plans:** TBD
+
+### Phase 12 (Stretch): Proposals UI
+**Goal**: (Optional — only if Phases 8-11 land under budget) Reps can generate, preview, and send a proposal from the customer profile, reusing the existing `src/lib/services/proposals/generator.ts` service
+**Depends on**: Phase 11 (only attempted after primary scope is testing-green)
+**Requirements**: NLMA-18
+**Success Criteria** (what must be TRUE):
+  1. A "Generate proposal" button appears on the customer profile and kicks off generation through the existing `proposals/generator.ts` service without duplicating AI plumbing
+  2. Reps see a proposal preview in a mobile-friendly layout with send/share actions
+  3. The proposal flow reuses existing rep-ownership authorization (`assertCustomerAccess`) and storage patterns — no net-new security surface
+**Plans:** TBD
+**UI hint**: yes
+**Status**: Stretch — only attempt if primary v1.1 scope (Phases 8-11) lands under budget
 
 ## Progress
 
@@ -133,19 +205,13 @@ Plans:
 | 4. Generation Engine | 3/3 | Complete | 2026-03-22 |
 | 5. Hooks + UI | 4/4 | Complete | 2026-03-22 |
 | 6. Integration + Polish | 3/3 | Complete | 2026-03-22 |
-
-### Phase 7: Cleanup: data integrity bugs, security hardening, and NotebookLM operational hardening
-
-**Goal:** Fix three tiers of debt in the deck-generator and infographic-generator pipelines: Tier 1 data integrity bugs (claim field drift, fake-sequential batch loop, silent first-user fallback), Tier 2 security hardening (rep-ownership authorization on infographic + deck-status routes, Supabase bucket ACL verification), and Tier 4 NotebookLM operational hardening (stuck-job recovery sweep, cancelable processing jobs, removal of orphaned cron route). Sourced from Codex adversarial review `task-mnp6gcn3-ihhwdf` (2026-04-07).
-**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 (nine locked decisions from 07-CONTEXT.md — remediation phase, no INFOG-xxx requirement IDs)
-**Depends on:** Phase 6
-**Plans:** 3 plans
-
-Plans:
-- [ ] 07-01-PLAN.md -- Tier 1: D-01 claim field drift, D-02 sequential batch loop, D-03 strict 401 (data integrity)
-- [ ] 07-02-PLAN.md -- Tier 2: D-04/D-05 rep-ownership authorization via assertCustomerAccess, D-06 Supabase bucket ACL verification (security hardening)
-- [ ] 07-03-PLAN.md -- Tier 4: D-07 stuck-job recovery sweep, D-08 cancel processing jobs, D-09 delete orphaned cron route (operational hardening)
+| 7. Cleanup + Hardening | 3/3 | Complete | 2026-04-07 |
+| 8. Multi-Artifact Backend | 0/? | Not started | - |
+| 9. Multi-Artifact UI | 0/4 | Planned | - |
+| 10. Push Notification Flow | 0/? | Not started | - |
+| 11. Testing | 0/? | Not started | - |
+| 12. Proposals UI (Stretch) | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-21*
-*Last updated: 2026-04-09*
+*Last updated: 2026-04-10 — Phase 9 planned (4 plans in 4 waves)*

@@ -35,3 +35,6 @@ export * from "./use-debounce";
 
 // Phase 8 — Lead Intel Pipeline Inspector
 export * from "./use-lead-intel";
+
+// Multi-Artifact
+export * from "./use-customer-artifacts";

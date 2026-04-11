@@ -57,3 +57,6 @@ nul
 
 .vercel
 .env*.local
+
+# Test output (throwaway PDFs/markdown from experiment scripts)
+test-output/
