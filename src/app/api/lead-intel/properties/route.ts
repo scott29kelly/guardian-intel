@@ -32,15 +32,38 @@ export async function GET(request: NextRequest) {
     }
 
     const sp = request.nextUrl.searchParams;
+
+    // Parse and validate numeric query parameters to prevent NaN propagation
+    const minScore = sp.get("minScore") != null ? Number(sp.get("minScore")) : undefined;
+    const maxScore = sp.get("maxScore") != null ? Number(sp.get("maxScore")) : undefined;
+    const limit = sp.get("limit") != null ? Number(sp.get("limit")) : undefined;
+    const offset = sp.get("offset") != null ? Number(sp.get("offset")) : undefined;
+
+    if (
+      (minScore !== undefined && isNaN(minScore)) ||
+      (maxScore !== undefined && isNaN(maxScore)) ||
+      (limit !== undefined && isNaN(limit)) ||
+      (offset !== undefined && isNaN(offset))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation error",
+          details: "minScore, maxScore, limit, and offset must be valid numbers",
+        },
+        { status: 400 },
+      );
+    }
+
     const filters: PropertyListFilters = {
-      minScore: sp.get("minScore") != null ? Number(sp.get("minScore")) : undefined,
-      maxScore: sp.get("maxScore") != null ? Number(sp.get("maxScore")) : undefined,
+      minScore,
+      maxScore,
       signalTypes: sp.get("signalTypes")?.split(",").filter(Boolean),
       hasPendingResolution: sp.get("hasPendingResolution") === "true",
       zipCode: sp.get("zipCode") ?? undefined,
       state: sp.get("state") ?? undefined,
-      limit: sp.get("limit") != null ? Number(sp.get("limit")) : undefined,
-      offset: sp.get("offset") != null ? Number(sp.get("offset")) : undefined,
+      limit,
+      offset,
     };
 
     const result = await listTrackedProperties(filters);

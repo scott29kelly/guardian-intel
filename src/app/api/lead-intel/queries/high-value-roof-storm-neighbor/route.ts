@@ -28,11 +28,34 @@ export async function GET(request: NextRequest) {
       );
     }
     const sp = request.nextUrl.searchParams;
+
+    // Parse and validate numeric query parameters to prevent NaN propagation
+    const neighborRadiusMiles = sp.get("neighborRadiusMiles") != null ? Number(sp.get("neighborRadiusMiles")) : undefined;
+    const stormWindowMonths = sp.get("stormWindowMonths") != null ? Number(sp.get("stormWindowMonths")) : undefined;
+    const neighborWindowMonths = sp.get("neighborWindowMonths") != null ? Number(sp.get("neighborWindowMonths")) : undefined;
+    const limit = sp.get("limit") != null ? Number(sp.get("limit")) : undefined;
+
+    if (
+      (neighborRadiusMiles !== undefined && isNaN(neighborRadiusMiles)) ||
+      (stormWindowMonths !== undefined && isNaN(stormWindowMonths)) ||
+      (neighborWindowMonths !== undefined && isNaN(neighborWindowMonths)) ||
+      (limit !== undefined && isNaN(limit))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation error",
+          details: "neighborRadiusMiles, stormWindowMonths, neighborWindowMonths, and limit must be valid numbers",
+        },
+        { status: 400 },
+      );
+    }
+
     const rows = await highValueRoofStormNeighbor({
-      neighborRadiusMiles: sp.get("neighborRadiusMiles") != null ? Number(sp.get("neighborRadiusMiles")) : undefined,
-      stormWindowMonths: sp.get("stormWindowMonths") != null ? Number(sp.get("stormWindowMonths")) : undefined,
-      neighborWindowMonths: sp.get("neighborWindowMonths") != null ? Number(sp.get("neighborWindowMonths")) : undefined,
-      limit: sp.get("limit") != null ? Number(sp.get("limit")) : undefined,
+      neighborRadiusMiles,
+      stormWindowMonths,
+      neighborWindowMonths,
+      limit,
     });
     return NextResponse.json({ success: true, queryId: "high-value-roof-storm-neighbor", rows });
   } catch (error) {
