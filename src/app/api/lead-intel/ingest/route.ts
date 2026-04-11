@@ -35,7 +35,7 @@ import type {
   IngestStats,
   IngestedSourceRow,
 } from "@/lib/services/lead-intel";
-import { timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const emptyStats = (): IngestStats => ({
   recordsRead: 0,
@@ -47,11 +47,15 @@ const emptyStats = (): IngestStats => ({
   errors: [],
 });
 
+/**
+ * Constant-time string comparison that does not leak input lengths.
+ * Both values are HMAC'd to produce fixed-length digests before comparing,
+ * so the comparison time is independent of the original string lengths.
+ */
 function constantTimeEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
+  const hmacA = createHmac("sha256", "lead-intel-compare").update(a).digest();
+  const hmacB = createHmac("sha256", "lead-intel-compare").update(b).digest();
+  return timingSafeEqual(hmacA, hmacB);
 }
 
 export async function POST(request: NextRequest) {
