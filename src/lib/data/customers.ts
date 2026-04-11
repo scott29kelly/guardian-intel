@@ -326,28 +326,31 @@ export async function bulkUpdateCustomers(
   });
 
   // LG-08: outcome write-back to lead-intel — fire one event per customer
-  // whose stage or status actually changed
+  // whose stage or status actually changed. Uses Promise.allSettled to run
+  // concurrently since each write is independent and best-effort.
   if (outcomeRelevant) {
     const now = new Date();
+    const outcomePromises: Promise<void>[] = [];
     for (const prev of previousRows) {
       if (!prev.trackedPropertyId) continue;
       if (updates.stage && updates.stage !== prev.stage) {
-        await writeOutcomeEvent({
+        outcomePromises.push(writeOutcomeEvent({
           trackedPropertyId: prev.trackedPropertyId,
           eventType: "customer-stage-changed",
           sourceMutationId: `customer:${prev.id}:stage:bulk:${now.toISOString()}`,
           payload: { customerId: prev.id, fromStage: prev.stage, toStage: updates.stage },
-        });
+        }));
       }
       if (updates.status && updates.status !== prev.status) {
-        await writeOutcomeEvent({
+        outcomePromises.push(writeOutcomeEvent({
           trackedPropertyId: prev.trackedPropertyId,
           eventType: "customer-status-changed",
           sourceMutationId: `customer:${prev.id}:status:bulk:${now.toISOString()}`,
           payload: { customerId: prev.id, fromStatus: prev.status, toStatus: updates.status },
-        });
+        }));
       }
     }
+    await Promise.allSettled(outcomePromises);
   }
 
   return { count: result.count };
